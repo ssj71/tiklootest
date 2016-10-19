@@ -2,12 +2,17 @@
 //tikloo toolkit
 
 //tk.h - the public interface for the tikloo toolkit
+#ifndef TK_H
+#define TK_H
 
-typedef void* tk_t;
+#include"tk_types.h"
 
 tk_t gimmeaTikloo();
 
-uint8_t gimmeaWidget(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t r);
+void rollit(tk_t tk);
 
+uint16_t gimmeaWindow(tk_t tk, uint16_t w, uint16_t h, char* title, float dw, float dh, void*(drawing_f)(cairo_t*,void*));
+uint16_t gimmeaWidget(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t r); 
+uint16_t gimmeaDial(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t r, float min, float max, float val, float dw, float dh, void*(drawing_f)(cairo_t*,void*));
 
-uint8_t gimmeaDial(tk_t tk, 
+#endif
