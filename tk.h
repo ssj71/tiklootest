@@ -7,11 +7,10 @@
 
 #include"tk_types.h"
 
-tk_t gimmeaTikloo();
+tk_t gimmeaTikloo( uint16_t w, uint16_t h, char* title, float dw, float dh, void*(drawing_f)(cairo_t*,void*));
 
 void rollit(tk_t tk);
 
-uint16_t gimmeaWindow(tk_t tk, uint16_t w, uint16_t h, char* title, float dw, float dh, void*(drawing_f)(cairo_t*,void*));
 uint16_t gimmeaWidget(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t r); 
 uint16_t gimmeaDial(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t r, float min, float max, float val, float dw, float dh, void*(drawing_f)(cairo_t*,void*));
 
