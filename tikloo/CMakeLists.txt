@@ -5,7 +5,7 @@ find_package(PkgConfig)
 pkg_check_modules(CAIRO cairo REQUIRED)
 #pkg_check_modules(SND sndfile )
 
-list(APPEND TIKLOO_INCLUDE_DIRS ${CAIRO_INCLUDE_DIRS} avtk ) #note this extra reference to avtk is for the parent dir, not here
+list(APPEND TIKLOO_INCLUDE_DIRS ${CAIRO_INCLUDE_DIRS} tikloo ) #note this extra reference to tikloo is for the parent dir, not here
 list(APPEND TIKLOO_LDFLAGS ${CAIRO_LDFLAGS} )
 
 #list(APPEND AVTK_SND_SRC "")
@@ -48,7 +48,7 @@ endif()
 set(TIKLOO_INCLUDE_DIRS ${TIKLOO_INCLUDE_DIRS} PARENT_SCOPE)
 set(TIKLOO_LDFLAGS ${TIKLOO_LDFLAGS} PARENT_SCOPE)
 
-include_directories( ${TIKLOO_INCLUDE_DIRS} ../avtk pugl )
+include_directories( ${TIKLOO_INCLUDE_DIRS} ../tikloo pugl )
 
 
 add_library(tikloo STATIC 

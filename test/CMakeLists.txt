@@ -1,7 +1,7 @@
-#this is just a test, typically the tikloo folder will be next to your source or in a libs dir, but here its actually the parent so this is a bit weird of an example
+#this is just a test, typically the tikloo folder will be next to your source or in a libs dir, but here you must make a symbolic link for it to work (or copy the dir)
 cmake_minimum_required(VERSION 2.8)
 
-add_subdirectory(../tikloo)
+add_subdirectory(tikloo)
 include_directories( ${TIKLOO_INCLUDE_DIRS} )
 
 

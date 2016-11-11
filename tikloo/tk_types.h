@@ -7,6 +7,9 @@
 
 #ifndef TK_TYPES_H
 #define TK_TYPES_H
+#include<stdint.h>
+#include <cairo/cairo.h>
+#include "pugl/pugl.h"
 
 
 struct 
@@ -17,13 +20,13 @@ struct
     void *value;
     char **tip;
     void *(*draw_func)(cairo_t*, void*); //surface, value
-    void *(*callback_func)(event_t, uint16_t);//event, reciever index
+    void *(*callback_func)(PuglEvent, uint16_t);//event, reciever index
     void **extras;
 
     //global stuff
     uint16_t nwidgets;
 }tk_stuff;
 
-typedef tk_t *struct tk_stuff;
+typedef struct tk_stuff* tk_t;
 
 #endif
