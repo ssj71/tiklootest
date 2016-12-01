@@ -7,7 +7,7 @@
 
 #include"tk_types.h"
 
-tk_t gimmeaTikloo( uint16_t w, uint16_t h, char* title, float dw, float dh, void*(drawing_f)(cairo_t*,void*));
+tk_t gimmeaTikloo( uint16_t w, uint16_t h, char* title, float dw, float dh, void(*drawing_f)(cairo_t*,void*));
 
 void rollit(tk_t tk);
 

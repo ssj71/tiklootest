@@ -12,7 +12,7 @@
 #include "pugl/pugl.h"
 
 
-struct 
+typedef struct 
 {
     //table
     uint16_t *x,*y,*w,*h,*r;
@@ -27,6 +27,6 @@ struct
     uint16_t nwidgets;
 }tk_stuff;
 
-typedef struct tk_stuff* tk_t;
+typedef tk_stuff* tk_t;
 
 #endif
