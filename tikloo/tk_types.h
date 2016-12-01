@@ -19,12 +19,13 @@ typedef struct
     uint8_t *layer;
     void *value;
     char **tip;
-    void *(*draw_func)(cairo_t*, void*); //surface, value
-    void *(*callback_func)(PuglEvent, uint16_t);//event, reciever index
+    void (**draw_func)(cairo_t*, void*); //surface, value
+    void (**callback_func)(PuglEvent, uint16_t);//event, reciever index, TODO: need access to this struct, no?
     void **extras;
 
     //global stuff
     uint16_t nwidgets;
+    PuglView* view;
 }tk_stuff;
 
 typedef tk_stuff* tk_t;

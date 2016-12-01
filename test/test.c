@@ -1,7 +1,7 @@
 //spencer jackson
 //the first tests for tikloo
 
-#include"../tk.h"
+#include"tikloo/tk.h"
 
 int main()
 {

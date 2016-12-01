@@ -6,6 +6,7 @@
 //this is approximately based on priciples of data-oriented design, but really doesn't have the performance benefits of DOD since everything is dynamically allocated anyway. The goal is that it will have the coding benefits though.
 
 #include<stdlib.h>
+#include<stdio.h>
 #include<string.h>
 #include"tk.h"
 
@@ -30,8 +31,8 @@ tk_t gimmeaTikloo(uint16_t w, uint16_t h, char* title, float dw, float dh, void(
     tk->tip = (char**)calloc(starter_sz,sizeof(char*));
     tk->extras = (void**)calloc(starter_sz,sizeof(void*));
 
-    tk->draw_func = (void*(*)(cairo_t*,void*))calloc(starter_sz,sizeof(drawing_f));
-    tk->callback_func = calloc(starter_sz,sizeof(callback));
+    tk->draw_func = (void(**)(cairo_t*,void*))calloc(starter_sz,sizeof(drawing_f));
+    tk->callback_func = (void(**)(PuglEvent,uint16_t))calloc(starter_sz,sizeof(&callback));
 
     //now initialize the main window widget
     //TODO: check that everything is nz
@@ -45,32 +46,32 @@ tk_t gimmeaTikloo(uint16_t w, uint16_t h, char* title, float dw, float dh, void(
     tk->draw_func[0] = NULL;//TODO: need a default drawing
 
     tk->nwidgets = 1;
+
+    //start the pugl stuff 
+    PuglView* view = puglInit(NULL, NULL);
+    puglInitWindowClass(view, tk->tip[0]);
+    puglInitWindowSize(view, tk->w[0], tk->h[0]);
+    //puglInitWindowMinSize(view, 256, 256);
+    puglInitResizable(view, 1);
+    
+    puglIgnoreKeyRepeat(view, 0);
+    puglSetEventFunc(view, callback);
+    puglSetHandle(view, tk);
+    puglInitContextType(view, PUGL_CAIRO);//PUGL_CAIRO_GL
+    tk->view = view;
+
+    
+    //all set!
+    puglCreateWindow(view, "Pugl Test"); 
     
     return (tk_t) tk;
 }
 
 void rollit(tk_t tk)
 {
-    //start the pugl stuff
+    uint8_t quit = 0;
+    PuglView* view = tk->view;
 
-
-    PuglView* view = puglInit(NULL, NULL);
-    puglInitWindowClass(view, tk->tip[0]);
-    puglInitWindowSize(view, tk->w[0], tk->h[0]);
-    //puglInitWindowMinSize(view, 256, 256);
-    puglInitResizable(view, resizable);
-    
-    //puglIgnoreKeyRepeat(view, ignoreKeyRepeat);
-    puglSetEventFunc(view, callback);
-    
-    puglCreateWindow(view, "Pugl Test");
-    
-    puglEnterContext(view);
-    glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LESS);
-    glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
-    puglLeaveContext(view, false);
-    
     puglShowWindow(view);
     
     while (!quit) {
@@ -84,6 +85,7 @@ void rollit(tk_t tk)
 
 static void callback (PuglView* view, const PuglEvent* event)
 {
+    //tk_t tk = (tk_t)puglGetHandle(view);
     switch (event->type) {
     case PUGL_NOTHING:
         break;
@@ -127,7 +129,7 @@ static void callback (PuglView* view, const PuglEvent* event)
     case PUGL_SCROLL:
         fprintf(stderr, "Scroll %f %f %f %f ",
                 event->scroll.x, event->scroll.y, event->scroll.dx, event->scroll.dy);
-        printModifiers(view, event->scroll.state);
+        //printModifiers(view, event->scroll.state);
         //dist += event->scroll.dy;
         //if (dist < 10.0f) {
         //    dist = 10.0f;
