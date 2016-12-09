@@ -8,7 +8,7 @@ inline int cairo_code_draw_flatDial_get_height()
 {
     return 30;
 }
-void cairo_code_draw_flatDial_render(cairo_t *cr, uint16_t w, uint16_t h, void* valp)
+void cairo_code_draw_flatDial_render(cairo_t *cr, float w, float h, void* valp)
 { 
     float draw_w=30, draw_h=30,
         scale, shiftx=0,shifty=0,

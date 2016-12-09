@@ -15,13 +15,13 @@
 typedef struct tk_stuff
 {
     //table
-    uint16_t *x,*y,*w,*h,*r;
+    float *x,*y,*w,*h,*r;
     uint8_t *layer;
     void **value;
     char **tip;
-    void (**draw_f)(cairo_t*, uint16_t, uint16_t, void*); //surface, w, h, value
-    void (**cb_f)(struct tk_stuff*, PuglEvent*, uint16_t);//event, reciever index //built in callback
-    void (**callback_f)(struct tk_stuff*, PuglEvent*, uint16_t);//event, reciever index //user callback
+    void (**draw_f)(cairo_t*, float, float, void*); //surface, w, h, value
+    void (**cb_f)(struct tk_stuff*, const PuglEvent*, uint16_t);//event, reciever index //built in callback
+    void (**callback_f)(struct tk_stuff*, const PuglEvent*, uint16_t);//event, reciever index //user callback
     void **extras;
 
     //global stuff
