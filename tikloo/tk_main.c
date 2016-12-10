@@ -87,6 +87,24 @@ void rollit(tk_t tk)
     puglDestroy(view);
 }
 
+void resizeeverything(tk_t tk,float w, float h)
+{
+    uint16_t i;
+    float scalex,scaley;
+    scalex = w/tk->w[0];
+    scaley = h/tk->h[0];
+    tk->w[0] = w;
+    tk->h[0] = h;
+
+    for(i=1;tk->layer[i];i++)
+    {
+        tk->x[i] *= scalex;
+        tk->y[i] *= scaley;
+        tk->w[i] *= scalex;
+        tk->h[i] *= scaley;
+    }
+}
+
 void draweverything(tk_t tk)
 {
     uint16_t i;
@@ -148,9 +166,7 @@ static void callback (PuglView* view, const PuglEvent* event)
     case PUGL_NOTHING:
         break;
     case PUGL_CONFIGURE:
-        //onReshape(view, event->configure.width, event->configure.height);
-        //TODO: resize everything
-        break;
+        resizeeverything(tk,event->configure.width,event->configure.height);
     case PUGL_EXPOSE:
         //onDisplay(view);
         //TODO: draw everything?
@@ -246,7 +262,8 @@ void dial_callback(tk_t tk, const PuglEvent* event, uint16_t n)
     switch (event->type) {
     case PUGL_MOTION_NOTIFY:
         if(s > tk->h[n]) s= tk->h[n]; //here we make the assumptions dials will usually be approximately round (not slider shaped)
-        *v = (event->motion.x - tkd->x0)/(30.f*s) + 
+        *v = tkd->v0 +
+             (event->motion.x - tkd->x0)/(30.f*s) + 
              (tkd->y0 - event->motion.y)/(3.f*s);
         if(*v > 1) *v = 1;
         if(*v < 0) *v = 0;
