@@ -63,8 +63,7 @@ tk_t gimmeaTikloo(uint16_t w, uint16_t h, char* title, void(*draw_f)(cairo_t*,fl
     puglSetEventFunc(view, callback);
     puglSetHandle(view, tk);
     puglInitContextType(view, PUGL_CAIRO);//PUGL_CAIRO_GL
-    tk->view = view;
-
+    tk->view = view; 
     
     //all set!
     puglCreateWindow(view, tk->tip[0]); 
@@ -77,6 +76,7 @@ void rollit(tk_t tk)
     PuglView* view = tk->view;
 
     puglShowWindow(view);
+    tk->cr = (cairo_t*)puglGetContext(tk->view);
     
     while (!tk->quit) {
         puglWaitForEvent(view);
@@ -90,16 +90,22 @@ void rollit(tk_t tk)
 void draweverything(tk_t tk)
 {
     uint16_t i;
-    cairo_t* cr = (cairo_t*)puglGetContext(tk->view);
     if(tk->draw_f[0])
-        tk->draw_f[0](cr,tk->w[0],tk->h[0],0);
+        tk->draw_f[0](tk->cr,tk->w[0],tk->h[0],0);
     for(i=1; tk->layer[i]; i++)
     {
-        cairo_translate(cr,tk->x[i],tk->y[i]);
-        tk->draw_f[i](cr,tk->w[i],tk->h[i],tk->value[i]); 
-        cairo_translate(cr,-tk->x[i],-tk->y[i]);
+        cairo_translate(tk->cr,tk->x[i],tk->y[i]);
+        tk->draw_f[i](tk->cr,tk->w[i],tk->h[i],tk->value[i]); 
+        cairo_translate(tk->cr,-tk->x[i],-tk->y[i]);
         //TODO: cache everything to avoid redraws?
     }
+}
+void redraw(tk_t tk,uint16_t n)
+{
+    //TODO:get smart about redrawing if its the bg?
+    cairo_translate(tk->cr,tk->x[n],tk->y[n]);
+    tk->draw_f[n](tk->cr,tk->w[n],tk->h[n],tk->value[n]); 
+    cairo_translate(tk->cr,-tk->x[n],-tk->y[n]);
 }
 
 uint16_t dumbsearch(tk_t tk, const PuglEvent* event)
@@ -175,6 +181,8 @@ static void callback (PuglView* view, const PuglEvent* event)
         //xAngle = -(int)event->motion.x % 360;
         //yAngle = (int)event->motion.y % 360;
         //puglPostRedisplay(view);
+        if(tk->drag)
+            tk->cb_f[tk->drag](tk,event,tk->drag);
         break;
     case PUGL_BUTTON_PRESS:
     case PUGL_BUTTON_RELEASE:
@@ -187,6 +195,8 @@ static void callback (PuglView* view, const PuglEvent* event)
         n = dumbsearch(tk,event);
         if(n)
             tk->cb_f[n](tk,event,n);
+        else if(tk->drag)
+            tk->cb_f[tk->drag](tk,event,tk->drag);
         break;
     case PUGL_SCROLL:
         fprintf(stderr, "Scroll %f %f %f %f widget %i\n",
@@ -231,15 +241,32 @@ uint16_t gimmeaWidget(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, u
 
 void dial_callback(tk_t tk, const PuglEvent* event, uint16_t n)
 {
+    float s = tk->w[n],*v = (float*)tk->value[n];
+    tk_dial_stuff* tkd = (tk_dial_stuff*)tk->extras[n];
     switch (event->type) {
     case PUGL_MOTION_NOTIFY:
-        //TODO: change value
+        if(s > tk->h[n]) s= tk->h[n]; //here we make the assumptions dials will usually be approximately round (not slider shaped)
+        *v = (event->motion.x - tkd->x0)/(30.f*s) + 
+             (tkd->y0 - event->motion.y)/(3.f*s);
+        if(*v > 1) *v = 1;
+        if(*v < 0) *v = 0;
+        fprintf(stderr, "%f ",*v);
+        redraw(tk,n);
+        //TODO: call user callback
         break;
     case PUGL_BUTTON_PRESS:
         //TODO: decide if being dragged
+        tk->drag = n;
+        tkd->x0 = event->button.x;
+        tkd->y0 = event->button.y;
+        tkd->v0 = *v;
         break;
     case PUGL_BUTTON_RELEASE:
         //TODO: release drag? what if click was on another widget?
+        if(tk->drag == n)
+            tk->drag = 0;
+        tkd->x0 = 0;
+        tkd->y0 = 0;
         break;
     case PUGL_SCROLL:
         //TODO: scroll
@@ -260,7 +287,7 @@ uint16_t gimmeaDial(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, uin
     tkd->min = min;
     tkd->max = max;
     tk->value[n] = (void*)malloc(sizeof(float));
-    *(float*)tk->value[n] = val; 
+    *(float*)tk->value[n] = (val-min)/(max-min); 
 
     if(!draw_f)
     {

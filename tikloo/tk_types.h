@@ -26,13 +26,16 @@ typedef struct tk_stuff
 
     //global stuff
     uint16_t nwidgets;
+    uint16_t drag;
     PuglView* view;
+    cairo_t* cr;
     uint8_t quit;
 }tk_stuff;
 
 typedef struct
 {
     float min, max;
+    float x0, y0, v0;//drag initiation point
 }tk_dial_stuff;
 
 
