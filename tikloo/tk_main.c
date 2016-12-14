@@ -17,9 +17,9 @@
 //forward declarations
 static void callback (PuglView* view, const PuglEvent* event);
 
-tk_t gimmeaTikloo(uint16_t w, uint16_t h, char* title, void(*draw_f)(cairo_t*,float,float,void*))
+tk_t gimmeaTikloo(uint16_t w, uint16_t h, char* title)
 {
-    uint8_t starter_sz = 32;
+    uint8_t starter_sz = 64;
     tk_t tk = (tk_t)malloc(sizeof(tk_stuff));
 
     //initialize the table in the struct
@@ -27,14 +27,17 @@ tk_t gimmeaTikloo(uint16_t w, uint16_t h, char* title, void(*draw_f)(cairo_t*,fl
     tk->y = (float*)calloc(starter_sz,sizeof(float));
     tk->w = (float*)calloc(starter_sz,sizeof(float));
     tk->h = (float*)calloc(starter_sz,sizeof(float));
-    tk->r = (float*)calloc(starter_sz,sizeof(float));
 
     tk->layer = (uint8_t*)calloc(starter_sz,sizeof(uint8_t)); 
     tk->value = (void**)calloc(starter_sz,sizeof(void*)); 
     tk->tip = (char**)calloc(starter_sz,sizeof(char*));
+    tk->props = (uint16_t*)calloc(starter_sz,sizeof(uint16_t));
     tk->extras = (void**)calloc(starter_sz,sizeof(void*));
+    tk->user = (void**)calloc(starter_sz,sizeof(void*));
 
-    tk->draw_f = (void(**)(cairo_t*,float,float,void*))calloc(starter_sz,sizeof(draw_f));
+    tk->hold_ratio = (uint16_t*)calloc(starter_sz,sizeof(float));
+
+    tk->draw_f = (void(**)(cairo_t*,float,float,void*))calloc(starter_sz,sizeof(&draw_nothing));
     tk->cb_f = (void(**)(tk_t,const PuglEvent*,uint16_t))calloc(starter_sz,sizeof(&callback));
     tk->callback_f = (void(**)(tk_t,const PuglEvent*,uint16_t))calloc(starter_sz,sizeof(&callback));
 
@@ -42,14 +45,18 @@ tk_t gimmeaTikloo(uint16_t w, uint16_t h, char* title, void(*draw_f)(cairo_t*,fl
     //TODO: check that everything is nz
     tk->w[0] = w;
     tk->h[0] = h;
+    tk->w0 = w;
+    tk->h0 = h;
+
 
     tk->layer[0] = 0;
     tk->tip[0] = (char*)calloc(strlen(title),sizeof(char));
     strcpy(tk->tip[0],title);
 
-    tk->draw_f[0] = NULL;//TODO: need a default drawing
+    tk->draw_f[0] = draw_nothing;//TODO: need a default drawing
 
     tk->nwidgets = 1;
+    tk->tabsize = starter_sz;
     tk->quit = 0;
 
     //start the pugl stuff 
@@ -89,12 +96,34 @@ void rollit(tk_t tk)
 
 void resizeeverything(tk_t tk,float w, float h)
 {
-    uint16_t i;
+    uint16_t i,n;
     float scalex,scaley;
     scalex = w/tk->w[0];
     scaley = h/tk->h[0];
-    tk->w[0] = w;
-    tk->h[0] = h;
+    if(tk->props[0]&TK_HOLD_RATIO)
+    {
+        if(scalex<scaley)
+        {
+            scaley = scalex;
+            tk->x[0] = 0;
+            tk->y[0] = (h-(w/tk->ratio[0]))/2;
+            tk->w[0] *= scalex;
+            tk->h[0] = h;
+        }
+        else
+        {
+            scalex = scaley; 
+            tk->x[0] = (w-(h*tk->ratio[0]))/2;
+            tk->y[0] = 0;
+            tk->w[0] = w;
+            tk->h[0] *= scaley;
+        }
+    }
+    else
+    {
+        tk->x[0] = 0;//this makes it possible to dynamically lock and unlock HOLD_RATIO
+        tk->y[0] = 0;//but does anyone care?
+    }
 
     for(i=1;tk->layer[i];i++)
     {
@@ -102,14 +131,26 @@ void resizeeverything(tk_t tk,float w, float h)
         tk->y[i] *= scaley;
         tk->w[i] *= scalex;
         tk->h[i] *= scaley;
+        tk->x[i] += tk->x[0];
+        tk->y[i] += tk->y[0]; 
+    }
+
+
+    //yoffs = (h*scaley - minscale)/2
+    //xoffs = (w*scalex - minscale)/2
+    //h *= min(scalex scaley)
+    //w *= min(scalex scaley)
+
+    for(i=0;tk->hold_ratio[i];i++)
+    {
+        n = tk->hold_ratio[i];
     }
 }
 
 void draweverything(tk_t tk)
 {
     uint16_t i;
-    if(tk->draw_f[0])
-        tk->draw_f[0](tk->cr,tk->w[0],tk->h[0],0);
+    tk->draw_f[0](tk->cr,tk->w[0],tk->h[0],0);
     for(i=1; tk->layer[i]; i++)
     {
         cairo_translate(tk->cr,tk->x[i],tk->y[i]);
@@ -143,6 +184,7 @@ uint16_t dumbsearch(tk_t tk, const PuglEvent* event)
     default:
         return 0;
     }
+    //TODO: ignore events outside of the drawing region? (if TK_HOLD_RATIO)
     for(i=1; tk->layer[i]; i++)
     {
         if( x >= tk->x[i] && x <= tk->x[i] + tk->w[i] &&
@@ -243,19 +285,24 @@ static void callback (PuglView* view, const PuglEvent* event)
     }
 }
 
-uint16_t gimmeaWidget(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t r)
+void nocallback(tk_t , const PuglEvent* , uint16_t ) {}
+
+uint16_t gimmeaWidget(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h)
 { 
     uint16_t n = tk->nwidgets++;
     tk->x[n] = x;
     tk->y[n] = y;
     tk->w[n] = w;
     tk->h[n] = h;
-    tk->r[n] = r;
+    tk->ratio[n] = w/h;
     tk->layer[n] = 1;
+    tk->draw_f[n] = draw_nothing;
+    tk->cb_f[n] = nocallback;
+    tk->callback_f[n] = nocallback;
     return n;
 }
 
-void dial_callback(tk_t tk, const PuglEvent* event, uint16_t n)
+void dialcallback(tk_t tk, const PuglEvent* event, uint16_t n)
 {
     float s = tk->w[n],*v = (float*)tk->value[n];
     tk_dial_stuff* tkd = (tk_dial_stuff*)tk->extras[n];
@@ -294,28 +341,61 @@ void dial_callback(tk_t tk, const PuglEvent* event, uint16_t n)
 }
 
 
-uint16_t gimmeaDial(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t r, float min, float max, float val, void(*draw_f)(cairo_t*,float,float,void*))
+uint16_t gimmeaDial(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, float min, float max, float val)
 {
     uint16_t n = tk->nwidgets;
     tk_dial_stuff* tkd = (tk_dial_stuff*)malloc(sizeof(tk_dial_stuff));
 
-    gimmeaWidget(tk,x,y,w,h,r);
+    gimmeaWidget(tk,x,y,w,h);
     tk->extras[n] = (void*)tkd;
     tkd->min = min;
     tkd->max = max;
     tk->value[n] = (void*)malloc(sizeof(float));
     *(float*)tk->value[n] = (val-min)/(max-min); 
 
-    if(!draw_f)
-    {
-        tk->draw_f[n] = cairo_code_draw_flatDial_render;
-    }
-    else
-    {
-        tk->draw_f[n] = draw_f; 
-    }
+    tk->draw_f[n] = cairo_code_draw_flatDial_render;//default
 
-    tk->cb_f[n] = dial_callback;
+    tk->cb_f[n] = dialcallback;
     return n;
 
+}
+
+void buttoncallback(tk_t tk, const PuglEvent* event, uint16_t n)
+{
+    uint8_t *v = (uint8_t*)tk->value[n];
+    switch (event->type) {
+    case PUGL_BUTTON_PRESS:
+        //TODO: decide if being dragged
+        tk->drag = n;
+        if(!tk->props[n]&TK_BUTTON_TOGGLE)
+            *v ^= 0x01;
+        break;
+    case PUGL_BUTTON_RELEASE:
+        //TODO: release drag? what if click was on another widget?
+        if(tk->drag == n)
+        {
+            tk->drag = 0;
+            *v ^= 0x01;
+        }
+        break;
+    case PUGL_SCROLL:
+        //TODO: scroll
+        break;
+    default:
+        break;
+    }
+}
+
+uint16_t gimmeaButton(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, float min, float max, float val)
+{
+    uint16_t n = tk->nwidgets;
+
+    gimmeaWidget(tk,x,y,w,h);
+    tk->value[n] = (void*)malloc(sizeof(float));
+    *(float*)tk->value[n] = (val-min)/(max-min); 
+
+    tk->draw_f[n] = cairo_code_draw_flatDial_render;//default
+
+    tk->cb_f[n] = buttoncallback;
+    return n; 
 }
