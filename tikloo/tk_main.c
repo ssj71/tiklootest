@@ -266,6 +266,7 @@ static void callback (PuglView* view, const PuglEvent* event)
         //puglPostRedisplay(view);
         if(tk->drag)
             tk->cb_f[tk->drag](tk,event,tk->drag);
+            tk->callback_f[tk->drag](tk,event,tk->drag);//TODO: should we call these here or only in cb_f if event had effect?
         break;
     case PUGL_BUTTON_PRESS:
     case PUGL_BUTTON_RELEASE:
@@ -277,9 +278,15 @@ static void callback (PuglView* view, const PuglEvent* event)
                 dumbsearch(tk,event));
         n = dumbsearch(tk,event);
         if(n)
+        {
             tk->cb_f[n](tk,event,n);
+            tk->callback_f[n](tk,event,n);
+        }
         else if(tk->drag)
+        {
             tk->cb_f[tk->drag](tk,event,tk->drag);
+            tk->callback_f[tk->drag](tk,event,tk->drag);
+        }
         break;
     case PUGL_SCROLL:
         fprintf(stderr, "Scroll %f %f %f %f widget %i\n",
@@ -287,7 +294,10 @@ static void callback (PuglView* view, const PuglEvent* event)
                 dumbsearch(tk,event));
         n = dumbsearch(tk,event);
         if(n)
+        {
             tk->cb_f[n](tk,event,n);
+            tk->callback_f[n](tk,event,n);
+        }
         //printModifiers(view, event->scroll.state);
         //dist += event->scroll.dy;
         //if (dist < 10.0f) {
