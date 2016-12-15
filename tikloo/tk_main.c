@@ -98,7 +98,8 @@ void rollit(tk_t tk)
 void resizeeverything(tk_t tk,float w, float h)
 {
     uint16_t i,n;
-    float sx,sy,sx0,sy0,sx1,sy1,smf,sm0,sm1,dx,dy,dxf,dyf;
+    float sx,sy,sx0,sy0,sx1,sy1,smf,sm0,sm1,
+        dx,dy,dx0,dy0,dx1,dy1;
 
     sx = w/(tk->w[0]+2*tk->x[0]);//scale change (relative)
     sy = h/(tk->h[0]+2*tk->y[0]);
@@ -108,16 +109,18 @@ void resizeeverything(tk_t tk,float w, float h)
     sy1 = h/tk->h0;
     sm0 = sx0<sy0?sx0:sy0;//old small dim
     sm1 = sx1<sy1?sx1:sy1;//new small dim
-    dxf = (sx1-sm1-(sx0-sm0))/2;//shift factor
-    dyf = (sy1-sm1-(sy0-sm0))/2;
+    dx0 = (sx0-sm0)/2;//old shift factor
+    dy0 = (sy0-sm0)/2;
+    dx1 = (sx1-sm1)/2;//new shift factor
+    dy1 = (sy1-sm1)/2;
     smf = sm1/sm0;//min scale factor
 
     if(tk->props[0]&TK_HOLD_RATIO)
     {
         if(sx<sy) sx = sy;
         else sy = sx;
-        dx = tk->w0*dxf;
-        dy = tk->h0*dyf;
+        dx = tk->w0*(dx1-dx0);
+        dy = tk->h0*(dy1-dy0);
         tk->x[0] += dx; //TODO: the relativity worries me a bit
         tk->y[0] += dy; // would be nice to make it absolute, but more verbose
         tk->w[0] *= sx;
@@ -158,12 +161,12 @@ void resizeeverything(tk_t tk,float w, float h)
         tk->h[n] /= sy;
 
         //this is verbose, just to try to get the math right
-        tk->x[n] -= tk->w[n]/sm0*(sx0-sm0)/2;
-        tk->y[n] -= tk->h[n]/sm0*(sy0-sm0)/2;
+        tk->x[n] -= tk->w[n]/sm0*dx0;
+        tk->y[n] -= tk->h[n]/sm0*dy0;
         tk->x[n] *= sx;
         tk->y[n] *= sy;
-        tk->x[n] += dx + tk->w[n]/sm0*(sx1-sm1)/2;
-        tk->y[n] += dy + tk->h[n]/sm0*(sy1-sm1)/2;
+        tk->x[n] += dx + tk->w[n]/sm0*dx1;
+        tk->y[n] += dy + tk->h[n]/sm0*dy1;
         tk->w[n] *= smf;
         tk->h[n] *= smf;
     }
