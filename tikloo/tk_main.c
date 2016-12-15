@@ -54,8 +54,9 @@ tk_t gimmeaTikloo(uint16_t w, uint16_t h, char* title)
     tk->tip[0] = (char*)calloc(strlen(title),sizeof(char));
     strcpy(tk->tip[0],title);
 
-    tk->draw_f[0] = draw_nothing;//TODO: need a default drawing
+    tk->draw_f[0] = cairo_code_draw_bg_render;
 
+    tk->drag = 0;
     tk->nwidgets = 1;
     tk->tabsize = starter_sz;
     tk->quit = 0;
@@ -103,8 +104,8 @@ void resizeeverything(tk_t tk,float w, float h)
 
     sx = w/(tk->w[0]+2*tk->x[0]);//scale change (relative)
     sy = h/(tk->h[0]+2*tk->y[0]);
-    sx0 = tk->w[0]/tk->w0;//old scaling (absolute)
-    sy0 = tk->h[0]/tk->h0;
+    sx0 = (tk->w[0]+2*tk->x[0])/tk->w0;//old scaling (absolute)
+    sy0 = (tk->h[0]+2*tk->y[0])/tk->h0;
     sx1 = w/tk->w0;//new scaling (absolute)
     sy1 = h/tk->h0;
     sm0 = sx0<sy0?sx0:sy0;//old small dim
@@ -119,26 +120,25 @@ void resizeeverything(tk_t tk,float w, float h)
     {
         if(sx<sy) sx = sy;
         else sy = sx;
-        dx = tk->w0*(dx1-dx0);
-        dy = tk->h0*(dy1-dy0);
-        tk->x[0] += dx; //TODO: the relativity worries me a bit
-        tk->y[0] += dy; // would be nice to make it absolute, but more verbose
+        dx = tk->w0*dx1;//shift
+        dy = tk->h0*dy1;
         tk->w[0] *= sx;
         tk->h[0] *= sy;
     }
     else
     {
-        dx = -tk->x[0];
-        dy = -tk->y[0];
-        tk->x[0] = 0;//this makes it possible to dynamically lock and unlock HOLD_RATIO
-        tk->y[0] = 0;//but does anyone care?
+        dx = 0;
+        dy = 0;
         tk->w[0] = w;
         tk->h[0] = h;
     }
+    fprintf(stderr,"dx %f dy %f sx %f sy %f sx0 %f sx1 %f sy0 %f sy1 %f sm0 %f sm1 %f dx0 %f dx1 %f dy0 %f dy1 %f smf %f\n",dx,dy,sx,sy,sx0,sx1,sy0,sy1,sm0,sm1,dx0,dx1,dy0,dy1,smf);
 
     //scale widgets
     for(i=1;tk->layer[i];i++)
     {
+        tk->x[i] -= tk->x[0]; //remove old shift
+        tk->y[i] -= tk->y[0];
         tk->x[i] *= sx;
         tk->y[i] *= sy;
         tk->w[i] *= sx;
@@ -159,24 +159,38 @@ void resizeeverything(tk_t tk,float w, float h)
         tk->y[n] /= sy;
         tk->w[n] /= sx;
         tk->h[n] /= sy;
+        //tk->x[n] += tk->x[0]; //this adds back in the old shift, which we don't want
+        //tk->y[n] += tk->y[0]; 
+        //fprintf(stderr,"n %i x %f y %f\n",n,tk->x[n]+tk->x[0],tk->y[n]+tk->y[0]);
 
         //this is verbose, just to try to get the math right
-        tk->x[n] -= tk->w[n]/sm0*dx0;
+        tk->x[n] -= tk->w[n]/sm0*dx0;//remove old offset
         tk->y[n] -= tk->h[n]/sm0*dy0;
+        //x,y should now be at old scaled position
         tk->x[n] *= sx;
         tk->y[n] *= sy;
-        tk->x[n] += dx + tk->w[n]/sm0*dx1;
+        tk->x[n] += dx + tk->w[n]/sm0*dx1; //this works and centers unless window holds ratio
         tk->y[n] += dy + tk->h[n]/sm0*dy1;
+        //tk->x[n] += dx; //this works, but not centered
+        //tk->y[n] += dy;
+        //fprintf(stderr,"%i old x %f y %f\n  new x %f y %f\n",n,tk->w[n]/sm0*dx0,tk->h[n]/sm0*dx0,tk->w[n]/sm0*dx1,tk->h[n]/sm0*dx1);
         tk->w[n] *= smf;
         tk->h[n] *= smf;
+        //fprintf(stderr,"output x %f y %f\n",tk->x[n],tk->y[n]);
     }
+
+    //update shift
+    tk->x[0] = dx;
+    tk->y[0] = dy;
 }
 
 void draweverything(tk_t tk)
 {
     uint16_t i;
-    tk->draw_f[0](tk->cr,tk->w[0],tk->h[0],0);
-    for(i=1; tk->layer[i]; i++)
+    //cairo_translate(tk->cr,tk->x[0],tk->y[0]);
+    //tk->draw_f[0](tk->cr,tk->w[0],tk->h[0],0);
+    //cairo_translate(tk->cr,-tk->x[0],-tk->y[0]);
+    for(i=0; tk->draw_f[i]; i++)
     {
         cairo_translate(tk->cr,tk->x[i],tk->y[i]);
         tk->draw_f[i](tk->cr,tk->w[i],tk->h[i],tk->value[i]); 
@@ -266,7 +280,6 @@ static void callback (PuglView* view, const PuglEvent* event)
         //puglPostRedisplay(view);
         if(tk->drag)
             tk->cb_f[tk->drag](tk,event,tk->drag);
-            tk->callback_f[tk->drag](tk,event,tk->drag);//TODO: should we call these here or only in cb_f if event had effect?
         break;
     case PUGL_BUTTON_PRESS:
     case PUGL_BUTTON_RELEASE:
@@ -278,14 +291,11 @@ static void callback (PuglView* view, const PuglEvent* event)
                 dumbsearch(tk,event));
         n = dumbsearch(tk,event);
         if(n)
-        {
             tk->cb_f[n](tk,event,n);
-            tk->callback_f[n](tk,event,n);
-        }
         else if(tk->drag)
         {
             tk->cb_f[tk->drag](tk,event,tk->drag);
-            tk->callback_f[tk->drag](tk,event,tk->drag);
+            tk->drag = 0;
         }
         break;
     case PUGL_SCROLL:
@@ -294,10 +304,7 @@ static void callback (PuglView* view, const PuglEvent* event)
                 dumbsearch(tk,event));
         n = dumbsearch(tk,event);
         if(n)
-        {
             tk->cb_f[n](tk,event,n);
-            tk->callback_f[n](tk,event,n);
-        }
         //printModifiers(view, event->scroll.state);
         //dist += event->scroll.dy;
         //if (dist < 10.0f) {
@@ -340,10 +347,12 @@ void removefromlist(uint16_t* list, uint16_t n)
         }
 }
 
-void nocallback(tk_t tk, const PuglEvent* e, uint16_t n) {(void)tk;(void)e;(void)n;}
 
 
 //WIDGET STUFF
+void nocallback(tk_t tk, const PuglEvent* e, uint16_t n)
+{(void)tk;(void)e;(void)n;}
+
 uint16_t gimmeaWidget(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h)
 { 
     uint16_t n = tk->nwidgets++;
@@ -371,6 +380,7 @@ void dialcallback(tk_t tk, const PuglEvent* event, uint16_t n)
         if(*v > 1) *v = 1;
         if(*v < 0) *v = 0;
         fprintf(stderr, "%f ",*v);
+        tk->callback_f[n](tk,event,n);
         redraw(tk,n);
         //TODO: call user callback
         break;
@@ -383,8 +393,7 @@ void dialcallback(tk_t tk, const PuglEvent* event, uint16_t n)
         break;
     case PUGL_BUTTON_RELEASE:
         //TODO: release drag? what if click was on another widget?
-        if(tk->drag == n)
-            tk->drag = 0;
+        tk->drag = 0;
         tkd->x0 = 0;
         tkd->y0 = 0;
         break;
@@ -430,6 +439,7 @@ void buttoncallback(tk_t tk, const PuglEvent* event, uint16_t n)
             //click has left the widget
             tk->drag = 0;
             *v ^= 0x01;
+            tk->callback_f[n](tk,event,n);
             redraw(tk,n);
             break;
         }
@@ -440,17 +450,19 @@ void buttoncallback(tk_t tk, const PuglEvent* event, uint16_t n)
         if(tk->props[n]&TK_BUTTON_MOMENTARY)
         {
             *v ^= 0x01;
+            tk->callback_f[n](tk,event,n);
             redraw(tk,n);
         }
         break;
     case PUGL_BUTTON_RELEASE:
         if(tk->drag == n &&
-           (event->button.x < tk->x[n] || event->button.x > tk->x[n] + tk->w[n] ||
-            event->button.y < tk->y[n] || event->button.y > tk->y[n] + tk->h[n])
+           (event->button.x >= tk->x[n] && event->button.x <= tk->x[n] + tk->w[n] &&
+            event->button.y >= tk->y[n] && event->button.y <= tk->y[n] + tk->h[n])
           )
         {
             tk->drag = 0;
             *v ^= 0x01;
+            tk->callback_f[n](tk,event,n);
             redraw(tk,n);
         }
         break;

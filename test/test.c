@@ -1,10 +1,12 @@
 //spencer jackson
 //the first tests for tikloo
 
+#include<stdio.h>
 #include"tikloo/tk.h"
 
 void freeze_ratio(tk_t tk, const PuglEvent* event, uint16_t n)
 {
+    fprintf(stderr, "freezing ratio");
     if(*(uint8_t*)tk->value[n])
         tk->props[0] |= TK_HOLD_RATIO;
     else
@@ -12,6 +14,7 @@ void freeze_ratio(tk_t tk, const PuglEvent* event, uint16_t n)
 }
 void freeze_item_ratio(tk_t tk, const PuglEvent* event, uint16_t n)
 {
+    fprintf(stderr, "freezing this button's ratio");
     if(*(uint8_t*)tk->value[n])
         addtolist(tk->hold_ratio,n);
     else
