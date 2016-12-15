@@ -102,11 +102,11 @@ void resizeeverything(tk_t tk,float w, float h)
     float sx,sy,sx0,sy0,sx1,sy1,smf,sm0,sm1,
         dx,dy,dx0,dy0,dx1,dy1;
 
-    sx = w/(tk->w[0]+2*tk->x[0]);//scale change (relative)
-    sy = h/(tk->h[0]+2*tk->y[0]);
+    sx = w/(tk->w[0]);//scale change (relative)
+    sy = h/(tk->h[0]);
     sx0 = (tk->w[0]+2*tk->x[0])/tk->w0;//old scaling (absolute)
     sy0 = (tk->h[0]+2*tk->y[0])/tk->h0;
-    sx1 = w/tk->w0;//new scaling (absolute)
+    sx1 = w/tk->w0;//new scaling (absolute) I think this needs to be relative to window ratio
     sy1 = h/tk->h0;
     sm0 = sx0<sy0?sx0:sy0;//old small dim
     sm1 = sx1<sy1?sx1:sy1;//new small dim
@@ -116,12 +116,16 @@ void resizeeverything(tk_t tk,float w, float h)
     dy1 = (sy1-sm1)/2;
     smf = sm1/sm0;//min scale factor
 
+    
+
     if(tk->props[0]&TK_HOLD_RATIO)
     {
         if(sx<sy) sx = sy;
         else sy = sx;
         dx = tk->w0*dx1;//shift
         dy = tk->h0*dy1;
+        dx = 0;
+        dy = 0;
         tk->w[0] *= sx;
         tk->h[0] *= sy;
     }
@@ -239,7 +243,7 @@ uint16_t dumbsearch(tk_t tk, const PuglEvent* event)
 }
 
 static void callback (PuglView* view, const PuglEvent* event)
-{
+{ 
     uint16_t n;
     tk_t tk = (tk_t)puglGetHandle(view);
     //TODO: sort through events to find who gets it
