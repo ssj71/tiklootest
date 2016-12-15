@@ -422,17 +422,15 @@ void buttoncallback(tk_t tk, const PuglEvent* event, uint16_t n)
     uint8_t *v = (uint8_t*)tk->value[n];
     switch (event->type) {
     case PUGL_MOTION_NOTIFY:
-        if( event->motion.x < tk->x[n] || event->motion.x > tk->x[n] + tk->w[n] ||
-            event->motion.y < tk->y[n] || event->motion.y > tk->y[n] + tk->h[n]
+        if( tk->props[n]&TK_BUTTON_MOMENTARY &&
+            (event->motion.x < tk->x[n] || event->motion.x > tk->x[n] + tk->w[n] ||
+            event->motion.y < tk->y[n] || event->motion.y > tk->y[n] + tk->h[n])
           )
         {
             //click has left the widget
             tk->drag = 0;
-            if(tk->props[n]&TK_BUTTON_MOMENTARY)
-            {
-                *v ^= 0x01;
-                redraw(tk,n);
-            }
+            *v ^= 0x01;
+            redraw(tk,n);
             break;
         }
         break;
@@ -446,7 +444,10 @@ void buttoncallback(tk_t tk, const PuglEvent* event, uint16_t n)
         }
         break;
     case PUGL_BUTTON_RELEASE:
-        if(tk->drag == n)
+        if(tk->drag == n &&
+           (event->button.x < tk->x[n] || event->button.x > tk->x[n] + tk->w[n] ||
+            event->button.y < tk->y[n] || event->button.y > tk->y[n] + tk->h[n])
+          )
         {
             tk->drag = 0;
             *v ^= 0x01;
