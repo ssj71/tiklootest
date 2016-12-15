@@ -2,11 +2,13 @@
 #define TK_DEFAULT_DRAW_H
 
 #include"default_draw/draw_flatDial.h"
+#include"default_draw/draw_blackLEDbutton.h"
 
 //dial
 void cairo_code_draw_flatDial_render(cairo_t *cr, float w, float h, void* valp);
+void cairo_code_draw_blackLEDbutton_render(cairo_t *cr, float w, float h, void* val);
 
-void draw_nothing(cairo_t *, float , float , void* ){};
+void draw_nothing(cairo_t *cr, float w, float h, void* v){(void)cr;(void)w;(void)h;(void)v;};
 
 
 #endif

@@ -60,7 +60,7 @@ typedef enum
     TK_HOLD_RATIO = 0x1,
 
     //Button Properties
-    TK_BUTTON_TOGGLE = 0x2,
+    TK_BUTTON_MOMENTARY = 0x1,
 }TK_PROPERTIES;
 
 #endif

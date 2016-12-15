@@ -10,23 +10,12 @@ inline int cairo_code_draw_flatDial_get_height()
 }
 void cairo_code_draw_flatDial_render(cairo_t *cr, float w, float h, void* valp)
 { 
-    float draw_w=30, draw_h=30,
-        scale, shiftx=0,shifty=0,
-        val = *(float*)valp;
+    float scale, val = *(float*)valp;
     cairo_pattern_t *pattern;
     cairo_matrix_t matrix;
 
     cairo_save( cr );
-    scale = w/draw_w;
-    if(scale > h/draw_h)
-    {
-        scale = h/draw_h;
-        shiftx = (w - scale*draw_w)/2.f;
-    }
-    else
-        shifty = h - scale*draw_h;
-    //cairo_translate(cr,x+shiftx,y+shifty);
-    cairo_translate(cr,shiftx,shifty);
+    scale = w/30;
     cairo_scale(cr,scale,scale);
 
     cairo_set_operator(cr, CAIRO_OPERATOR_OVER);

@@ -28,14 +28,15 @@ tk_t gimmeaTikloo(uint16_t w, uint16_t h, char* title)
     tk->w = (float*)calloc(starter_sz,sizeof(float));
     tk->h = (float*)calloc(starter_sz,sizeof(float));
 
-    tk->layer = (uint8_t*)calloc(starter_sz,sizeof(uint8_t)); 
+    tk->layer = (uint8_t*)calloc(starter_sz+1,sizeof(uint8_t)); 
     tk->value = (void**)calloc(starter_sz,sizeof(void*)); 
     tk->tip = (char**)calloc(starter_sz,sizeof(char*));
     tk->props = (uint16_t*)calloc(starter_sz,sizeof(uint16_t));
     tk->extras = (void**)calloc(starter_sz,sizeof(void*));
     tk->user = (void**)calloc(starter_sz,sizeof(void*));
 
-    tk->hold_ratio = (uint16_t*)calloc(starter_sz,sizeof(float));
+    //lists always keep an extra 0 at the end so the end can be found even if full
+    tk->hold_ratio = (uint16_t*)calloc(starter_sz+1,sizeof(float));
 
     tk->draw_f = (void(**)(cairo_t*,float,float,void*))calloc(starter_sz,sizeof(&draw_nothing));
     tk->cb_f = (void(**)(tk_t,const PuglEvent*,uint16_t))calloc(starter_sz,sizeof(&callback));
@@ -97,53 +98,74 @@ void rollit(tk_t tk)
 void resizeeverything(tk_t tk,float w, float h)
 {
     uint16_t i,n;
-    float scalex,scaley;
-    scalex = w/tk->w[0];
-    scaley = h/tk->h[0];
+    float sx,sy,sx0,sy0,sx1,sy1,smf,sm0,sm1,dx,dy,dxf,dyf;
+
+    sx = w/(tk->w[0]+2*tk->x[0]);//scale change (relative)
+    sy = h/(tk->h[0]+2*tk->y[0]);
+    sx0 = tk->w[0]/tk->w0;//old scaling (absolute)
+    sy0 = tk->h[0]/tk->h0;
+    sx1 = w/tk->w0;//new scaling (absolute)
+    sy1 = h/tk->h0;
+    sm0 = sx0<sy0?sx0:sy0;//old small dim
+    sm1 = sx1<sy1?sx1:sy1;//new small dim
+    dxf = (sx1-sm1-(sx0-sm0))/2;//shift factor
+    dyf = (sy1-sm1-(sy0-sm0))/2;
+    smf = sm1/sm0;//min scale factor
+
     if(tk->props[0]&TK_HOLD_RATIO)
     {
-        if(scalex<scaley)
-        {
-            scaley = scalex;
-            tk->x[0] = 0;
-            tk->y[0] = (h-(w/tk->ratio[0]))/2;
-            tk->w[0] *= scalex;
-            tk->h[0] = h;
-        }
-        else
-        {
-            scalex = scaley; 
-            tk->x[0] = (w-(h*tk->ratio[0]))/2;
-            tk->y[0] = 0;
-            tk->w[0] = w;
-            tk->h[0] *= scaley;
-        }
+        if(sx<sy) sx = sy;
+        else sy = sx;
+        dx = tk->w0*dxf;
+        dy = tk->h0*dyf;
+        tk->x[0] += dx; //TODO: the relativity worries me a bit
+        tk->y[0] += dy; // would be nice to make it absolute, but more verbose
+        tk->w[0] *= sx;
+        tk->h[0] *= sy;
     }
     else
     {
+        dx = -tk->x[0];
+        dy = -tk->y[0];
         tk->x[0] = 0;//this makes it possible to dynamically lock and unlock HOLD_RATIO
         tk->y[0] = 0;//but does anyone care?
+        tk->w[0] = w;
+        tk->h[0] = h;
     }
 
+    //scale widgets
     for(i=1;tk->layer[i];i++)
     {
-        tk->x[i] *= scalex;
-        tk->y[i] *= scaley;
-        tk->w[i] *= scalex;
-        tk->h[i] *= scaley;
-        tk->x[i] += tk->x[0];
-        tk->y[i] += tk->y[0]; 
-    }
+        tk->x[i] *= sx;
+        tk->y[i] *= sy;
+        tk->w[i] *= sx;
+        tk->h[i] *= sy;
+        tk->x[i] += dx;
+        tk->y[i] += dy;
+    } 
 
-
-    //yoffs = (h*scaley - minscale)/2
-    //xoffs = (w*scalex - minscale)/2
-    //h *= min(scalex scaley)
-    //w *= min(scalex scaley)
-
+    //rescale ones that hold ratio
     for(i=0;tk->hold_ratio[i];i++)
     {
         n = tk->hold_ratio[i];
+
+        //undo non-ratio preserving scale
+        tk->x[n] -= dx;
+        tk->y[n] -= dy; 
+        tk->x[n] /= sx;
+        tk->y[n] /= sy;
+        tk->w[n] /= sx;
+        tk->h[n] /= sy;
+
+        //this is verbose, just to try to get the math right
+        tk->x[n] -= tk->w[n]/sm0*(sx0-sm0)/2;
+        tk->y[n] -= tk->h[n]/sm0*(sy0-sm0)/2;
+        tk->x[n] *= sx;
+        tk->y[n] *= sy;
+        tk->x[n] += dx + tk->w[n]/sm0*(sx1-sm1)/2;
+        tk->y[n] += dy + tk->h[n]/sm0*(sy1-sm1)/2;
+        tk->w[n] *= smf;
+        tk->h[n] *= smf;
     }
 }
 
@@ -285,8 +307,30 @@ static void callback (PuglView* view, const PuglEvent* event)
     }
 }
 
-void nocallback(tk_t , const PuglEvent* , uint16_t ) {}
+void addtolist(uint16_t* list, uint16_t n)
+{
+    uint16_t i;
+    for(i=0;list[i];i++)//find end of list
+        if(list[i]==n)
+            return;
+    list[i] = n;
+}
 
+void removefromlist(uint16_t* list, uint16_t n)
+{
+    uint16_t i;
+    for(i=0;list[i]&&list[i]!=n;i++);//find item in list
+    if(list[i]==n)
+        for(;list[i];i++)
+        {
+            list[i] = list[i+1]; 
+        }
+}
+
+void nocallback(tk_t tk, const PuglEvent* e, uint16_t n) {(void)tk;(void)e;(void)n;}
+
+
+//WIDGET STUFF
 uint16_t gimmeaWidget(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h)
 { 
     uint16_t n = tk->nwidgets++;
@@ -294,7 +338,6 @@ uint16_t gimmeaWidget(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h)
     tk->y[n] = y;
     tk->w[n] = w;
     tk->h[n] = h;
-    tk->ratio[n] = w/h;
     tk->layer[n] = 1;
     tk->draw_f[n] = draw_nothing;
     tk->cb_f[n] = nocallback;
@@ -354,6 +397,7 @@ uint16_t gimmeaDial(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, flo
     *(float*)tk->value[n] = (val-min)/(max-min); 
 
     tk->draw_f[n] = cairo_code_draw_flatDial_render;//default
+    addtolist(tk->hold_ratio,n);
 
     tk->cb_f[n] = dialcallback;
     return n;
@@ -364,37 +408,52 @@ void buttoncallback(tk_t tk, const PuglEvent* event, uint16_t n)
 {
     uint8_t *v = (uint8_t*)tk->value[n];
     switch (event->type) {
+    case PUGL_MOTION_NOTIFY:
+        if( event->motion.x < tk->x[n] || event->motion.x > tk->x[n] + tk->w[n] ||
+            event->motion.y < tk->y[n] || event->motion.y > tk->y[n] + tk->h[n]
+          )
+        {
+            //click has left the widget
+            tk->drag = 0;
+            if(tk->props[n]&TK_BUTTON_MOMENTARY)
+            {
+                *v ^= 0x01;
+                redraw(tk,n);
+            }
+            break;
+        }
+        break;
     case PUGL_BUTTON_PRESS:
         //TODO: decide if being dragged
         tk->drag = n;
-        if(!tk->props[n]&TK_BUTTON_TOGGLE)
+        if(tk->props[n]&TK_BUTTON_MOMENTARY)
+        {
             *v ^= 0x01;
+            redraw(tk,n);
+        }
         break;
     case PUGL_BUTTON_RELEASE:
-        //TODO: release drag? what if click was on another widget?
         if(tk->drag == n)
         {
             tk->drag = 0;
             *v ^= 0x01;
+            redraw(tk,n);
         }
-        break;
-    case PUGL_SCROLL:
-        //TODO: scroll
         break;
     default:
         break;
     }
 }
 
-uint16_t gimmeaButton(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, float min, float max, float val)
+uint16_t gimmeaButton(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint8_t val)
 {
     uint16_t n = tk->nwidgets;
 
     gimmeaWidget(tk,x,y,w,h);
-    tk->value[n] = (void*)malloc(sizeof(float));
-    *(float*)tk->value[n] = (val-min)/(max-min); 
+    tk->value[n] = (void*)malloc(sizeof(uint8_t));
+    *(uint8_t*)tk->value[n] = val&0x1;
 
-    tk->draw_f[n] = cairo_code_draw_flatDial_render;//default
+    tk->draw_f[n] = cairo_code_draw_blackLEDbutton_render;//default
 
     tk->cb_f[n] = buttoncallback;
     return n; 
