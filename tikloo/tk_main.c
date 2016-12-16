@@ -105,7 +105,7 @@ void rollit(tk_t tk)
 void resizeeverything(tk_t tk,float w, float h)
 {
     uint16_t i,n;
-    float sx,sy,sx0,sy0,sx1,sy1,smf,sm0,sm1,dx,dy,dx1,dy1;
+    float sx,sy,sx0,sy0,sx1,sy1,smx,smy,sm0,sm1,dx,dy;
 
     sx = w/(tk->w[0]);//scale change (relative)
     sy = h/(tk->h[0]);
@@ -115,78 +115,52 @@ void resizeeverything(tk_t tk,float w, float h)
     sy1 = h/tk->h0;
     sm0 = sx0<sy0?sx0:sy0;//old small dim
     sm1 = sx1<sy1?sx1:sy1;//new small dim
-    smf = sm1/sm0;//min scale factor
-
-    
+    smx = (sm1/sm0)/sx;//min scale factor div. scale x
+    smy = (sm1/sm0)/sy;
 
     if(tk->props[0]&TK_HOLD_RATIO)
     {
-        dx1 = (sx1-sm1)/2;//new shift factor
-        dy1 = (sy1-sm1)/2;
         if(sx<sy) sy = sx;
         else sx = sy;
-        dx = tk->w0*dx1;//shift
-        dy = tk->h0*dy1;
+        dx = tk->w0*(sx1-sm1)/2;//new window shift
+        dy = tk->h0*(sy1-sm1)/2;
         tk->w[0] *= sx;
-        tk->h[0] *= sy;
-
-        //scale widgets
-        for(i=1;tk->layer[i];i++)
-        {
-            tk->x[i] -= tk->x[0]; //remove old shift
-            tk->y[i] -= tk->y[0];
-            tk->x[i] *= sx;
-            tk->y[i] *= sy;
-            tk->w[i] *= sx;
-            tk->h[i] *= sy;
-            tk->x[i] += dx;
-            tk->y[i] += dy;
-        } 
+        tk->h[0] *= sy; 
     }
     else
     {
-        dx = 0;
-        dy = 0;
+        dx = (1-smx)/2;//offset factor for individual items
+        dy = (1-smy)/2;
         tk->w[0] = w;
         tk->h[0] = h;
-        //scale widgets
-        for(i=1;tk->layer[i];i++)
-        {
-            tk->x[i] -= tk->x[0]; //remove old shift
-            tk->y[i] -= tk->y[0];
-            tk->x[i] *= sx;
-            tk->y[i] *= sy;
-            tk->w[i] *= sx;
-            tk->h[i] *= sy;
-            tk->x[i] += dx;
-            tk->y[i] += dy;
-        } 
-        //rescale ones that hold ratio
+        //prescale ones that hold ratio
         for(i=0;tk->hold_ratio[i];i++)
         {
             n = tk->hold_ratio[i];
 
-            //undo non-ratio preserving scale
-            tk->x[n] -= dx;
-            tk->y[n] -= dy; 
-            tk->x[n] /= sx;
-            tk->y[n] /= sy;
-            tk->w[n] /= sx;
-            tk->h[n] /= sy;
-
-            //this is verbose, just to try to get the math right
-            tk->x[n] += tk->w[n]/2;//remove old offset
-            tk->y[n] += tk->h[n]/2;
-            tk->x[n] *= sx;
-            tk->y[n] *= sy;
-            tk->w[n] *= smf;
-            tk->h[n] *= smf;
-            tk->x[n] -= tk->w[n]/2;//remove old offset
-            tk->y[n] -= tk->h[n]/2;
+            tk->x[n] += tk->w[n]*dx;//remove old offset, add new
+            tk->y[n] += tk->h[n]*dy;
+            tk->w[n] *= smx;
+            tk->h[n] *= smy;
         }
+        dx = 0;//window shift is actually 0
+        dy = 0;
     } 
 
-    //update shift
+    //scale items
+    for(i=1;tk->layer[i];i++)
+    {
+        tk->x[i] -= tk->x[0]; //remove old shift
+        tk->y[i] -= tk->y[0];
+        tk->x[i] *= sx;
+        tk->y[i] *= sy;
+        tk->w[i] *= sx;
+        tk->h[i] *= sy;
+        tk->x[i] += dx;
+        tk->y[i] += dy;
+    } 
+
+    //update window shift
     tk->x[0] = dx;
     tk->y[0] = dy;
 }
