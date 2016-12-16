@@ -86,6 +86,12 @@ void rollit(tk_t tk)
 
     puglShowWindow(view);
     tk->cr = (cairo_t*)puglGetContext(tk->view);
+
+    //just for test
+//    tk->props[0] |= TK_HOLD_RATIO;
+//    resizeeverything(tk,256,128);
+//    tk->props[0] &= ~TK_HOLD_RATIO;
+//    resizeeverything(tk,256,128);
     
     while (!tk->quit) {
         puglWaitForEvent(view);
@@ -104,6 +110,7 @@ void resizeeverything(tk_t tk,float w, float h)
 
     sx = w/(tk->w[0]);//scale change (relative)
     sy = h/(tk->h[0]);
+    //TODO: the extra x[0] causes the error when switching from hold to not
     sx0 = (tk->w[0]+2*tk->x[0])/tk->w0;//old scaling (absolute)
     sy0 = (tk->h[0]+2*tk->y[0])/tk->h0;
     sx1 = w/tk->w0;//new scaling (absolute) I think this needs to be relative to window ratio
@@ -180,8 +187,8 @@ void resizeeverything(tk_t tk,float w, float h)
             //x,y should now be at old scaled position
             tk->x[n] *= sx;
             tk->y[n] *= sy;
-            tk->x[n] += dx + tk->w[n]/sm0*dx1; //this works and centers unless window holds ratio
-            tk->y[n] += dy + tk->h[n]/sm0*dy1;
+            tk->x[n] += dx + tk->x[0] + tk->w[n]/sm0*dx1; //this works and centers unless window holds ratio
+            tk->y[n] += dy + tk->y[0] + tk->h[n]/sm0*dy1;
             //fprintf(stderr,"%i old x %f y %f\n  new x %f y %f\n",n,tk->w[n]/sm0*dx0,tk->h[n]/sm0*dx0,tk->w[n]/sm0*dx1,tk->h[n]/sm0*dx1);
             tk->w[n] *= smf;
             tk->h[n] *= smf;
