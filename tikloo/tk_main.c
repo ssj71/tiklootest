@@ -16,6 +16,7 @@
 
 //forward declarations
 static void callback (PuglView* view, const PuglEvent* event);
+void nocallback(tk_t tk, const PuglEvent* e, uint16_t n);
 
 tk_t gimmeaTikloo(uint16_t w, uint16_t h, char* title)
 {
@@ -54,6 +55,7 @@ tk_t gimmeaTikloo(uint16_t w, uint16_t h, char* title)
     tk->tip[0] = (char*)calloc(strlen(title),sizeof(char));
     strcpy(tk->tip[0],title);
 
+    tk->cb_f[0] = nocallback;
     tk->draw_f[0] = cairo_code_draw_bg_render;
 
     tk->drag = 0;
@@ -82,23 +84,33 @@ tk_t gimmeaTikloo(uint16_t w, uint16_t h, char* title)
 
 void rollit(tk_t tk)
 { 
+    uint16_t i;
     PuglView* view = tk->view;
 
     puglShowWindow(view);
     tk->cr = (cairo_t*)puglGetContext(tk->view);
 
-    //just for test
-//    tk->props[0] |= TK_HOLD_RATIO;
-//    resizeeverything(tk,256,128);
-//    tk->props[0] &= ~TK_HOLD_RATIO;
-//    resizeeverything(tk,256,128);
-    
     while (!tk->quit) {
         puglWaitForEvent(view);
         puglProcessEvents(view);
     }
     
     //TODO: cleanup everything
+    for(i=0;tk->cb_f[i];i++)
+    {
+        if(tk->value[i])
+            free(tk->value[i]);
+        if(tk->tip[i])
+            free(tk->tip[i]);
+        if(tk->extras[i])
+            free(tk->extras[i]);
+        //we let the user free anything in user data 
+    }
+    free(tk->x); free(tk->y); free(tk->w); free(tk->h);
+    free(tk->layer); free(tk->value); free(tk->tip);
+    free(tk->props); free(tk->extras);
+    free(tk->draw_f); free(tk->cb_f); free(tk->callback_f);
+    free(tk->hold_ratio);
     puglDestroy(view);
 }
 
@@ -148,7 +160,7 @@ void resizeeverything(tk_t tk,float w, float h)
     } 
 
     //scale items
-    for(i=1;tk->layer[i];i++)
+    for(i=1;tk->cb_f[i];i++)
     {
         tk->x[i] -= tk->x[0]; //remove old shift
         tk->y[i] -= tk->y[0];
@@ -205,7 +217,7 @@ uint16_t dumbsearch(tk_t tk, const PuglEvent* event)
         return 0;
     }
     //TODO: ignore events outside of the drawing region? (if TK_HOLD_RATIO)
-    for(i=1; tk->layer[i]; i++)
+    for(i=1; tk->cb_f[i]; i++)
     {
         if( x >= tk->x[i] && x <= tk->x[i] + tk->w[i] &&
             y >= tk->y[i] && y <= tk->y[i] + tk->h[i] &&
