@@ -26,8 +26,8 @@ typedef struct tk_stuff
     //property flags
     uint16_t *props;
     void (**draw_f)(cairo_t*, float, float, void*); //surface, w, h, value
-    void (**cb_f)(struct tk_stuff*, const PuglEvent*, uint16_t); //event, reciever index //built in callback
-    void (**callback_f)(struct tk_stuff*, const PuglEvent*, uint16_t); //event, reciever index //user callback
+    void (**cb_f)(struct tk_stuff*, const PuglEvent*, uint16_t); //built in callback, must not be 0
+    void (**callback_f)(struct tk_stuff*, const PuglEvent*, uint16_t); //user callback
     //item specific data of any type, take care
     void **extras;
     //opaque data set by user

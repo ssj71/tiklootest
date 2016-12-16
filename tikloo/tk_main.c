@@ -39,7 +39,7 @@ tk_t gimmeaTikloo(uint16_t w, uint16_t h, char* title)
     //lists always keep an extra 0 at the end so the end can be found even if full
     tk->hold_ratio = (uint16_t*)calloc(starter_sz+1,sizeof(float));
 
-    tk->draw_f = (void(**)(cairo_t*,float,float,void*))calloc(starter_sz,sizeof(&draw_nothing));
+    tk->draw_f = (void(**)(cairo_t*,float,float,void*))calloc(starter_sz,sizeof(&drawnothing));
     tk->cb_f = (void(**)(tk_t,const PuglEvent*,uint16_t))calloc(starter_sz,sizeof(&callback));
     tk->callback_f = (void(**)(tk_t,const PuglEvent*,uint16_t))calloc(starter_sz,sizeof(&callback));
 
@@ -95,7 +95,7 @@ void rollit(tk_t tk)
         puglProcessEvents(view);
     }
     
-    //TODO: cleanup everything
+    //cleanup
     for(i=0;tk->cb_f[i];i++)
     {
         if(tk->value[i])
@@ -108,9 +108,10 @@ void rollit(tk_t tk)
     }
     free(tk->x); free(tk->y); free(tk->w); free(tk->h);
     free(tk->layer); free(tk->value); free(tk->tip);
-    free(tk->props); free(tk->extras);
+    free(tk->props); free(tk->extras); free(tk->user);
     free(tk->draw_f); free(tk->cb_f); free(tk->callback_f);
     free(tk->hold_ratio);
+    free(tk);
     puglDestroy(view);
 }
 
@@ -168,7 +169,7 @@ void resizeeverything(tk_t tk,float w, float h)
         tk->y[i] *= sy;
         tk->w[i] *= sx;
         tk->h[i] *= sy;
-        tk->x[i] += dx;
+        tk->x[i] += dx; //add new shift
         tk->y[i] += dy;
     } 
 
@@ -216,7 +217,6 @@ uint16_t dumbsearch(tk_t tk, const PuglEvent* event)
     default:
         return 0;
     }
-    //TODO: ignore events outside of the drawing region? (if TK_HOLD_RATIO)
     for(i=1; tk->cb_f[i]; i++)
     {
         if( x >= tk->x[i] && x <= tk->x[i] + tk->w[i] &&
@@ -354,10 +354,19 @@ uint16_t gimmeaWidget(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h)
     tk->w[n] = w;
     tk->h[n] = h;
     tk->layer[n] = 1;
-    tk->draw_f[n] = draw_nothing;
+    tk->draw_f[n] = drawnothing;
     tk->cb_f[n] = nocallback;
     tk->callback_f[n] = nocallback;
     return n;
+}
+
+uint16_t gimmeaDecoration(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h)
+{
+    uint16_t n = tk->nwidgets;
+
+    gimmeaWidget(tk,x,y,w,h);
+    addtolist(tk->hold_ratio,n); 
+    return n; 
 }
 
 void dialcallback(tk_t tk, const PuglEvent* event, uint16_t n)
@@ -375,17 +384,14 @@ void dialcallback(tk_t tk, const PuglEvent* event, uint16_t n)
         fprintf(stderr, "%f ",*v);
         tk->callback_f[n](tk,event,n);
         redraw(tk,n);
-        //TODO: call user callback
         break;
     case PUGL_BUTTON_PRESS:
-        //TODO: decide if being dragged
         tk->drag = n;
         tkd->x0 = event->button.x;
         tkd->y0 = event->button.y;
         tkd->v0 = *v;
         break;
     case PUGL_BUTTON_RELEASE:
-        //TODO: release drag? what if click was on another widget?
         tk->drag = 0;
         tkd->x0 = 0;
         tkd->y0 = 0;
