@@ -120,14 +120,25 @@ void resizeeverything(tk_t tk,float w, float h)
 
     if(tk->props[0]&TK_HOLD_RATIO)
     {
-        if(sx<sy) sx = sy;
-        else sy = sx;
+        if(sx<sy) sy = sx;
+        else sx = sy;
         dx = tk->w0*dx1;//shift
         dy = tk->h0*dy1;
-        dx = 0;
-        dy = 0;
         tk->w[0] *= sx;
         tk->h[0] *= sy;
+
+        //scale widgets
+        for(i=1;tk->layer[i];i++)
+        {
+            tk->x[i] -= tk->x[0]; //remove old shift
+            tk->y[i] -= tk->y[0];
+            tk->x[i] *= sx;
+            tk->y[i] *= sy;
+            tk->w[i] *= sx;
+            tk->h[i] *= sy;
+            tk->x[i] += dx;
+            tk->y[i] += dy;
+        } 
     }
     else
     {
@@ -135,53 +146,51 @@ void resizeeverything(tk_t tk,float w, float h)
         dy = 0;
         tk->w[0] = w;
         tk->h[0] = h;
+        //scale widgets
+        for(i=1;tk->layer[i];i++)
+        {
+            tk->x[i] -= tk->x[0]; //remove old shift
+            tk->y[i] -= tk->y[0];
+            tk->x[i] *= sx;
+            tk->y[i] *= sy;
+            tk->w[i] *= sx;
+            tk->h[i] *= sy;
+            tk->x[i] += dx;
+            tk->y[i] += dy;
+        } 
+        //rescale ones that hold ratio
+        for(i=0;tk->hold_ratio[i];i++)
+        {
+            n = tk->hold_ratio[i];
+
+            //undo non-ratio preserving scale
+            tk->x[n] -= dx;
+            tk->y[n] -= dy; 
+            tk->x[n] /= sx;
+            tk->y[n] /= sy;
+            tk->w[n] /= sx;
+            tk->h[n] /= sy;
+            //tk->x[n] += tk->x[0]; //this adds back in the old shift, which we don't want
+            //tk->y[n] += tk->y[0]; 
+            //fprintf(stderr,"n %i x %f y %f\n",n,tk->x[n]+tk->x[0],tk->y[n]+tk->y[0]);
+
+            //this is verbose, just to try to get the math right
+            tk->x[n] -= tk->w[n]/sm0*dx0;//remove old offset
+            tk->y[n] -= tk->h[n]/sm0*dy0;
+            //x,y should now be at old scaled position
+            tk->x[n] *= sx;
+            tk->y[n] *= sy;
+            tk->x[n] += dx + tk->w[n]/sm0*dx1; //this works and centers unless window holds ratio
+            tk->y[n] += dy + tk->h[n]/sm0*dy1;
+            //fprintf(stderr,"%i old x %f y %f\n  new x %f y %f\n",n,tk->w[n]/sm0*dx0,tk->h[n]/sm0*dx0,tk->w[n]/sm0*dx1,tk->h[n]/sm0*dx1);
+            tk->w[n] *= smf;
+            tk->h[n] *= smf;
+            //fprintf(stderr,"output x %f y %f\n",tk->x[n],tk->y[n]);
+        }
     }
     fprintf(stderr,"dx %f dy %f sx %f sy %f sx0 %f sx1 %f sy0 %f sy1 %f sm0 %f sm1 %f dx0 %f dx1 %f dy0 %f dy1 %f smf %f\n",dx,dy,sx,sy,sx0,sx1,sy0,sy1,sm0,sm1,dx0,dx1,dy0,dy1,smf);
 
-    //scale widgets
-    for(i=1;tk->layer[i];i++)
-    {
-        tk->x[i] -= tk->x[0]; //remove old shift
-        tk->y[i] -= tk->y[0];
-        tk->x[i] *= sx;
-        tk->y[i] *= sy;
-        tk->w[i] *= sx;
-        tk->h[i] *= sy;
-        tk->x[i] += dx;
-        tk->y[i] += dy;
-    } 
 
-    //rescale ones that hold ratio
-    for(i=0;tk->hold_ratio[i];i++)
-    {
-        n = tk->hold_ratio[i];
-
-        //undo non-ratio preserving scale
-        tk->x[n] -= dx;
-        tk->y[n] -= dy; 
-        tk->x[n] /= sx;
-        tk->y[n] /= sy;
-        tk->w[n] /= sx;
-        tk->h[n] /= sy;
-        //tk->x[n] += tk->x[0]; //this adds back in the old shift, which we don't want
-        //tk->y[n] += tk->y[0]; 
-        //fprintf(stderr,"n %i x %f y %f\n",n,tk->x[n]+tk->x[0],tk->y[n]+tk->y[0]);
-
-        //this is verbose, just to try to get the math right
-        tk->x[n] -= tk->w[n]/sm0*dx0;//remove old offset
-        tk->y[n] -= tk->h[n]/sm0*dy0;
-        //x,y should now be at old scaled position
-        tk->x[n] *= sx;
-        tk->y[n] *= sy;
-        tk->x[n] += dx + tk->w[n]/sm0*dx1; //this works and centers unless window holds ratio
-        tk->y[n] += dy + tk->h[n]/sm0*dy1;
-        //tk->x[n] += dx; //this works, but not centered
-        //tk->y[n] += dy;
-        //fprintf(stderr,"%i old x %f y %f\n  new x %f y %f\n",n,tk->w[n]/sm0*dx0,tk->h[n]/sm0*dx0,tk->w[n]/sm0*dx1,tk->h[n]/sm0*dx1);
-        tk->w[n] *= smf;
-        tk->h[n] *= smf;
-        //fprintf(stderr,"output x %f y %f\n",tk->x[n],tk->y[n]);
-    }
 
     //update shift
     tk->x[0] = dx;

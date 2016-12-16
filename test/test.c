@@ -10,7 +10,7 @@ void freeze_ratio(tk_t tk, const PuglEvent* event, uint16_t n)
     if(*(uint8_t*)tk->value[n])
         tk->props[0] |= TK_HOLD_RATIO;
     else
-        tk->props[0] &= TK_HOLD_RATIO;
+        tk->props[0] &= ~TK_HOLD_RATIO;
 }
 void freeze_item_ratio(tk_t tk, const PuglEvent* event, uint16_t n)
 {
