@@ -240,6 +240,9 @@ static void callback (PuglView* view, const PuglEvent* event)
     case PUGL_NOTHING:
         break;
     case PUGL_CONFIGURE:
+        if(event->configure.width == (tk->w[0]+2*tk->x[0]) &&
+           event->configure.height == (tk->h[0]+2*tk->y[0]) )
+           break;
         resizeeverything(tk,event->configure.width,event->configure.height);
     case PUGL_EXPOSE:
         //onDisplay(view);
@@ -276,12 +279,12 @@ static void callback (PuglView* view, const PuglEvent* event)
         break;
     case PUGL_BUTTON_PRESS:
     case PUGL_BUTTON_RELEASE:
-        fprintf(stderr, "Mouse %d %s at %f,%f, widget %i\n",
-                event->button.button,
-                (event->type == PUGL_BUTTON_PRESS) ? "down" : "up",
-                event->button.x,
-                event->button.y,
-                dumbsearch(tk,event));
+        //fprintf(stderr, "Mouse %d %s at %f,%f, widget %i\n",
+        //        event->button.button,
+        //        (event->type == PUGL_BUTTON_PRESS) ? "down" : "up",
+        //        event->button.x,
+        //        event->button.y,
+        //        dumbsearch(tk,event));
         n = dumbsearch(tk,event);
         if(n)
             tk->cb_f[n](tk,event,n);
@@ -292,9 +295,9 @@ static void callback (PuglView* view, const PuglEvent* event)
         }
         break;
     case PUGL_SCROLL:
-        fprintf(stderr, "Scroll %f %f %f %f widget %i\n",
-                event->scroll.x, event->scroll.y, event->scroll.dx, event->scroll.dy,
-                dumbsearch(tk,event));
+        //fprintf(stderr, "Scroll %f %f %f %f widget %i\n",
+        //        event->scroll.x, event->scroll.y, event->scroll.dx, event->scroll.dy,
+        //        dumbsearch(tk,event));
         n = dumbsearch(tk,event);
         if(n)
             tk->cb_f[n](tk,event,n);
@@ -306,16 +309,16 @@ static void callback (PuglView* view, const PuglEvent* event)
         //puglPostRedisplay(view);
         break;
     case PUGL_ENTER_NOTIFY:
-        fprintf(stderr, "Entered\n");
+        //fprintf(stderr, "Entered\n");
         break;
     case PUGL_LEAVE_NOTIFY:
-        fprintf(stderr, "Exited\n");
+        //fprintf(stderr, "Exited\n");
         break;
     case PUGL_FOCUS_IN:
-        fprintf(stderr, "Focus in\n");
+        //fprintf(stderr, "Focus in\n");
         break;
     case PUGL_FOCUS_OUT:
-        fprintf(stderr, "Focus out\n");
+        //fprintf(stderr, "Focus out\n");
         break;
     }
 }
@@ -375,13 +378,13 @@ void dialcallback(tk_t tk, const PuglEvent* event, uint16_t n)
     tk_dial_stuff* tkd = (tk_dial_stuff*)tk->extras[n];
     switch (event->type) {
     case PUGL_MOTION_NOTIFY:
-        if(s > tk->h[n]) s= tk->h[n]; //here we make the assumptions dials will usually be approximately round (not slider shaped)
+        if(s < tk->h[n]) s= tk->h[n]; //here we make the assumptions dials will usually be approximately round (not slider shaped)
         *v = tkd->v0 +
              (event->motion.x - tkd->x0)/(30.f*s) + 
              (tkd->y0 - event->motion.y)/(3.f*s);
         if(*v > 1) *v = 1;
         if(*v < 0) *v = 0;
-        fprintf(stderr, "%f ",*v);
+        //fprintf(stderr, "%f ",*v);
         tk->callback_f[n](tk,event,n);
         redraw(tk,n);
         break;
@@ -398,6 +401,12 @@ void dialcallback(tk_t tk, const PuglEvent* event, uint16_t n)
         break;
     case PUGL_SCROLL:
         //TODO: scroll
+        *v += event->scroll.dx/(30.f*s)+ event->scroll.dy/(3.f*s);
+        if(*v > 1) *v = 1;
+        if(*v < 0) *v = 0;
+        //fprintf(stderr, "%f ",*v);
+        tk->callback_f[n](tk,event,n);
+        redraw(tk,n);
         break;
     default:
         break;
