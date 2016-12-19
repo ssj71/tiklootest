@@ -372,6 +372,16 @@ uint16_t gimmeaDecoration(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t 
     return n; 
 }
 
+float dialValue(tk_t tk, uint16_t n)
+{
+    float *v = (float*)tk->value[n];
+    tk_dial_stuff* tkd = (tk_dial_stuff*)tk->extras[n];
+    if(tk->props[n]&TK_VALUE_PARABOLIC)
+        return *v*(tkd->max-tkd->min)+ tkd->min;
+    else
+        return *v**v*(tkd->max-tkd->min)+ tkd->min; 
+}
+
 void dialcallback(tk_t tk, const PuglEvent* event, uint16_t n)
 {
     float s = tk->w[n],*v = (float*)tk->value[n];
@@ -449,7 +459,6 @@ void buttoncallback(tk_t tk, const PuglEvent* event, uint16_t n)
             *v ^= 0x01;
             tk->callback_f[n](tk,event,n);
             redraw(tk,n);
-            break;
         }
         break;
     case PUGL_BUTTON_PRESS:
@@ -492,3 +501,5 @@ uint16_t gimmeaButton(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, u
     tk->cb_f[n] = buttoncallback;
     return n; 
 }
+
+uint16_t gimmeaTextbox(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, char* str)

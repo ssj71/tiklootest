@@ -52,6 +52,7 @@ typedef struct
 {
     float min, max;
     float x0, y0, v0;//drag initiation point
+    char* units;
 }tk_dial_stuff;
 
 typedef enum
@@ -61,6 +62,9 @@ typedef enum
 
     //Button Properties
     TK_BUTTON_MOMENTARY = 0x1,
+
+    //Dial Properties
+    TK_VALUE_PARABOLIC = 0x1,//TODO: what about for xy points?
 }TK_PROPERTIES;
 
 #endif
