@@ -8,7 +8,9 @@
 #ifndef TK_TYPES_H
 #define TK_TYPES_H
 #include<stdint.h>
-#include <cairo/cairo.h>
+#include<cairo/cairo.h>
+#include<ft2build.h> 
+#include FT_FREETYPE_H
 #include "pugl/pugl.h"
 
 

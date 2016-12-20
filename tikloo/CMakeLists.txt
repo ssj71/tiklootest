@@ -3,10 +3,11 @@ cmake_minimum_required(VERSION 2.8)
 
 find_package(PkgConfig)
 pkg_check_modules(CAIRO cairo REQUIRED)
+pkg_check_modules(FREETYPE freetype2 REQUIRED)
 #pkg_check_modules(SND sndfile )
 
-list(APPEND TIKLOO_INCLUDE_DIRS ${CAIRO_INCLUDE_DIRS} tikloo ) #note this extra reference to tikloo is for the parent dir, not here
-list(APPEND TIKLOO_LDFLAGS ${CAIRO_LDFLAGS} )
+list(APPEND TIKLOO_INCLUDE_DIRS ${CAIRO_INCLUDE_DIRS}  ${FREETYPE_INCLUDE_DIRS} tikloo ) #note this extra reference to tikloo is for the parent dir, not here
+list(APPEND TIKLOO_LDFLAGS ${CAIRO_LDFLAGS} ${FREETYPE_LDFLAGS} )
 
 #list(APPEND AVTK_SND_SRC "")
 #if(SND_FOUND)
