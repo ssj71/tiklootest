@@ -52,8 +52,7 @@ tk_t gimmeaTikloo(uint16_t w, uint16_t h, char* title)
 
 
     tk->layer[0] = 0;
-    tk->tip[0] = (char*)calloc(strlen(title),sizeof(char));
-    strcpy(tk->tip[0],title);
+    tk_setstring(tk->tip[0],title);
 
     tk->cb_f[0] = nocallback;
     tk->draw_f[0] = cairo_code_draw_bg_render;
@@ -343,7 +342,14 @@ void removefromlist(uint16_t* list, uint16_t n)
         }
 }
 
-
+void tk_setstring(char* str, char* msg)
+{
+    
+    if( str )
+        free(str);
+    str = (char*)calloc(strlen(msg),sizeof(char));
+    strcpy(str,msg);
+}
 
 //WIDGET STUFF
 void nocallback(tk_t tk, const PuglEvent* e, uint16_t n)
@@ -504,16 +510,32 @@ uint16_t gimmeaButton(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, u
 
 uint16_t gimmeaTextbox(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, char* str)
 {
-    uint16_t n = tk->nwidgets;
-    gimmeaWidget(tk,x,y,w,h);
+    uint16_t n = tk->nwidgets; 
+    int fontSize = 14;
+    tk_text_stuff* tkt = (tk_text_stuff*)malloc(sizeof(tk_text_stuff));
 
-    //freetype stuff
-
+    //freetype stuff 
     FT_Library  library;   /* handle to library     */
     FT_Face     face;      /* handle to face object */
     FT_Error    error;
+    //cairo stuff
+    cairo_t* cr = tk->cr;
+    cairo_font_face_t* fontFace;
+    cairo_glyph_t* glyphs = NULL;
+    int glyph_count;
+    cairo_text_cluster_t* clusters = NULL;
+    int cluster_count;
+    cairo_text_cluster_flags_t clusterflags;
+    cairo_status_t stat;
+    cairo_scaled_font_t* scaled_face;
+
+    gimmeaWidget(tk,x,y,w,h);
+
+    tk_setstring(tk->tip[n],str);
+    tkt->str = tk->tip[n];
 
 
+    //now font setup stuff 
     error = FT_Init_FreeType( &library );
     if ( error ) {; }
 
@@ -532,23 +554,14 @@ uint16_t gimmeaTextbox(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, 
           //  ... be opened or read, or that it is broken...
     }
                 
-    const char* text = "Hello world";
-    int fontSize = 14;
-    cairo_font_face_t* fontFace = ...;
-
-    // get the scaled font object
-    cairo_set_font_face(cr, fontFace);
-    cairo_set_font_size(cr, fontSize);
-    auto scaled_face = cairo_get_scaled_font(cr);
 
     // get glyphs for the text
-    cairo_glyph_t* glyphs = NULL;
-    int glyph_count;
-    cairo_text_cluster_t* clusters = NULL;
-    int cluster_count;
-    cairo_text_cluster_flags_t clusterflags;
-
-    auto stat = cairo_scaled_font_text_to_glyphs(scaled_face, 0, 0, text, strlen(text), &glyphs, &glyph_count, &clusters, &cluster_count,
+    // get the scaled font object
+    fontFace = cairo_ft_font_face_create_for_ft_face(face,0);
+    cairo_set_font_face(cr, fontFace);
+    cairo_set_font_size(cr, fontSize);
+    scaled_face = cairo_get_scaled_font(cr); 
+    stat = cairo_scaled_font_text_to_glyphs(scaled_face, 0, 0, str, strlen(str), &glyphs, &glyph_count, &clusters, &cluster_count,
                         &clusterflags);
 
     // check if conversion was successful

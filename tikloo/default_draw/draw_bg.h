@@ -1,6 +1,6 @@
 #ifndef DRAW_BG_H
 #define DRAW_BG_H
-void cairo_code_draw_bg_render(cairo_t *cr, float w, float h, void* valp)
+void draw_bg(cairo_t *cr, float w, float h, void* valp)
 {
     cairo_pattern_t *pattern;
 

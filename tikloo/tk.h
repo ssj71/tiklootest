@@ -17,6 +17,7 @@ uint16_t gimmeaButton(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, u
 //various helping functions
 void addtolist(uint16_t* list, uint16_t n);
 void removefromlist(uint16_t* list, uint16_t n);
+void tk_setstring(char* str, char* msg);
 void resizeeverything(tk_t tk, float w, float h);
 float dialValue(tk_t tk, uint16_t n);
 

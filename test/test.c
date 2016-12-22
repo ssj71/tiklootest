@@ -29,12 +29,12 @@ int main()
     tk = gimmeaTikloo(128, 128, "this is only a test");
     gimmeaDial(tk,20,20,30,30,0,100,50);
     n = gimmeaDial(tk,70,20,30,30,0,100,50);
-    removefromlist(tk->hold_ratio,n);
     n = gimmeaButton(tk,20,70,30,40,0);
     tk->callback_f[n] = freeze_item_ratio;
     n = gimmeaButton(tk,70,70,30,40,0);
     addtolist(tk->hold_ratio,n);
     tk->callback_f[n] = freeze_ratio;
+    n = gimmeaTextbox(tk,5,5,10,100,"Don't Panic!");
 
 
     rollit(tk);

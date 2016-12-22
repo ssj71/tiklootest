@@ -8,7 +8,8 @@
 //dial
 void cairo_code_draw_flatDial_render(cairo_t *cr, float w, float h, void* valp);
 void cairo_code_draw_blackLEDbutton_render(cairo_t *cr, float w, float h, void* val);
-void cairo_code_draw_bg_render(cairo_t *cr, float w, float h, void* valp);
+void draw_bg(cairo_t *cr, float w, float h, void* valp);
+void draw_textbox(cairo_t *cr, float w, float h, void* valp);
 
 void drawnothing(cairo_t *cr, float w, float h, void* v){(void)cr;(void)w;(void)h;(void)v;};
 
