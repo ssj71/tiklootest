@@ -60,20 +60,21 @@ typedef struct
 typedef struct
 {
     char* str;//pointer to tip
+    uint8_t strchange;
+    uint16_t cursor;
+
     //hopefull some of the below can be removed later
     FT_Library  library;   /* handle to library     */
     FT_Face     face;      /* handle to face object */
     FT_Error    error;
     //cairo stuff
-    cairo_t* cr = tk->cr;
     cairo_font_face_t* fontFace;
+    cairo_scaled_font_t* scaled_face;
     cairo_glyph_t* glyphs = NULL;
     int glyph_count;
     cairo_text_cluster_t* clusters = NULL;
     int cluster_count;
     cairo_text_cluster_flags_t clusterflags;
-    cairo_status_t stat;
-    cairo_scaled_font_t* scaled_face;
 }tk_text_stuff;
 
 typedef enum
