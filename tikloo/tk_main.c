@@ -52,10 +52,10 @@ tk_t gimmeaTikloo(uint16_t w, uint16_t h, char* title)
 
 
     tk->layer[0] = 0;
-    tk_setstring(tk->tip[0],title);
+    tk_setstring(&tk->tip[0],title);
 
     tk->cb_f[0] = nocallback;
-    tk->draw_f[0] = cairo_code_draw_bg_render;
+    tk->draw_f[0] = draw_bg;
 
     tk->drag = 0;
     tk->nwidgets = 1;
@@ -77,6 +77,7 @@ tk_t gimmeaTikloo(uint16_t w, uint16_t h, char* title)
     
     //all set!
     puglCreateWindow(view, tk->tip[0]); 
+    tk->cr = (cairo_t*)puglGetContext(tk->view);
     
     return (tk_t) tk;
 }
@@ -87,7 +88,6 @@ void rollit(tk_t tk)
     PuglView* view = tk->view;
 
     puglShowWindow(view);
-    tk->cr = (cairo_t*)puglGetContext(tk->view);
 
     while (!tk->quit) {
         puglWaitForEvent(view);
@@ -342,13 +342,13 @@ void removefromlist(uint16_t* list, uint16_t n)
         }
 }
 
-void tk_setstring(char* str, char* msg)
+void tk_setstring(char** str, char* msg)
 {
     
-    if( str )
-        free(str);
-    str = (char*)calloc(strlen(msg),sizeof(char));
-    strcpy(str,msg);
+    if( *str )
+        free(*str);
+    *str = (char*)calloc(strlen(msg),sizeof(char));
+    strcpy(*str,msg);
 }
 
 //WIDGET STUFF
@@ -508,7 +508,9 @@ uint16_t gimmeaButton(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, u
     return n; 
 }
 
-uint16_t gimmeaTextbox(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, char* str)
+//TODO: add Nlines to decide size of font
+//TODO: add font paths
+uint16_t gimmeaTextbox(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, char* font, char* str)
 {
     uint16_t n = tk->nwidgets; 
     int fontSize = 14;
@@ -531,7 +533,7 @@ uint16_t gimmeaTextbox(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, 
 
     gimmeaWidget(tk,x,y,w,h);
 
-    tk_setstring(tk->tip[n],str);
+    tk_setstring(&tk->tip[n],str);
     tkt->str = tk->tip[n];
 
 
@@ -540,18 +542,22 @@ uint16_t gimmeaTextbox(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, 
     if ( error ) {; }
 
     error = FT_New_Face( library,
-         "FreeSans.ttf",
+         font,
          0,
          &face );
     if ( error == FT_Err_Unknown_File_Format )
     {
       //... the font file could be opened and read, but it appears
       //  ... that its font format is unsupported
+        fprintf(stderr, "OH NO, Font problem!");
+        return n;
     }
     else if ( error )
     {
           //... another error code means that the font file could not
           //  ... be opened or read, or that it is broken...
+        fprintf(stderr, "OH NO Font not found!");
+        return n;
     }
                 
 
@@ -561,43 +567,26 @@ uint16_t gimmeaTextbox(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, 
     cairo_set_font_face(cr, fontFace);
     cairo_set_font_size(cr, fontSize);
     scaled_face = cairo_get_scaled_font(cr); 
-    stat = cairo_scaled_font_text_to_glyphs(scaled_face, 0, 0, str, strlen(str), &glyphs, &glyph_count, &clusters, &cluster_count,
-                        &clusterflags);
+    stat = cairo_scaled_font_text_to_glyphs(scaled_face, 0, 0, 
+                    str, strlen(str), 
+                    &glyphs, &glyph_count, 
+                    &clusters, &cluster_count, &clusterflags);
+
+    tkt->fontsize = fontSize;
+    tkt->fontFace = fontFace;
+    tkt->scaled_face = scaled_face;
+    tkt->glyphs = glyphs;
+    tkt->glyph_count = glyph_count;
+    tkt->clusters = clusters;
+    tkt->cluster_count = cluster_count;
 
     // check if conversion was successful
     if (stat == CAIRO_STATUS_SUCCESS) {
-
-        // text paints on bottom line
-        cairo_translate(cr, 0, fontSize);
-
-        // draw each cluster
-        int glyph_index = 0;
-        int byte_index = 0;
-
-        for (int i = 0; i < cluster_count; i++) {
-            cairo_text_cluster_t* cluster = &clusters[i];
-            cairo_glyph_t* clusterglyphs = &glyphs[glyph_index];
-
-            // get extents for the glyphs in the cluster
-            cairo_text_extents_t extents;
-            cairo_scaled_font_glyph_extents(scaled_face, clusterglyphs, cluster->num_glyphs, &extents);
-            // ... for later use
-
-            // put paths for current cluster to context
-            cairo_glyph_path(cr, clusterglyphs, cluster->num_glyphs);
-
-            // draw black text with green stroke
-            cairo_set_source_rgba(cr, 0.2, 0.2, 0.2, 1.0);
-            cairo_fill_preserve(cr);
-            cairo_set_source_rgba(cr, 0, 1, 0, 1.0);
-            cairo_set_line_width(cr, 0.5);
-            cairo_stroke(cr);
-
-            // glyph/byte position
-            glyph_index += cluster->num_glyphs;
-            byte_index += cluster->num_bytes;
-        }
+        //now what?
     }
+
+    tk->draw_f[n] = draw_textbox;
+    tk->value[n] = tkt;
 
     return n;
 }

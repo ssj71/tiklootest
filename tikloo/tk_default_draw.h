@@ -3,6 +3,7 @@
 
 #include"default_draw/draw_flatDial.h"
 #include"default_draw/draw_blackLEDbutton.h"
+#include"default_draw/draw_textbox.h"
 #include"default_draw/draw_bg.h"
 
 //dial

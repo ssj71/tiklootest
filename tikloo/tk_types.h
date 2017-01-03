@@ -9,6 +9,7 @@
 #define TK_TYPES_H
 #include<stdint.h>
 #include<cairo/cairo.h>
+#include<cairo/cairo-ft.h>
 #include<ft2build.h> 
 #include FT_FREETYPE_H
 #include "pugl/pugl.h"
@@ -50,6 +51,18 @@ typedef struct tk_stuff
 
 typedef tk_stuff* tk_t;
 
+typedef enum
+{
+    //Main Window Properties
+    TK_HOLD_RATIO = 0x1,
+
+    //Button Properties
+    TK_BUTTON_MOMENTARY = 0x1,
+
+    //Dial Properties
+    TK_VALUE_PARABOLIC = 0x1,//TODO: what about for xy points?
+}TK_PROPERTIES;
+
 typedef struct
 {
     float min, max;
@@ -62,6 +75,7 @@ typedef struct
     char* str;//pointer to tip
     uint8_t strchange;
     uint16_t cursor;
+    uint16_t fontsize;
 
     //hopefull some of the below can be removed later
     FT_Library  library;   /* handle to library     */
@@ -70,23 +84,11 @@ typedef struct
     //cairo stuff
     cairo_font_face_t* fontFace;
     cairo_scaled_font_t* scaled_face;
-    cairo_glyph_t* glyphs = NULL;
+    cairo_glyph_t* glyphs;
     int glyph_count;
-    cairo_text_cluster_t* clusters = NULL;
+    cairo_text_cluster_t* clusters;
     int cluster_count;
     cairo_text_cluster_flags_t clusterflags;
 }tk_text_stuff;
-
-typedef enum
-{
-    //Main Window Properties
-    TK_HOLD_RATIO = 0x1,
-
-    //Button Properties
-    TK_BUTTON_MOMENTARY = 0x1,
-
-    //Dial Properties
-    TK_VALUE_PARABOLIC = 0x1,//TODO: what about for xy points?
-}TK_PROPERTIES;
 
 #endif

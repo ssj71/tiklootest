@@ -34,7 +34,7 @@ int main()
     n = gimmeaButton(tk,70,70,30,40,0);
     addtolist(tk->hold_ratio,n);
     tk->callback_f[n] = freeze_ratio;
-    n = gimmeaTextbox(tk,5,5,10,100,"Don't Panic!");
+    n = gimmeaTextbox(tk,5,5,10,100,"/usr/share/fonts/truetype/freefont/FreeSerif.ttf","Don't Panic!");
 
 
     rollit(tk);
