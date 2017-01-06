@@ -581,9 +581,9 @@ uint16_t gimmeaTextbox(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, 
     tkt->cluster_count = cluster_count;
 
     // check if conversion was successful
-    if (stat == CAIRO_STATUS_SUCCESS) {
+    //if (stat == CAIRO_STATUS_SUCCESS) {
         //now what?
-    }
+    //}
 
     tk->draw_f[n] = draw_textbox;
     tk->value[n] = tkt;
