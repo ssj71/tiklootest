@@ -515,7 +515,7 @@ uint16_t tk_gimmeaButton(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h
 uint16_t tk_gimmeaTextbox(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, char* font, char* str)
 {
     uint16_t n = tk->nwidgets; 
-    int fontSize = 14;
+    int fontSize = h;
     tk_text_stuff* tkt = (tk_text_stuff*)malloc(sizeof(tk_text_stuff));
 
     //freetype stuff 

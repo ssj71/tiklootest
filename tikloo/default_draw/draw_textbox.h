@@ -3,6 +3,7 @@
 //#include<cairo/cairo.h>
 //#include"tk_types.h"
 
+// here we assume a single line
 void tk_drawtextbox(cairo_t *cr, float w, float h, void* valp)
 {
     tk_text_stuff* ts = (tk_text_stuff*)valp;
@@ -15,6 +16,17 @@ void tk_drawtextbox(cairo_t *cr, float w, float h, void* valp)
     int cluster_count = ts->cluster_count;
     cairo_text_cluster_flags_t clusterflags = ts->clusterflags;
     cairo_status_t stat;
+
+    cairo_save( cr );
+
+    //TODO: cache drawing
+    if(h != ts->fontsize)
+    {
+        ts->fontsize = h; 
+        cairo_set_font_size(cr, h);
+        scaled_face = cairo_get_scaled_font(cr); 
+        ts->scaled_face = scaled_face;
+    }
 
     //TODO: only do this is the text has changed
     stat = cairo_scaled_font_text_to_glyphs(scaled_face, 0, 0, str, strlen(str), 
@@ -57,6 +69,6 @@ void tk_drawtextbox(cairo_t *cr, float w, float h, void* valp)
         }
     }
 
-    
+    cairo_restore( cr );
 } 
 #endif
