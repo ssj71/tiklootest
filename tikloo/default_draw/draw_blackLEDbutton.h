@@ -8,7 +8,7 @@ inline int cairo_code_draw_blackLEDbutton_get_height()
 {
     return 45;
 }
-void cairo_code_draw_blackLEDbutton_render(cairo_t *cr, float w, float h, void* valp)
+void tk_drawbutton(cairo_t *cr, float w, float h, void* valp)
 {
     uint8_t val = *(uint8_t*)valp;
     cairo_pattern_t *pattern;

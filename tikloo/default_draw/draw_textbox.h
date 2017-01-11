@@ -3,7 +3,7 @@
 //#include<cairo/cairo.h>
 //#include"tk_types.h"
 
-void draw_textbox(cairo_t *cr, float w, float h, void* valp)
+void tk_drawtextbox(cairo_t *cr, float w, float h, void* valp)
 {
     tk_text_stuff* ts = (tk_text_stuff*)valp;
     char* str = ts->str;
