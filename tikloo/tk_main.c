@@ -276,8 +276,14 @@ static void tk_callback (PuglView* view, const PuglEvent* event)
         if(tk->drag)
             tk->cb_f[tk->drag](tk,event,tk->drag);
         break;
-    case PUGL_BUTTON_PRESS:
     case PUGL_BUTTON_RELEASE:
+        if(tk->drag)
+        {
+            tk->cb_f[tk->drag](tk,event,tk->drag);
+            tk->drag = 0;
+        }
+        //no break
+    case PUGL_BUTTON_PRESS:
         //fprintf(stderr, "Mouse %d %s at %f,%f, widget %i\n",
         //        event->button.button,
         //        (event->type == PUGL_BUTTON_PRESS) ? "down" : "up",
@@ -287,11 +293,6 @@ static void tk_callback (PuglView* view, const PuglEvent* event)
         n = tk_dumbsearch(tk,event);
         if(n)
             tk->cb_f[n](tk,event,n);
-        else if(tk->drag)
-        {
-            tk->cb_f[tk->drag](tk,event,tk->drag);
-            tk->drag = 0;
-        }
         break;
     case PUGL_SCROLL:
         //fprintf(stderr, "Scroll %f %f %f %f widget %i\n",
@@ -413,7 +414,6 @@ void tk_dialcallback(tk_t tk, const PuglEvent* event, uint16_t n)
         tkd->v0 = *v;
         break;
     case PUGL_BUTTON_RELEASE:
-        tk->drag = 0;
         tkd->x0 = 0;
         tkd->y0 = 0;
         break;
@@ -485,7 +485,6 @@ void tk_buttoncallback(tk_t tk, const PuglEvent* event, uint16_t n)
             event->button.y >= tk->y[n] && event->button.y <= tk->y[n] + tk->h[n])
           )
         {
-            tk->drag = 0;
             *v ^= 0x01;
             tk->callback_f[n](tk,event,n);
             tk_redraw(tk,n);
@@ -570,10 +569,10 @@ uint16_t tk_gimmeaTextbox(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t 
     cairo_set_font_face(cr, fontFace);
     cairo_set_font_size(cr, fontSize);
     scaled_face = cairo_get_scaled_font(cr); 
-    stat = cairo_scaled_font_text_to_glyphs(scaled_face, 0, 0, 
-                    str, strlen(str), 
-                    &glyphs, &glyph_count, 
-                    &clusters, &cluster_count, &clusterflags);
+    //stat = cairo_scaled_font_text_to_glyphs(scaled_face, 0, 0, 
+    //                str, strlen(str), 
+    //                &glyphs, &glyph_count, 
+    //                &clusters, &cluster_count, &clusterflags);
 
     tkt->fontsize = fontSize;
     tkt->fontFace = fontFace;

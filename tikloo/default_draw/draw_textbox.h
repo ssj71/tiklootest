@@ -16,6 +16,7 @@ void tk_drawtextbox(cairo_t *cr, float w, float h, void* valp)
     int cluster_count = ts->cluster_count;
     cairo_text_cluster_flags_t clusterflags = ts->clusterflags;
     cairo_status_t stat;
+    int i;
 
     cairo_save( cr );
 
@@ -43,11 +44,17 @@ void tk_drawtextbox(cairo_t *cr, float w, float h, void* valp)
         //TODO: use w and h
         cairo_translate(cr, 0, ts->fontsize);
 
+        // draw black text with green stroke
+        cairo_set_source_rgba(cr, 0.9, 0.9, 0.9, 1.0);
+        //cairo_fill_preserve(cr);
+        cairo_set_source_rgba(cr, 1, 1, 1, 1.0);
+        cairo_set_line_width(cr, 0.5);
+
         // draw each cluster
         int glyph_index = 0;
         int byte_index = 0;
 
-        for (int i = 0; i < cluster_count; i++) { 
+        for (i = 0; i < cluster_count; i++) { 
             // get extents for the glyphs in the cluster
             cairo_text_extents_t extents;
             cairo_scaled_font_glyph_extents(scaled_face, &glyphs[glyph_index], clusters[i].num_glyphs, &extents);
@@ -56,11 +63,6 @@ void tk_drawtextbox(cairo_t *cr, float w, float h, void* valp)
             // put paths for current cluster to context
             cairo_glyph_path(cr, &glyphs[glyph_index], clusters[i].num_glyphs);
 
-            // draw black text with green stroke
-            cairo_set_source_rgba(cr, 0.2, 0.2, 0.2, 1.0);
-            cairo_fill_preserve(cr);
-            cairo_set_source_rgba(cr, 0, 1, 0, 1.0);
-            cairo_set_line_width(cr, 0.5);
             cairo_stroke(cr);
 
             // glyph/byte position
