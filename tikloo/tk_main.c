@@ -525,11 +525,11 @@ uint16_t tk_gimmeaTextbox(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t 
     cairo_t* cr = tk->cr;
     cairo_font_face_t* fontFace;
     cairo_glyph_t* glyphs = NULL;
-    int glyph_count;
+    int glyph_count = 0;
     cairo_text_cluster_t* clusters = NULL;
-    int cluster_count;
+    int cluster_count = 0;
     cairo_text_cluster_flags_t clusterflags;
-    cairo_status_t stat;
+    //cairo_status_t stat;
     cairo_scaled_font_t* scaled_face;
 
     tk_gimmeaWidget(tk,x,y,w,h);
@@ -558,7 +558,7 @@ uint16_t tk_gimmeaTextbox(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t 
     {
           //... another error code means that the font file could not
           //  ... be opened or read, or that it is broken...
-        fprintf(stderr, "OH NO Font not found!");
+        fprintf(stderr, "OH NO, Font not found!");
         return n;
     }
                 
@@ -569,10 +569,11 @@ uint16_t tk_gimmeaTextbox(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t 
     cairo_set_font_face(cr, fontFace);
     cairo_set_font_size(cr, fontSize);
     scaled_face = cairo_get_scaled_font(cr); 
-    //stat = cairo_scaled_font_text_to_glyphs(scaled_face, 0, 0, 
-    //                str, strlen(str), 
-    //                &glyphs, &glyph_count, 
-    //                &clusters, &cluster_count, &clusterflags);
+    //stat = 
+    cairo_scaled_font_text_to_glyphs(scaled_face, 0, 0, 
+                    str, strlen(str), 
+                    &glyphs, &glyph_count, 
+                    &clusters, &cluster_count, &clusterflags);
 
     tkt->fontsize = fontSize;
     tkt->fontFace = fontFace;
@@ -586,6 +587,8 @@ uint16_t tk_gimmeaTextbox(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t 
     //if (stat == CAIRO_STATUS_SUCCESS) {
         //now what?
     //}
+
+    //TODO: cleanup properly glyphs and clusters, others?
 
     tk->draw_f[n] = tk_drawtextbox;
     tk->value[n] = tkt;
