@@ -26,15 +26,47 @@ int main()
     tk_t tk;
     uint16_t n;
 
-    tk = tk_gimmeaTikloo(128, 128, "this is only a test");
-    tk_gimmeaDial(tk,20,20,30,30,0,100,50);
-    n = tk_gimmeaDial(tk,70,20,30,30,0,100,50);
-    n = tk_gimmeaButton(tk,20,70,30,40,0);
+    tk = tk_gimmeaTikloo(128, //w
+                         128, //h
+                         "this is only a test");//title
+    tk_gimmeaDial(tk,
+                  20, //x
+                  20, //y
+                  30, //w
+                  30, //h
+                  0,  //min
+                  100, //max
+                  50); //val
+    tk_gimmeaDial(tk,
+                  70, //x
+                  20, //y
+                  30, //w
+                  30, //h
+                  0,  //min
+                  100, //max
+                  50); //val
+    n = tk_gimmeaButton(tk,
+                        20, //x
+                        70, //y
+                        30, //w
+                        40, //h
+                        0); //val
     tk->callback_f[n] = freeze_item_ratio;
-    n = tk_gimmeaButton(tk,70,70,30,40,0);
+    n = tk_gimmeaButton(tk,
+                        70, //x
+                        70, //y
+                        30, //w
+                        40, //h
+                        0); //val
     tk_addtolist(tk->hold_ratio,n);
     tk->callback_f[n] = freeze_ratio;
-    n = tk_gimmeaTextbox(tk,5,5,100,10,"/usr/share/fonts/truetype/freefont/FreeSerif.ttf","Don't Panic!");
+    n = tk_gimmeaTextbox(tk,
+                         5, //x
+                         5, //y
+                         100, //w
+                         10, //h
+                         "/usr/share/fonts/truetype/freefont/FreeSerif.ttf", //font path
+                         "Don't Panic!"); //msg
 
 
     tk_rollit(tk);
