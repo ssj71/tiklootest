@@ -180,9 +180,6 @@ void tk_resizeeverything(tk_t tk,float w, float h)
 void tk_draweverything(tk_t tk)
 {
     uint16_t i;
-    //cairo_translate(tk->cr,tk->x[0],tk->y[0]);
-    //tk->draw_f[0](tk->cr,tk->w[0],tk->h[0],0);
-    //cairo_translate(tk->cr,-tk->x[0],-tk->y[0]);
     for(i=0; tk->draw_f[i]; i++)
     {
         cairo_translate(tk->cr,tk->x[i],tk->y[i]);
@@ -194,6 +191,7 @@ void tk_draweverything(tk_t tk)
 void tk_redraw(tk_t tk,uint16_t n)
 {
     //TODO:get smart about redrawing if its the bg?
+    //TODO: draw in proper layer order
     cairo_translate(tk->cr,tk->x[n],tk->y[n]);
     tk->draw_f[n](tk->cr,tk->w[n],tk->h[n],tk->value[n]); 
     cairo_translate(tk->cr,-tk->x[n],-tk->y[n]);
@@ -234,7 +232,6 @@ static void tk_callback (PuglView* view, const PuglEvent* event)
 { 
     uint16_t n;
     tk_t tk = (tk_t)puglGetHandle(view);
-    //TODO: sort through events to find who gets it
     switch (event->type) {
     case PUGL_NOTHING:
         break;
@@ -244,8 +241,6 @@ static void tk_callback (PuglView* view, const PuglEvent* event)
            break;
         tk_resizeeverything(tk,event->configure.width,event->configure.height);
     case PUGL_EXPOSE:
-        //onDisplay(view);
-        //TODO: draw everything?
         tk_draweverything(tk);
         break;
     case PUGL_CLOSE:
@@ -255,11 +250,6 @@ static void tk_callback (PuglView* view, const PuglEvent* event)
         fprintf(stderr, "Key %u (char %u) press (%s)%s\n",
                 event->key.keycode, event->key.character, event->key.utf8,
                 event->key.filter ? " (filtered)" : "");
-        //if (event->key.character == 'q' ||
-        //    event->key.character == 'Q' ||
-        //    event->key.character == PUGL_CHAR_ESCAPE) {
-        //    quit = 1;
-        //}
         break;
     case PUGL_KEY_RELEASE:
         fprintf(stderr, "Key %u (char %u) release (%s)%s\n",
@@ -267,12 +257,6 @@ static void tk_callback (PuglView* view, const PuglEvent* event)
                 event->key.filter ? " (filtered)" : "");
         break;
     case PUGL_MOTION_NOTIFY:
-        //fprintf(stderr, "Motion at %f,%f ",
-        //        event->motion.x,
-        //        event->motion.y);
-        //xAngle = -(int)event->motion.x % 360;
-        //yAngle = (int)event->motion.y % 360;
-        //puglPostRedisplay(view);
         if(tk->drag)
             tk->cb_f[tk->drag](tk,event,tk->drag);
         break;
@@ -284,29 +268,14 @@ static void tk_callback (PuglView* view, const PuglEvent* event)
         }
         //no break
     case PUGL_BUTTON_PRESS:
-        //fprintf(stderr, "Mouse %d %s at %f,%f, widget %i\n",
-        //        event->button.button,
-        //        (event->type == PUGL_BUTTON_PRESS) ? "down" : "up",
-        //        event->button.x,
-        //        event->button.y,
-        //        dumbsearch(tk,event));
         n = tk_dumbsearch(tk,event);
         if(n)
             tk->cb_f[n](tk,event,n);
         break;
     case PUGL_SCROLL:
-        //fprintf(stderr, "Scroll %f %f %f %f widget %i\n",
-        //        event->scroll.x, event->scroll.y, event->scroll.dx, event->scroll.dy,
-        //        dumbsearch(tk,event));
         n = tk_dumbsearch(tk,event);
         if(n)
             tk->cb_f[n](tk,event,n);
-        //printModifiers(view, event->scroll.state);
-        //dist += event->scroll.dy;
-        //if (dist < 10.0f) {
-        //    dist = 10.0f;
-        //}
-        //puglPostRedisplay(view);
         break;
     case PUGL_ENTER_NOTIFY:
         //fprintf(stderr, "Entered\n");
@@ -594,4 +563,18 @@ uint16_t tk_gimmeaTextbox(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t 
     tk->value[n] = tkt;
 
     return n;
+}
+
+//timers are an entirely different beast from other widgets
+uint16_t tk_gimmeaTimer(tk_t tk, float ms)
+{
+    //may want to make this actually off the window
+    tk->x[n] = 0;
+    tk->y[n] = 0;
+    tk->w[n] = 0;
+    tk->h[n] = 0;
+    tk->layer[n] = 0;
+    tk->draw_f[n] = tk_drawnothing;
+    tk->cb_f[n] = tk_nocallback;
+    tk->callback_f[n] = tk_nocallback;
 }

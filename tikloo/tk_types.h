@@ -17,7 +17,7 @@
 
 typedef struct tk_stuff
 {
-    //primary table, each index correlates across arrays
+    //////primary table, each index correlates across arrays
     //size and position
     float *x,*y,*w,*h;
     //items on higher layers recieve callbacks, never set to 0
@@ -29,30 +29,39 @@ typedef struct tk_stuff
     //property flags
     uint16_t *props;
     void (**draw_f)(cairo_t*, float, float, void*); //surface, w, h, value
-    void (**cb_f)(struct tk_stuff*, const PuglEvent*, uint16_t); //built in callback, must not be 0
-    void (**callback_f)(struct tk_stuff*, const PuglEvent*, uint16_t); //user callback
+    //built in callback, must not be 0
+    void (**cb_f)(struct tk_stuff*, const PuglEvent*, uint16_t); 
+    //user callback, run after built in
+    void (**callback_f)(struct tk_stuff*, const PuglEvent*, uint16_t);
     //item specific data of any type, take care
     void **extras;
     //opaque data set by user
     void **user;
 
-    //lists, values are indices of items with common properties
+    //////lists, values are indices of items with common properties
     //items that don't change aspect ratio when scaling
     uint16_t *hold_ratio; 
 
-    //global stuff
+    //////global stuff
     float w0,h0;
     uint16_t nwidgets,tabsize;
-    uint16_t drag;
+    uint16_t drag;//index of widgets being dragged
+    uint16_t tip;//index of TT widget
     PuglView* view;
     cairo_t* cr;
     uint8_t quit;
+
+    //////timers
+    uint32_t tickspersec;
+    float* time;
+    float* nexttime;
 }tk_stuff;
 
 typedef tk_stuff* tk_t;
 
 typedef enum
 {
+    //NOTE that some of these values are not unique, because the properties only apply in certain contexts. Pay attention
     //Main Window Properties
     TK_HOLD_RATIO = 0x1,
 
@@ -77,7 +86,7 @@ typedef struct
     uint16_t cursor;
     uint16_t fontsize;
 
-    //hopefull some of the below can be removed later
+    //hopefully some of the below can be removed later
     FT_Library  library;   /* handle to library     */
     FT_Face     face;      /* handle to face object */
     FT_Error    error;
