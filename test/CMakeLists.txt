@@ -11,5 +11,10 @@ include_directories( ${TIKLOO_INCLUDE_DIRS} )
 add_executable(test_ui
     test.c
 )
+add_executable(unittest EXCLUDE_FROM_ALL
+    unittest.c
+
+)
 
 target_link_libraries(test_ui tikloo ${TIKLOO_LDFLAGS} )
+target_link_libraries(unittest tikloo ${TIKLOO_LDFLAGS} )

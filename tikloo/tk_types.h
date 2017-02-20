@@ -41,12 +41,14 @@ typedef struct tk_stuff
     //////lists, values are indices of items with common properties
     //items that don't change aspect ratio when scaling
     uint16_t *hold_ratio; 
+    uint16_t *draw; 
+    uint16_t *redraw; 
 
     //////global stuff
     float w0,h0;
     uint16_t nwidgets,tabsize;
     uint16_t drag;//index of widgets being dragged
-    uint16_t tip;//index of TT widget
+    uint16_t ttip;//index of TT widget
     PuglView* view;
     cairo_t* cr;
     uint8_t quit;
