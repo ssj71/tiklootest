@@ -331,10 +331,10 @@ void tk_removefromlist(uint16_t* list, uint16_t n)
         }
 }
 
-void tk_insertinlist(uint16_t* list, uint16_t i, uint16_t n)
+void tk_insertinlist(uint16_t* list, uint16_t n, uint16_t i)
 {
     uint16_t j,k;
-    for(j=i;list[j]&&list[j]==n;j++);//find end of list
+    for(j=0;list[j]&&list[j]!=n;j++);//find end of list
     if(list[j]==n)
     {
         //it's already in the list once
@@ -342,7 +342,7 @@ void tk_insertinlist(uint16_t* list, uint16_t i, uint16_t n)
             for(k=j;k<i;k++)
                 list[k] = list[k+1];
         else if(j>i)
-            for(k=j;j>i;k--)
+            for(k=j;k>i;k--)
                 list[k] = list[k-1];
     }
     else
@@ -374,9 +374,9 @@ void tk_changelayer(tk_t tk, uint16_t n, uint16_t layer)
     else
     {
         for(i=0;tk->layer[tk->draw[i]]<layer+1&&tk->draw[i];i++);//find end of others on same layer
-        tk_insertinlist(tk->draw,i,n);
+        tk_insertinlist(tk->draw,n,i);
         for(i=0;tk->layer[tk->redraw[i]]<layer+1&&tk->redraw[i];i++);//find end of layer
-        tk_insertinlist(tk->redraw,i,n);
+        tk_insertinlist(tk->redraw,n,i);
     }
     tk->layer[n] = layer;
 }
@@ -539,6 +539,7 @@ uint16_t tk_gimmeaButton(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h
 
 //TODO: add Nlines to decide size of font
 //TODO: add font paths
+//TODO: autodetect width?
 uint16_t tk_gimmeaTextbox(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, char* font, char* str)
 {
     uint16_t n = tk->nwidgets; 
@@ -637,4 +638,5 @@ uint16_t tk_gimmeaTimer(tk_t tk, float ms)
     tk->draw_f[n] = tk_drawnothing;
     tk->cb_f[n] = tk_nocallback;
     tk->callback_f[n] = tk_nocallback;
+    return n;
 }

@@ -39,10 +39,9 @@ typedef struct tk_stuff
     void **user;
 
     //////lists, values are indices of items with common properties
-    //items that don't change aspect ratio when scaling
-    uint16_t *hold_ratio; 
-    uint16_t *draw; 
-    uint16_t *redraw; 
+    uint16_t *hold_ratio; //items that don't change aspect ratio when scaling
+    uint16_t *draw; //full list of items that are drawn
+    uint16_t *redraw; //list of items needing redraw
 
     //////global stuff
     float w0,h0;
@@ -67,11 +66,16 @@ typedef enum
     //Main Window Properties
     TK_HOLD_RATIO = 0x1,
 
+    //Any Item Properties
+    TK_NO_DAMAGE = 0x2,
+
     //Button Properties
     TK_BUTTON_MOMENTARY = 0x1,
 
     //Dial Properties
     TK_VALUE_PARABOLIC = 0x1,//TODO: what about for xy points?
+
+    
 }TK_PROPERTIES;
 
 typedef struct
