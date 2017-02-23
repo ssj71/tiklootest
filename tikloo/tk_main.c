@@ -12,6 +12,8 @@
 #include"tk.h"
 #include"tk_default_draw.h"
 #include"tk_test.h"
+#include"csleep.h"
+#include"timer.h"
 
 
 
@@ -90,20 +92,9 @@ tk_t tk_gimmeaTikloo(uint16_t w, uint16_t h, char* title)
     return (tk_t) tk;
 }
 
-void tk_rollit(tk_t tk)
-{ 
-    uint16_t i;
-    PuglView* view = tk->view;
-
-    puglShowWindow(view);
-    tk->draw[0] = 0;//we faked a number here before so it wasn't an empty list
-
-    while (!tk->quit) {
-        puglWaitForEvent(view);
-        puglProcessEvents(view);
-    }
+void tk_cleanup(tk_t tk)
+{
     
-    //cleanup
     for(i=0;tk->cb_f[i];i++)
     {
         if(tk->value[i])
@@ -114,6 +105,7 @@ void tk_rollit(tk_t tk)
             free(tk->extras[i]);
         //we let the user free anything in user data 
     }
+    //TODO: this is currently a sieve of memory
     free(tk->x); free(tk->y); free(tk->w); free(tk->h);
     free(tk->layer); free(tk->value); free(tk->tip);
     free(tk->props); free(tk->extras); free(tk->user);
@@ -121,6 +113,61 @@ void tk_rollit(tk_t tk)
     free(tk->hold_ratio);
     free(tk);
     puglDestroy(view);
+}
+
+void tk_checktimers(tk_t tk)
+{
+            //TODO: handle timers
+            uint16_t i;
+            float t = (float)timer_ticks_to_seconds(timer_current());
+            for(i=0;tk->nexttime[i];i++)
+            {
+                if(t>=tk->nexttime[i])
+                {
+                    //
+                    tk->callback_f[tk->timer[i]](tk,0,tk->timer[i]);
+                    if(tk->time[i])
+                    {
+                        //reset timer
+                        tk->nexttime[i] += tk->time[i];
+                    }
+                }
+            }
+            //get system time
+            //see if any timers are due
+            //process them, set next time they'll tick
+    
+}
+
+void tk_rollit(tk_t tk)
+{ 
+    uint16_t i;
+    PuglView* view = tk->view;
+
+    puglShowWindow(view);
+    tk->draw[0] = 0;//we faked a number here before so it wasn't an empty list
+
+    if(tk->time)
+        while (!tk->quit)
+        {
+            csleep(1);// these are crappy timers jsyk, we sleep for 1ms in between
+            puglProcessEvents(view);
+        }
+    else
+        while (!tk->quit)
+        {
+            //no timers
+            puglWaitForEvent(view);
+            puglProcessEvents(view);
+        }
+        
+    tk_cleanup(tk);    
+}
+
+void tk_idle(tk_t tk)
+{
+    //handle timers
+    puglProcessEvents(view); 
 }
 
 void tk_resizeeverything(tk_t tk,float w, float h)

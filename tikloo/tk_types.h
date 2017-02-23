@@ -42,6 +42,7 @@ typedef struct tk_stuff
     uint16_t *hold_ratio; //items that don't change aspect ratio when scaling
     uint16_t *draw; //full list of items that are drawn
     uint16_t *redraw; //list of items needing redraw
+    uint16_t* timer; //list of active timers
 
     //////global stuff
     float w0,h0;
@@ -53,7 +54,6 @@ typedef struct tk_stuff
     uint8_t quit;
 
     //////timers
-    uint32_t tickspersec;
     float* time;
     float* nexttime;
 }tk_stuff;
