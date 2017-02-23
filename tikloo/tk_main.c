@@ -117,26 +117,32 @@ void tk_cleanup(tk_t tk)
 
 void tk_checktimers(tk_t tk)
 {
-            //TODO: handle timers
-            uint16_t i;
-            float t = (float)timer_ticks_to_seconds(timer_current());
-            for(i=0;tk->nexttime[i];i++)
+    //TODO: handle timers
+    uint16_t i;
+    float t = (float)timer_ticks_to_seconds(timer_current());
+    for(i=0;tk->timer[i];i++)
+    {
+        if(t>=tk->nexttime[i])
+        {
+            //
+            tk->callback_f[tk->timer[i]](tk,0,tk->timer[i]);
+            if(tk->time[i])
             {
-                if(t>=tk->nexttime[i])
-                {
-                    //
-                    tk->callback_f[tk->timer[i]](tk,0,tk->timer[i]);
-                    if(tk->time[i])
-                    {
-                        //reset timer
-                        tk->nexttime[i] += tk->time[i];
-                    }
-                }
+                //reset timer
+                tk->nexttime[i] += tk->time[i];
             }
-            //get system time
-            //see if any timers are due
-            //process them, set next time they'll tick
-    
+            else
+            {
+                tk_removefromlist(tk->timer,tk->timer[i]);
+                for(j=i;tk->time[j];j++)
+                {
+                    tk->time[j] = tk->time[j+1]; 
+                    tk->nexttime[j] = tk->nexttime[j+1]; 
+                }
+                i--;//decrement since the current item was removed
+            }
+        }
+    } 
 }
 
 void tk_rollit(tk_t tk)
@@ -373,9 +379,7 @@ void tk_removefromlist(uint16_t* list, uint16_t n)
     for(i=0;list[i]&&list[i]!=n;i++);//find item in list
     if(list[i]==n)
         for(;list[i];i++)
-        {
             list[i] = list[i+1]; 
-        }
 }
 
 void tk_insertinlist(uint16_t* list, uint16_t n, uint16_t i)
