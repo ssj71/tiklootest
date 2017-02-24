@@ -46,16 +46,13 @@ typedef struct tk_stuff
 
     //////global stuff
     float w0,h0;
-    uint16_t nwidgets,tabsize;
+    uint16_t nwidgets,tablesize;
     uint16_t drag;//index of widgets being dragged
     uint16_t ttip;//index of TT widget
     PuglView* view;
     cairo_t* cr;
     uint8_t quit;
 
-    //////timers
-    float* time;
-    float* nexttime;
 }tk_stuff;
 
 typedef tk_stuff* tk_t;
@@ -105,5 +102,6 @@ typedef struct
     int cluster_count;
     cairo_text_cluster_flags_t clusterflags;
 }tk_text_stuff;
+
 
 #endif

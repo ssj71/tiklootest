@@ -43,6 +43,7 @@ tk_t tk_gimmeaTikloo(uint16_t w, uint16_t h, char* title)
     tk->hold_ratio = (uint16_t*)calloc(starter_sz+1,sizeof(float));
     tk->draw = (uint16_t*)calloc(starter_sz+1,sizeof(float));
     tk->redraw = (uint16_t*)calloc(starter_sz+1,sizeof(float));
+    tk->timer = 0;//this list only gets initialized if there are timers
 
     tk->draw_f = (void(**)(cairo_t*,float,float,void*))calloc(starter_sz,sizeof(&tk_drawnothing));
     tk->cb_f = (void(**)(tk_t,const PuglEvent*,uint16_t))calloc(starter_sz,sizeof(&tk_callback));
@@ -61,6 +62,7 @@ tk_t tk_gimmeaTikloo(uint16_t w, uint16_t h, char* title)
     //rollit will fix
     tk->draw[0] = 1;
     tk->redraw[0] = 0;
+    tk->redraw[1] = 0;
     tk_setstring(&tk->tip[0],title);
 
     tk->cb_f[0] = tk_nocallback;
@@ -68,7 +70,7 @@ tk_t tk_gimmeaTikloo(uint16_t w, uint16_t h, char* title)
 
     tk->drag = 0;
     tk->nwidgets = 1;
-    tk->tabsize = starter_sz;
+    tk->tablesize = starter_sz;
     tk->ttip = 0;
     tk->quit = 0;
 
@@ -118,29 +120,20 @@ void tk_cleanup(tk_t tk)
 void tk_checktimers(tk_t tk)
 {
     //TODO: handle timers
-    uint16_t i;
-    float t = (float)timer_ticks_to_seconds(timer_current());
+    uint16_t i,n;
+    float *nexttime,period, t = (float)timer_ticks_to_seconds(timer_current());
     for(i=0;tk->timer[i];i++)
     {
-        if(t>=tk->nexttime[i])
+        n = tk->timer[i];
+        *nexttime = *(float*)tk->extras[n];
+        if(t>=*nexttime)
         {
-            //
-            tk->callback_f[tk->timer[i]](tk,0,tk->timer[i]);
-            if(tk->time[i])
-            {
-                //reset timer
-                tk->nexttime[i] += tk->time[i];
-            }
+            tk->callback_f[n](tk,0,n);
+            period = *(float*)tk->value[n];
+            if(period)
+                *nexttime += period;//set timer for next tick
             else
-            {
-                tk_removefromlist(tk->timer,tk->timer[i]);
-                for(j=i;tk->time[j];j++)
-                {
-                    tk->time[j] = tk->time[j+1]; 
-                    tk->nexttime[j] = tk->nexttime[j+1]; 
-                }
-                i--;//decrement since the current item was removed
-            }
+                tk_removefromlist(tk->timer,tk->timer[i--]);//decrement since the current item was removed
         }
     } 
 }
@@ -153,11 +146,13 @@ void tk_rollit(tk_t tk)
     puglShowWindow(view);
     tk->draw[0] = 0;//we faked a number here before so it wasn't an empty list
 
-    if(tk->time)
+    if(tk->timer)
         while (!tk->quit)
         {
             csleep(1);// these are crappy timers jsyk, we sleep for 1ms in between
             puglProcessEvents(view);
+            tk_checktimers(tk);
+            tk_redraw(tk);
         }
     else
         while (!tk->quit)
@@ -165,6 +160,7 @@ void tk_rollit(tk_t tk)
             //no timers
             puglWaitForEvent(view);
             puglProcessEvents(view);
+            tk_redraw(tk);
         }
         
     tk_cleanup(tk);    
@@ -172,8 +168,9 @@ void tk_rollit(tk_t tk)
 
 void tk_idle(tk_t tk)
 {
-    //handle timers
     puglProcessEvents(view); 
+    tk_checktimers(tk);
+    tk_redraw(tk);
 }
 
 void tk_resizeeverything(tk_t tk,float w, float h)
@@ -248,6 +245,8 @@ void tk_draw(tk_t tk,uint16_t n)
 void tk_redraw(tk_t tk)
 {
     uint16_t i;
+    if( !tk->redraw[0] && !tk->redraw[1] )
+        return;
     for(i=0; tk->redraw[i]||!i; i++)
     {
         tk_draw(tk,tk->redraw[i]);
@@ -358,8 +357,6 @@ static void tk_callback (PuglView* view, const PuglEvent* event)
         break;
     }
     //TODO: move this out of the CB so you can handle multiple events between redraws
-    if(tk->redraw[0]||tk->redraw[1])
-        tk_redraw(tk);
 }
 
 //SUNDRY HELPER FUNCTIONS
@@ -484,7 +481,7 @@ void tk_dialcallback(tk_t tk, const PuglEvent* event, uint16_t n)
         if(*v < 0) *v = 0;
         //fprintf(stderr, "%f ",*v);
         tk->callback_f[n](tk,event,n);
-        tk_addtolist(tk->redraw,n);
+        tk_addtolist(tk->redraw,n);//TODO: damage
         break;
     case PUGL_BUTTON_PRESS:
         tk->drag = n;
@@ -676,8 +673,18 @@ uint16_t tk_gimmeaTextbox(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t 
     return n;
 }
 
+void tk_settimer(tk_t tk, uint16_t n, float s)
+{
+    *(float*)tk->value[n] = s;
+    *(float*)tk->extras[n] = 0;
+    if(s)
+        tk_addtolist(tk->timer,n);
+    else
+        tk_removefromlist(tk->timer,n);
+}
+
 //timers are an entirely different beast from other widgets
-uint16_t tk_gimmeaTimer(tk_t tk, float ms)
+uint16_t tk_gimmeaTimer(tk_t tk, float s)
 {
     //may want to make this actually off the window
     uint16_t n = tk->nwidgets; 
@@ -689,5 +696,11 @@ uint16_t tk_gimmeaTimer(tk_t tk, float ms)
     tk->draw_f[n] = tk_drawnothing;
     tk->cb_f[n] = tk_nocallback;
     tk->callback_f[n] = tk_nocallback;
+    tk->value[n] = malloc(sizeof(float));
+    tk->extras[n] = malloc(sizeof(float));
+    if(!tk->timer)
+        tk->timer = calloc(
+    tk->timer = (uint16_t*)calloc(tk->tablesize,sizeof(uint16_t));//probably won't need this many, manually allocate this if you want to use a little less memory
+    tk_settimer(tk,n,s);
     return n;
 }
