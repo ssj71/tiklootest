@@ -40,38 +40,44 @@ typedef uint64_t         tick_t;
 //typedef float            deltatime_t;
 typedef double           deltatime_t;
 
+typedef void* timer_lib_handle_t;
 
 /*! Initialize timer library */
-TIMER_API int            timer_lib_initialize( void );
+TIMER_API int            timer_lib_initialize( timer_lib_handle_t* handle );
 
 /*! Shutdown timer library */
-TIMER_API void           timer_lib_shutdown( void );
+TIMER_API void           timer_lib_shutdown( timer_lib_handle_t handle );
 
 /*! Get current timestamp, in ticks of system-specific frequency (queryable with timer_ticks_per_second), measured from some system-specific base timestamp
     and not in sync with other timestamps
     \return              Current timestamp */
-TIMER_API tick_t         timer_current( void );
+TIMER_API tick_t         timer_current( timer_lib_handle_t handle );
+
+/*! Get current timestamp, in seconds, measured from some system-specific base timestamp
+    and not in sync with other timestamps
+    \return              Current timestamp */
+TIMER_API deltatime_t    timer_current_seconds( timer_lib_handle_t handle );
 
 /*! Get elapsed time since given timestamp
     \param t             Timestamp
     \return              Number of seconds elapsed */
-TIMER_API deltatime_t    timer_elapsed( const tick_t t );
+TIMER_API deltatime_t    timer_elapsed( timer_lib_handle_t handle, const tick_t t );
 
 /*! Get elapsed ticks since given timestamp
     \param t             Timestamp
     \return              Number of ticks elapsed */
-TIMER_API tick_t         timer_elapsed_ticks( const tick_t t );
+TIMER_API tick_t         timer_elapsed_ticks( timer_lib_handle_t handle, const tick_t t );
 
 /*! Get timer frequency, as number of ticks per second
     \return              Ticks per second */
-TIMER_API tick_t         timer_ticks_per_second( void );
+TIMER_API tick_t         timer_ticks_per_second( timer_lib_handle_t handle );
 
 /*! Get ticks as seconds (effectively calculating ticks/timer_ticks_per_second())
 	\param dt            Deltatime in ticks
     \return              Deltatime in seconds */
-TIMER_API deltatime_t    timer_ticks_to_seconds( const tick_t dt );
+TIMER_API deltatime_t    timer_ticks_to_seconds( timer_lib_handle_t handle, const tick_t dt );
 
 /*! Get system time, in milliseconds since the epoch (UNIX time)
     \return  Current timestamp, in milliseconds */
-TIMER_API tick_t         timer_system( void );
+TIMER_API tick_t         timer_system( timer_lib_handle_t handle );
 

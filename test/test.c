@@ -20,6 +20,15 @@ void freeze_item_ratio(tk_t tk, const PuglEvent* event, uint16_t n)
     else
         tk_removefromlist(tk->hold_ratio,n);
 }
+void tick(tk_t tk, const PuglEvent* event, uint16_t n)
+{ 
+    if(*(uint8_t*)tk->value[3])
+        *(uint8_t*)tk->value[3] = 0;
+    else
+        *(uint8_t*)tk->value[3] = 1;
+    tk_addtolist(tk->redraw,3);
+    fprintf(stderr, "tick, %.2f ",*(float*)tk->extras[n]);
+}
 
 int main()
 {
@@ -67,7 +76,8 @@ int main()
                          10, //h
                          "/usr/share/fonts/truetype/freefont/FreeSerif.ttf", //font path
                          "Don't Panic!"); //msg
-
+    n = tk_gimmeaTimer(tk, 5);//seconds
+    tk->callback_f[n] = tick;
 
     tk_rollit(tk);
     return 0;

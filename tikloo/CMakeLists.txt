@@ -54,6 +54,7 @@ include_directories( ${TIKLOO_INCLUDE_DIRS} ../tikloo pugl )
 
 add_library(tikloo STATIC 
     tk_main.c
+    timer.c
     ${PUGL_SRC}
     #${AVTK_SND_SRC}
 )

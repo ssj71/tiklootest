@@ -17,9 +17,9 @@
 
 
 
-//forward declarations
-static void tk_callback (PuglView* view, const PuglEvent* event);
-void tk_nocallback(tk_t tk, const PuglEvent* e, uint16_t n);
+//forward declarations are all in tk_test or tk.h
+//static void tk_callback (PuglView* view, const PuglEvent* event);
+//void tk_nocallback(tk_t tk, const PuglEvent* e, uint16_t n);
 
 tk_t tk_gimmeaTikloo(uint16_t w, uint16_t h, char* title)
 {
@@ -74,6 +74,9 @@ tk_t tk_gimmeaTikloo(uint16_t w, uint16_t h, char* title)
     tk->ttip = 0;
     tk->quit = 0;
 
+    //start timer stuff
+    timer_lib_initialize(&tk->tlibh);
+
     //start the pugl stuff 
     PuglView* view = puglInit(NULL, NULL);
     //puglInitWindowClass(view, tk->tip[0]);
@@ -96,7 +99,8 @@ tk_t tk_gimmeaTikloo(uint16_t w, uint16_t h, char* title)
 
 void tk_cleanup(tk_t tk)
 {
-    
+    uint16_t i;
+    timer_lib_shutdown(tk->tlibh);
     for(i=0;tk->cb_f[i];i++)
     {
         if(tk->value[i])
@@ -114,24 +118,28 @@ void tk_cleanup(tk_t tk)
     free(tk->draw_f); free(tk->cb_f); free(tk->callback_f);
     free(tk->hold_ratio);
     free(tk);
-    puglDestroy(view);
+    puglDestroy(tk->view);
 }
 
 void tk_checktimers(tk_t tk)
 {
     //TODO: handle timers
     uint16_t i,n;
-    float *nexttime,period, t = (float)timer_ticks_to_seconds(timer_current());
+    float *nexttime,period, t = (float)timer_current_seconds(tk->tlibh);
     for(i=0;tk->timer[i];i++)
     {
         n = tk->timer[i];
-        *nexttime = *(float*)tk->extras[n];
+        nexttime = (float*)tk->extras[n];
         if(t>=*nexttime)
         {
             tk->callback_f[n](tk,0,n);
             period = *(float*)tk->value[n];
             if(period)
+            {
                 *nexttime += period;//set timer for next tick
+                if(*nexttime+period<t)
+                    *nexttime = t+period;//we're way overdue, start again from now
+            }
             else
                 tk_removefromlist(tk->timer,tk->timer[i--]);//decrement since the current item was removed
         }
@@ -140,13 +148,13 @@ void tk_checktimers(tk_t tk)
 
 void tk_rollit(tk_t tk)
 { 
-    uint16_t i;
     PuglView* view = tk->view;
 
     puglShowWindow(view);
     tk->draw[0] = 0;//we faked a number here before so it wasn't an empty list
 
     if(tk->timer)
+    {
         while (!tk->quit)
         {
             csleep(1);// these are crappy timers jsyk, we sleep for 1ms in between
@@ -154,6 +162,7 @@ void tk_rollit(tk_t tk)
             tk_checktimers(tk);
             tk_redraw(tk);
         }
+    }
     else
         while (!tk->quit)
         {
@@ -168,7 +177,8 @@ void tk_rollit(tk_t tk)
 
 void tk_idle(tk_t tk)
 {
-    puglProcessEvents(view); 
+//TODO: need to init timers
+    puglProcessEvents(tk->view); 
     tk_checktimers(tk);
     tk_redraw(tk);
 }
@@ -676,12 +686,13 @@ uint16_t tk_gimmeaTextbox(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t 
 void tk_settimer(tk_t tk, uint16_t n, float s)
 {
     *(float*)tk->value[n] = s;
-    *(float*)tk->extras[n] = 0;
+    *(float*)tk->extras[n] = (float)timer_current_seconds(tk->tlibh)+s;
     if(s)
         tk_addtolist(tk->timer,n);
     else
         tk_removefromlist(tk->timer,n);
 }
+
 
 //timers are an entirely different beast from other widgets
 uint16_t tk_gimmeaTimer(tk_t tk, float s)
@@ -699,8 +710,7 @@ uint16_t tk_gimmeaTimer(tk_t tk, float s)
     tk->value[n] = malloc(sizeof(float));
     tk->extras[n] = malloc(sizeof(float));
     if(!tk->timer)
-        tk->timer = calloc(
-    tk->timer = (uint16_t*)calloc(tk->tablesize,sizeof(uint16_t));//probably won't need this many, manually allocate this if you want to use a little less memory
+        tk->timer = (uint16_t*)calloc(tk->tablesize,sizeof(uint16_t));//probably won't need this many, manually allocate this if you want to use a little less memory
     tk_settimer(tk,n,s);
     return n;
 }

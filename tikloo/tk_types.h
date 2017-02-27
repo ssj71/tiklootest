@@ -13,6 +13,7 @@
 #include<ft2build.h> 
 #include FT_FREETYPE_H
 #include "pugl/pugl.h"
+#include "timer.h"
 
 
 typedef struct tk_stuff
@@ -49,6 +50,7 @@ typedef struct tk_stuff
     uint16_t nwidgets,tablesize;
     uint16_t drag;//index of widgets being dragged
     uint16_t ttip;//index of TT widget
+    timer_lib_handle_t tlibh;
     PuglView* view;
     cairo_t* cr;
     uint8_t quit;
