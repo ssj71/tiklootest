@@ -60,7 +60,9 @@ tk_t tk_gimmeaTikloo(uint16_t w, uint16_t h, char* title)
     tk->layer[0] = 1;
     //we must do this so that we can draw the 0th widget, otherwise its an empty list;
     //rollit will fix
-    tk->draw[0] = 1;
+    //TODO: so what about idle?
+    tk->draw[0] = 0xffff;
+    tk->draw[1] = 0;
     tk->redraw[0] = 0;
     tk->redraw[1] = 0;
     tk_setstring(&tk->tip[0],title);
@@ -260,6 +262,7 @@ void tk_redraw(tk_t tk)
     for(i=0; tk->redraw[i]||!i; i++)
     {
         tk_draw(tk,tk->redraw[i]);
+        tk->redraw[i] = 0;
         //TODO: cache everything to avoid redraws?
     }
 } 
