@@ -15,7 +15,6 @@
 #include "pugl/pugl.h"
 #include "timer.h"
 
-
 typedef struct tk_stuff
 {
     //////primary table, each index correlates across arrays
@@ -49,7 +48,7 @@ typedef struct tk_stuff
     float w0,h0;
     uint16_t nwidgets,tablesize;
     uint16_t drag;//index of widgets being dragged
-    uint16_t ttip;//index of TT widget
+    uint16_t ttip;//index of tooltip widget
     timer_lib_handle_t tlibh;
     PuglView* view;
     cairo_t* cr;
@@ -86,18 +85,21 @@ typedef struct
 
 typedef struct
 {
-    char* str;//pointer to tip
-    uint8_t strchange;
-    uint16_t cursor;
     uint16_t fontsize;
 
-    //hopefully some of the below can be removed later
-    FT_Library  library;   /* handle to library     */
-    FT_Face     face;      /* handle to face object */
-    FT_Error    error;
-    //cairo stuff
-    cairo_font_face_t* fontFace;
-    cairo_scaled_font_t* scaled_face;
+    FT_Library library;
+    FT_Face face;
+    cairo_font_face_t* fontface;
+    cairo_scaled_font_t* scaledface;
+}tk_font_stuff;
+
+typedef struct
+{
+    char* str;//pointer to tip
+    uint8_t strchange,cursorstate;
+    uint16_t cursor;
+
+    tk_font_stuff* tkf;
     cairo_glyph_t* glyphs;
     int glyph_count;
     cairo_text_cluster_t* clusters;

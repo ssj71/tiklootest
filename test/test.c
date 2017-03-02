@@ -27,12 +27,12 @@ void tick(tk_t tk, const PuglEvent* event, uint16_t n)
     else
         *(uint8_t*)tk->value[3] = 1;
     tk_addtolist(tk->redraw,3);
-    fprintf(stderr, "tick, %.2f ",*(float*)tk->extras[n]);
 }
 
 int main()
 {
     tk_t tk;
+    tk_font_stuff* tkf;
     uint16_t n;
 
     tk = tk_gimmeaTikloo(128, //w
@@ -69,12 +69,15 @@ int main()
                         0); //val
     tk_addtolist(tk->hold_ratio,n);
     tk->callback_f[n] = freeze_ratio;
-    n = tk_gimmeaTextbox(tk,
+
+    tkf = tk_gimmeaFont(tk, "/usr/share/fonts/truetype/freefont/FreeSerif.ttf", //font path
+                        10); //font size
+    n = tk_gimmeaText(tk,
                          5, //x
                          5, //y
                          100, //w
                          10, //h
-                         "/usr/share/fonts/truetype/freefont/FreeSerif.ttf", //font path
+                         tkf, //font
                          "Don't Panic!"); //msg
     n = tk_gimmeaTimer(tk, 5);//seconds
     tk->callback_f[n] = tick;

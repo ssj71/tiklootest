@@ -59,8 +59,7 @@ tk_t tk_gimmeaTikloo(uint16_t w, uint16_t h, char* title)
 
     tk->layer[0] = 1;
     //we must do this so that we can draw the 0th widget, otherwise its an empty list;
-    //rollit will fix
-    //TODO: so what about idle?
+    //rollit will fix TODO: so what about idle?
     tk->draw[0] = 0xffff;
     tk->draw[1] = 0;
     tk->redraw[0] = 0;
@@ -598,29 +597,81 @@ uint16_t tk_gimmeaButton(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h
     return n; 
 }
 
-//TODO: add Nlines to decide size of font
-//TODO: add font paths
-//TODO: autodetect width?
-uint16_t tk_gimmeaTextbox(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, char* font, char* str)
+//this function just makes the font stuff
+tk_font_stuff* tk_gimmeaFont(tk_t tk, char* fontpath, uint16_t h) 
 {
-    uint16_t n = tk->nwidgets; 
-    int fontSize = h;
-    tk_text_stuff* tkt = (tk_text_stuff*)malloc(sizeof(tk_text_stuff));
+    int fontsize = h;
+    tk_font_stuff* tkf = (tk_font_stuff*)malloc(sizeof(tk_font_stuff));
 
     //freetype stuff 
     FT_Library  library;   /* handle to library     */
     FT_Face     face;      /* handle to face object */
     FT_Error    error;
     //cairo stuff
-    cairo_t* cr = tk->cr;
-    cairo_font_face_t* fontFace;
+    cairo_font_face_t* fontface;
+    cairo_scaled_font_t* scaledface; 
+
+
+    //now font setup stuff 
+    error = FT_Init_FreeType( &library );
+    if ( error ) 
+    { 
+        fprintf(stderr, "OH NO, Freetype init problem!");
+        free(tkf);
+        return 0;
+    }
+
+    error = FT_New_Face( library,
+         fontpath,
+         0,
+         &face );
+    if ( error == FT_Err_Unknown_File_Format )
+    {
+      //... the font file could be opened and read, but it appears
+      //  ... that its font format is unsupported
+        fprintf(stderr, "OH NO, Font problem!");
+        free(tkf);
+        return 0;
+    }
+    else if ( error )
+    {
+          //... another error code means that the font file could not
+          //  ... be opened or read, or that it is broken...
+        fprintf(stderr, "OH NO, Font not found!");
+        free(tkf);
+        return 0;
+    } 
+
+    // get glyphs for the text
+    // get the scaled font object
+    fontface = cairo_ft_font_face_create_for_ft_face(face,0);
+    cairo_set_font_face(tk->cr, fontface);
+    cairo_set_font_size(tk->cr, fontsize);
+    scaledface = cairo_get_scaled_font(tk->cr); 
+
+    tkf->library = library;
+    tkf->face = face;
+    tkf->fontsize = fontsize;
+    tkf->fontface = fontface;
+    tkf->scaledface = scaledface;
+
+    return tkf; 
+}
+
+//TODO: add Nlines to decide size of font
+//TODO: autodetect width?
+uint16_t tk_gimmeaText(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, tk_font_stuff* font, char* str)
+{
+    uint16_t n = tk->nwidgets; 
+    tk_text_stuff* tkt = (tk_text_stuff*)malloc(sizeof(tk_text_stuff));
+
+    //cairo stuff
     cairo_glyph_t* glyphs = NULL;
     int glyph_count = 0;
     cairo_text_cluster_t* clusters = NULL;
     int cluster_count = 0;
     cairo_text_cluster_flags_t clusterflags;
-    //cairo_status_t stat;
-    cairo_scaled_font_t* scaled_face;
+    cairo_status_t stat;
 
     tk_gimmeaWidget(tk,x,y,w,h);
 
@@ -629,58 +680,28 @@ uint16_t tk_gimmeaTextbox(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t 
     tk_addtolist(tk->hold_ratio,n);
 
 
-    //now font setup stuff 
-    error = FT_Init_FreeType( &library );
-    if ( error ) {; }
-
-    error = FT_New_Face( library,
-         font,
-         0,
-         &face );
-    if ( error == FT_Err_Unknown_File_Format )
-    {
-      //... the font file could be opened and read, but it appears
-      //  ... that its font format is unsupported
-        fprintf(stderr, "OH NO, Font problem!");
-        return n;
-    }
-    else if ( error )
-    {
-          //... another error code means that the font file could not
-          //  ... be opened or read, or that it is broken...
-        fprintf(stderr, "OH NO, Font not found!");
-        return n;
-    }
-                
-
     // get glyphs for the text
-    // get the scaled font object
-    fontFace = cairo_ft_font_face_create_for_ft_face(face,0);
-    cairo_set_font_face(cr, fontFace);
-    cairo_set_font_size(cr, fontSize);
-    scaled_face = cairo_get_scaled_font(cr); 
-    //stat = 
-    cairo_scaled_font_text_to_glyphs(scaled_face, 0, 0, 
+    stat = cairo_scaled_font_text_to_glyphs(font->scaledface, 0, 0, 
                     str, strlen(str), 
                     &glyphs, &glyph_count, 
                     &clusters, &cluster_count, &clusterflags);
 
-    tkt->fontsize = fontSize;
-    tkt->fontFace = fontFace;
-    tkt->scaled_face = scaled_face;
+    tkt->tkf = font;
     tkt->glyphs = glyphs;
     tkt->glyph_count = glyph_count;
     tkt->clusters = clusters;
     tkt->cluster_count = cluster_count;
 
     // check if conversion was successful
-    //if (stat == CAIRO_STATUS_SUCCESS) {
-        //now what?
-    //}
+    if (stat != CAIRO_STATUS_SUCCESS) 
+    {
+        //TODO: not sure if this is cause for abort
+        fprintf(stderr, "OH NO, Text conversion failed!");
+    }
 
     //TODO: cleanup properly glyphs and clusters, others?
 
-    tk->draw_f[n] = tk_drawtextbox;
+    tk->draw_f[n] = tk_drawtext;
     tk->value[n] = tkt;
 
     return n;
@@ -716,4 +737,16 @@ uint16_t tk_gimmeaTimer(tk_t tk, float s)
         tk->timer = (uint16_t*)calloc(tk->tablesize,sizeof(uint16_t));//probably won't need this many, manually allocate this if you want to use a little less memory
     tk_settimer(tk,n,s);
     return n;
+}
+
+uint16_t tk_gimmeaTooltip(tk_t tk, tk_font_stuff* font)
+{
+    //need text, timer
+    uint16_t n = tk->nwidgets; 
+    tk->x[n] = 0;
+    tk->y[n] = 0;
+    tk->w[n] = 0;
+    tk->h[n] = 0;
+    tk->layer[n] = 0;
+    (void)font;
 }

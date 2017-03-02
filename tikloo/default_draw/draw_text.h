@@ -4,11 +4,13 @@
 //#include"tk_types.h"
 
 // here we assume a single line
-void tk_drawtextbox(cairo_t *cr, float w, float h, void* valp)
+// line and fill must be arrays describing rgba (and a width for line)
+// to see the actual function used by default see next function
+void tk_drawtextcolor(cairo_t *cr, float w, float h, void* valp, float* line, float* fill)
 {
     tk_text_stuff* ts = (tk_text_stuff*)valp;
     char* str = ts->str;
-    cairo_scaled_font_t* scaled_face = ts->scaled_face;
+    cairo_scaled_font_t* scaled_face = ts->tkf->scaledface;
     //cairo_font_face_t* fontFace = ts->fontFace;
     cairo_glyph_t* glyphs = ts->glyphs;
     int glyph_count = ts->glyph_count;
@@ -19,16 +21,16 @@ void tk_drawtextbox(cairo_t *cr, float w, float h, void* valp)
     int i;
 
 
-    //TODO: cache drawing
-    if(h != ts->fontsize)
+    //TODO: cache drawing?
+    if(h != ts->tkf->fontsize)
     {
-        ts->fontsize = h; 
+        ts->tkf->fontsize = h; 
         cairo_set_font_size(cr, h);
         scaled_face = cairo_get_scaled_font(cr); 
-        ts->scaled_face = scaled_face;
+        ts->tkf->scaledface = scaled_face;
     }
 
-    //TODO: only do this is the text has changed
+    //TODO: only do this if the text has changed
     stat = cairo_scaled_font_text_to_glyphs(scaled_face, 0, 0, str, strlen(str), 
                                             &glyphs, &glyph_count, 
                                             &clusters, &cluster_count,
@@ -39,7 +41,7 @@ void tk_drawtextbox(cairo_t *cr, float w, float h, void* valp)
     if (stat == CAIRO_STATUS_SUCCESS) {
 
         // text paints on bottom line
-        cairo_translate(cr, 0, ts->fontsize);
+        cairo_translate(cr, 0, h);
 
         // draw each cluster
         int glyph_index = 0;
@@ -61,10 +63,10 @@ void tk_drawtextbox(cairo_t *cr, float w, float h, void* valp)
                 x += extents.x_advance;
 
                 // draw black text with green stroke
-                cairo_set_source_rgba(cr, 0.9, 0.9, 0.9, 1.0);
+                cairo_set_source_rgba(cr, fill[0], fill[1], fill[2], fill[3]);
                 cairo_fill_preserve(cr);
-                cairo_set_source_rgba(cr, 1, 1, 1, 1.0);
-                cairo_set_line_width(cr, 0.5);
+                cairo_set_source_rgba(cr, line[0], line[1], line[2], line[3]);
+                cairo_set_line_width(cr, line[4]);
                 cairo_stroke(cr);
 
                 // put paths for current cluster to context
@@ -79,4 +81,12 @@ void tk_drawtextbox(cairo_t *cr, float w, float h, void* valp)
 
     cairo_restore( cr );
 } 
+
+//this defaults to a dark text, you can easily write your own to get the color you desire!
+void tk_drawtext(cairo_t *cr, float w, float h, void* valp)
+{
+    float line[] = {.9,.9,.9,1,.5};//rgba width
+    float fill[] = {1,1,1,1};//rgba
+    tk_drawtextcolor(cr,w,h,valp,line,fill);
+}
 #endif
