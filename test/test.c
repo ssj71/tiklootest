@@ -3,6 +3,7 @@
 
 #include<stdio.h>
 #include"tikloo/tk.h"
+#include"tikloo/tk_default_draw.h"
 
 void freeze_ratio(tk_t tk, const PuglEvent* event, uint16_t n)
 {

@@ -1,13 +1,9 @@
-#ifndef DRAW_FLATDIAL_H
-#define DRAW_FLATDIAL_H
-inline int cairo_code_draw_flatDial_get_width()
-{
-    return 30;
-}
-inline int cairo_code_draw_flatDial_get_height()
-{
-    return 30;
-}
+#include "tk_default_draw.h"
+
+#ifndef M_PI
+#define M_PI 3.1415926535897932384626433832795
+#endif
+
 void tk_drawdial(cairo_t *cr, float w, float h, void* valp)
 { 
     float scale, val = *(float*)valp;
@@ -99,4 +95,3 @@ void tk_drawdial(cairo_t *cr, float w, float h, void* valp)
     /********************/
     cairo_restore( cr );
 }
-#endif

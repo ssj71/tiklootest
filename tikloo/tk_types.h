@@ -28,10 +28,11 @@ typedef struct tk_stuff
     char **tip;
     //property flags
     uint16_t *props;
+    //draw function
     void (**draw_f)(cairo_t*, float, float, void*); //surface, w, h, value
     //built in callback, must not be 0
     void (**cb_f)(struct tk_stuff*, const PuglEvent*, uint16_t); 
-    //user callback, run after built in
+    //user callback, runs after the cb_f
     void (**callback_f)(struct tk_stuff*, const PuglEvent*, uint16_t);
     //item specific data of any type, take care
     void **extras;

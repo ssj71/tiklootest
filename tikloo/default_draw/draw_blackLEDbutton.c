@@ -1,13 +1,5 @@
-#ifndef DRAW_BLACKLEDBUTTON_H
-#define DRAW_BLACKLEDBUTTON_H
-inline int cairo_code_draw_blackLEDbutton_get_width()
-{
-    return 30;
-}
-inline int cairo_code_draw_blackLEDbutton_get_height()
-{
-    return 45;
-}
+#include "tk_default_draw.h"
+
 void tk_drawbutton(cairo_t *cr, float w, float h, void* valp)
 {
     uint8_t val = *(uint8_t*)valp;
@@ -58,8 +50,6 @@ void tk_drawbutton(cairo_t *cr, float w, float h, void* valp)
     cairo_close_path(cr);
     cairo_set_tolerance(cr, 0.1);
     cairo_set_antialias(cr, CAIRO_ANTIALIAS_DEFAULT);
-//cairo_matrix_init(&matrix, 1,0,0,1,-728.0625,-186.71875);
-//cairo_pattern_set_matrix(pattern, &matrix);
     cairo_stroke_preserve(cr);
     /********************/
     cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
@@ -157,4 +147,3 @@ void tk_drawbutton(cairo_t *cr, float w, float h, void* valp)
     /********************/
     cairo_restore( cr );
 }
-#endif

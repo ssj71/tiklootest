@@ -1,5 +1,7 @@
-#ifndef DRAW_BG_H
-#define DRAW_BG_H
+#include "tk_default_draw.h"
+
+void tk_drawnothing(cairo_t *cr, float w, float h, void* v){(void)cr;(void)w;(void)h;(void)v;}
+
 void tk_drawbg(cairo_t *cr, float w, float h, void* valp)
 {
     cairo_pattern_t *pattern;
@@ -25,4 +27,3 @@ void tk_drawbg(cairo_t *cr, float w, float h, void* valp)
     cairo_set_fill_rule(cr, CAIRO_FILL_RULE_WINDING);
     cairo_fill_preserve(cr);
 }
-#endif

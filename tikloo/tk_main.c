@@ -124,7 +124,6 @@ void tk_cleanup(tk_t tk)
 
 void tk_checktimers(tk_t tk)
 {
-    //TODO: handle timers
     uint16_t i,n;
     float *nexttime,period, t = (float)timer_current_seconds(tk->tlibh);
     for(i=0;tk->timer[i];i++)
@@ -147,6 +146,7 @@ void tk_checktimers(tk_t tk)
     } 
 }
 
+//for standalone apps
 void tk_rollit(tk_t tk)
 { 
     PuglView* view = tk->view;
@@ -176,6 +176,7 @@ void tk_rollit(tk_t tk)
     tk_cleanup(tk);    
 }
 
+//for plugins
 void tk_idle(tk_t tk)
 {
 //TODO: need to init timers
@@ -306,6 +307,7 @@ uint16_t tk_dumbsearch(tk_t tk, const PuglEvent* event)
     return n;
 }
 
+//primary callback for all events, sorts to appropriate widget
 static void tk_callback (PuglView* view, const PuglEvent* event)
 { 
     uint16_t n;
@@ -368,7 +370,6 @@ static void tk_callback (PuglView* view, const PuglEvent* event)
         //fprintf(stderr, "Focus out\n");
         break;
     }
-    //TODO: move this out of the CB so you can handle multiple events between redraws
 }
 
 //SUNDRY HELPER FUNCTIONS
@@ -597,6 +598,38 @@ uint16_t tk_gimmeaButton(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h
     return n; 
 }
 
+
+//timers are an entirely different beast from other widgets
+void tk_settimer(tk_t tk, uint16_t n, float s)
+{
+    *(float*)tk->value[n] = s;
+    *(float*)tk->extras[n] = (float)timer_current_seconds(tk->tlibh)+s;
+    if(s)
+        tk_addtolist(tk->timer,n);
+    else
+        tk_removefromlist(tk->timer,n);
+}
+
+uint16_t tk_gimmeaTimer(tk_t tk, float s)
+{
+    //may want to make this actually off the window
+    uint16_t n = tk->nwidgets; 
+    tk->x[n] = 0;
+    tk->y[n] = 0;
+    tk->w[n] = 0;
+    tk->h[n] = 0;
+    tk->layer[n] = 0;
+    tk->draw_f[n] = tk_drawnothing;
+    tk->cb_f[n] = tk_nocallback;
+    tk->callback_f[n] = tk_nocallback;
+    tk->value[n] = malloc(sizeof(float));
+    tk->extras[n] = malloc(sizeof(float));
+    if(!tk->timer)
+        tk->timer = (uint16_t*)calloc(tk->tablesize,sizeof(uint16_t));//probably won't need this many, manually allocate this if you want to use a little less memory
+    tk_settimer(tk,n,s);
+    return n;
+}
+
 //this function just makes the font stuff
 tk_font_stuff* tk_gimmeaFont(tk_t tk, char* fontpath, uint16_t h) 
 {
@@ -707,46 +740,26 @@ uint16_t tk_gimmeaText(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, 
     return n;
 }
 
-void tk_settimer(tk_t tk, uint16_t n, float s)
-{
-    *(float*)tk->value[n] = s;
-    *(float*)tk->extras[n] = (float)timer_current_seconds(tk->tlibh)+s;
-    if(s)
-        tk_addtolist(tk->timer,n);
-    else
-        tk_removefromlist(tk->timer,n);
-}
-
-
-//timers are an entirely different beast from other widgets
-uint16_t tk_gimmeaTimer(tk_t tk, float s)
-{
-    //may want to make this actually off the window
-    uint16_t n = tk->nwidgets; 
-    tk->x[n] = 0;
-    tk->y[n] = 0;
-    tk->w[n] = 0;
-    tk->h[n] = 0;
-    tk->layer[n] = 0;
-    tk->draw_f[n] = tk_drawnothing;
-    tk->cb_f[n] = tk_nocallback;
-    tk->callback_f[n] = tk_nocallback;
-    tk->value[n] = malloc(sizeof(float));
-    tk->extras[n] = malloc(sizeof(float));
-    if(!tk->timer)
-        tk->timer = (uint16_t*)calloc(tk->tablesize,sizeof(uint16_t));//probably won't need this many, manually allocate this if you want to use a little less memory
-    tk_settimer(tk,n,s);
-    return n;
-}
-
 uint16_t tk_gimmeaTooltip(tk_t tk, tk_font_stuff* font)
 {
     //need text, timer
+    tk_text_stuff* tkt = (tk_text_stuff*)malloc(sizeof(tk_text_stuff));
+
     uint16_t n = tk->nwidgets; 
     tk->x[n] = 0;
     tk->y[n] = 0;
     tk->w[n] = 0;
     tk->h[n] = 0;
     tk->layer[n] = 0;
-    (void)font;
+
+    tk_addtolist(tk->hold_ratio,n);
+
+    tkt->tkf = font;
+    tkt->glyphs = NULL;
+    tkt->glyph_count = 0;
+    tkt->clusters = NULL;
+    tkt->cluster_count = 0;
+
+    tk->draw_f[n] = tk_drawtip;
+    tk->value[n] = tkt;
 }

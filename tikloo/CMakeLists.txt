@@ -7,15 +7,7 @@ pkg_check_modules(FREETYPE freetype2 REQUIRED)
 #pkg_check_modules(SND sndfile )
 
 list(APPEND TIKLOO_INCLUDE_DIRS ${CAIRO_INCLUDE_DIRS}  ${FREETYPE_INCLUDE_DIRS} tikloo ) #note this extra reference to tikloo is for the parent dir, not here
-list(APPEND TIKLOO_LDFLAGS ${CAIRO_LDFLAGS} ${FREETYPE_LDFLAGS} )
-
-#list(APPEND AVTK_SND_SRC "")
-#if(SND_FOUND)
-#    add_definitions( "-DAVTK_SNDFILE" )
-#    list(APPEND SND_SRC snd_utils.cxx)
-#    list(APPEND AVTK_INCLUDE_DIRS ${SND_INCLUDE_DIRS} ) 
-#    list(APPEND AVTK_LDFLAGS ${SND_LDFLAGS} )
-#endif()
+list(APPEND TIKLOO_LDFLAGS ${CAIRO_LDFLAGS} ${FREETYPE_LDFLAGS} -lm)
 
 #platform specific libs
 pkg_check_modules(X11 x11)
@@ -51,10 +43,16 @@ set(TIKLOO_LDFLAGS ${TIKLOO_LDFLAGS} PARENT_SCOPE)
 
 include_directories( ${TIKLOO_INCLUDE_DIRS} ../tikloo pugl )
 
+list(APPEND DEFAULT_DRAW_SRC
+    default_draw/draw_bg.c
+    default_draw/draw_blackLEDbutton.c
+    default_draw/draw_flatDial.c
+    default_draw/draw_text.c
+)
 
 add_library(tikloo STATIC 
     tk_main.c
     timer.c
+    ${DEFAULT_DRAW_SRC}
     ${PUGL_SRC}
-    #${AVTK_SND_SRC}
 )
