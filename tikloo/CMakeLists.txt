@@ -46,7 +46,7 @@ include_directories( ${TIKLOO_INCLUDE_DIRS} ../tikloo pugl )
 list(APPEND DEFAULT_DRAW_SRC
     default_draw/draw_bg.c
     default_draw/draw_blackLEDbutton.c
-    default_draw/draw_flatDial.c
+    default_draw/draw_dial.c
     default_draw/draw_text.c
 )
 
