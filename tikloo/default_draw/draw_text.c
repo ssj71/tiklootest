@@ -90,6 +90,7 @@ void tk_drawtext(cairo_t *cr, float w, float h, void* valp)
 void tk_drawmultilinetextcolor(cairo_t *cr, float w, float h, void* valp, float* line, float* fill)
 {
     tk_text_stuff* ts = (tk_text_stuff*)valp;
+    float scale;
     char* str = ts->str;
     cairo_scaled_font_t* scaled_face = ts->tkf->scaledface;
     //cairo_font_face_t* fontFace = ts->fontFace;
@@ -99,64 +100,60 @@ void tk_drawmultilinetextcolor(cairo_t *cr, float w, float h, void* valp, float*
     int cluster_count = ts->cluster_count;
     cairo_text_cluster_flags_t clusterflags = ts->clusterflags;
     cairo_status_t stat;
-    int i;
+    int i; 
 
-
-    //TODO: cache drawing?
-    if(h != ts->tkf->fontsize)
+    //TODO: decide if it needs new layout?
+    if(ts->strchange)
     {
-        ts->tkf->fontsize = h; 
-        cairo_set_font_size(cr, h);
-        scaled_face = cairo_get_scaled_font(cr); 
-        ts->tkf->scaledface = scaled_face;
+        stat = cairo_scaled_font_text_to_glyphs(scaled_face, 0, 0, str, strlen(str), 
+                                                &glyphs, &glyph_count, 
+                                                &clusters, &cluster_count,
+                                                &clusterflags); 
+        if (stat == CAIRO_STATUS_SUCCESS)
+            ts->strchange = 0;
+        else return;
     }
 
-    //TODO: only do this if the text has changed
-    stat = cairo_scaled_font_text_to_glyphs(scaled_face, 0, 0, str, strlen(str), 
-                                            &glyphs, &glyph_count, 
-                                            &clusters, &cluster_count,
-                                            &clusterflags);
     cairo_save( cr );
+    scale = w/47.0;
+    cairo_scale(cr,scale,scale);
 
-    // check if conversion was successful
-    if (stat == CAIRO_STATUS_SUCCESS) {
 
-        // text paints on bottom line
-        cairo_translate(cr, 0, h);
+    // text paints on bottom line
+    cairo_translate(cr, 0, h);
 
-        // draw each cluster
-        int glyph_index = 0;
-        int byte_index = 0;
-        int x = 0;
+    // draw each cluster
+    int glyph_index = 0;
+    int byte_index = 0;
+    int x = 0;
 
-        for (i = 0; i < cluster_count; i++) { 
-            // get extents for the glyphs in the cluster
-            cairo_text_extents_t extents;
-            cairo_scaled_font_glyph_extents(scaled_face, &glyphs[glyph_index], clusters[i].num_glyphs, &extents);
-            // ... for later use
-            if(x + extents.x_advance > w)
-            {
-                //TODO: handle newline, line break
-                i=cluster_count;
-            }
-            else
-            { 
-                x += extents.x_advance;
+    for (i = 0; i < cluster_count; i++) { 
+        // get extents for the glyphs in the cluster
+        cairo_text_extents_t extents;
+        cairo_scaled_font_glyph_extents(scaled_face, &glyphs[glyph_index], clusters[i].num_glyphs, &extents);
+        // ... for later use
+        if(x + extents.x_advance > w)
+        {
+            //TODO: handle newline, line break
+            i=cluster_count;
+        }
+        else
+        { 
+            x += extents.x_advance;
 
-                // draw black text with green stroke
-                cairo_set_source_rgba(cr, fill[0], fill[1], fill[2], fill[3]);
-                cairo_fill_preserve(cr);
-                cairo_set_source_rgba(cr, line[0], line[1], line[2], line[3]);
-                cairo_set_line_width(cr, line[4]);
-                cairo_stroke(cr);
+            // draw text
+            cairo_set_source_rgba(cr, fill[0], fill[1], fill[2], fill[3]);
+            cairo_fill_preserve(cr);
+            cairo_set_source_rgba(cr, line[0], line[1], line[2], line[3]);
+            cairo_set_line_width(cr, line[4]);
+            cairo_stroke(cr);
 
-                // put paths for current cluster to context
-                cairo_glyph_path(cr, &glyphs[glyph_index], clusters[i].num_glyphs);
+            // put paths for current cluster to context
+            cairo_glyph_path(cr, &glyphs[glyph_index], clusters[i].num_glyphs);
 
-                // glyph/byte position
-                glyph_index += clusters[i].num_glyphs;
-                byte_index += clusters[i].num_bytes;
-            }
+            // glyph/byte position
+            glyph_index += clusters[i].num_glyphs;
+            byte_index += clusters[i].num_bytes;
         }
     }
 

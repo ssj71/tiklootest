@@ -96,9 +96,10 @@ typedef struct
 
 typedef struct
 {
-    char* str;//pointer to tip
+    char* str;//pointer to text
     uint8_t strchange,cursorstate;
-    uint16_t cursor;
+    uint16_t nlines,cursor,ln,col;
+    uint16_t *brk;
 
     tk_font_stuff* tkf;
     cairo_glyph_t* glyphs;
