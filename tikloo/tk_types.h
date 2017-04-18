@@ -49,7 +49,7 @@ typedef struct tk_stuff
     float w0,h0;
     uint16_t nwidgets,tablesize;
     uint16_t drag;//index of widgets being dragged
-    uint16_t ttip;//index of tooltip widget
+    uint16_t ttip,tover;//index of tooltip widget, and current tip
     timer_lib_handle_t tlibh;
     PuglView* view;
     cairo_t* cr;

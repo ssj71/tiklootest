@@ -16,6 +16,9 @@
 #include"timer.h"
 
 
+#ifndef TK_TOOLTIP_TIME
+#define TK_TOOLTIP_TIME 1
+#endif
 
 //forward declarations are all in tk_test or tk.h
 //static void tk_callback (PuglView* view, const PuglEvent* event);
@@ -339,6 +342,20 @@ static void tk_callback (PuglView* view, const PuglEvent* event)
     case PUGL_MOTION_NOTIFY:
         if(tk->drag)
             tk->cb_f[tk->drag](tk,event,tk->drag);
+        else 
+        {//tooltip
+            n=tk_dumbsearch(tk,event);
+            if(tk->ttip && n && strlen(tk->tip[n]))
+            {//ttip enabled, mouse is over a widget with a tip   
+                tk_settimer(tk,tk->ttip,TK_TOOLTIP_TIME);
+                tk->tover = n;
+            }
+            else
+            {
+                tk_settimer(tk,tk->ttip,0);
+                tk->tover = 0;
+            }
+        }
         break;
     case PUGL_BUTTON_RELEASE:
         if(tk->drag)
@@ -630,6 +647,118 @@ uint16_t tk_gimmeaTimer(tk_t tk, float s)
     return n;
 }
 
+//we assume there is a valid font with size and a string, we may change line brks
+// fontsize 0 will autoscale to fit
+//we will pass back the actual dimensions in w and h, and 
+//return  1 if the text fits in the provided size
+uint8_t tk_textlayout(cairo_t* cr, tk_text_stuff* tkt, uint16_t *w, uint16_t *h)
+{
+    //TODO: what about scaling? do we have to re-render text all the time?
+    uint8_t raster=0;
+    uint16_t i,size,space,glyph_index,str_index;
+    uint16_t x,y,ln,lastwhite,deltax,xmax;
+
+    cairo_scaled_font_t* scaled_face = tkt->tkf->scaledface;
+    cairo_glyph_t* glyphs = tkt->glyphs;
+    int glyph_count = tkt->glyph_count;
+    cairo_text_cluster_t* clusters = tkt->clusters;
+    int cluster_count = tkt->cluster_count;
+    cairo_text_cluster_flags_t clusterflags = tkt->clusterflags;
+    cairo_status_t stat;
+    cairo_text_extents_t extents;
+
+    if(tkt->nlines>=1)
+    {
+        size = (*h/tkt->nlines)*.86;
+        space = *h/tkt->nlines - size;
+        if(size != tkt->tkf->fontsize)
+        {
+            cairo_set_font_face(cr, tkt->tkf->fontface);
+            tkt->tkf->fontsize = size; 
+            cairo_set_font_size(cr, size); 
+            cairo_scaled_font_destroy(tkt->tkf->scaledface);
+            tkt->tkf->scaledface = cairo_scaled_font_reference(cairo_get_scaled_font(cr));
+            raster = 1;
+        }
+    }
+    else if(*h < tkt->tkf->fontsize)
+    {//it doesn't fit
+        return 1;
+    }
+    else
+    {
+        size = tkt->tkf->fontsize;
+        space = .14*size;
+        //TODO: autosize, for now assume size is fixed
+    }
+
+    if(raster)
+    {
+        stat = cairo_scaled_font_text_to_glyphs(scaled_face, 0, 0, tkt->str, strlen(tkt->str), 
+                                                &glyphs, &glyph_count, 
+                                                &clusters, &cluster_count,
+                                                &clusterflags); 
+        if (stat == CAIRO_STATUS_SUCCESS)
+            tkt->strchange = 0;
+        //else return 0;
+        //TODO: cleanup old buffers
+        if(glyphs != tkt->glyphs)
+            free(tkt->glyphs);
+        if(clusters != tkt->clusters)
+            free(tkt->clusters);
+    }
+
+    x = y = ln = xmax = 0;
+    glyph_index = str_index = 0;
+    for (i = 0; i < cluster_count; i++) 
+    { 
+        // get extents for the glyphs in the cluster
+        cairo_scaled_font_glyph_extents(scaled_face, &glyphs[glyph_index], clusters[i].num_glyphs, &extents);
+        glyph_index += clusters[i].num_glyphs;
+
+        if(clusters[i].num_bytes == 1 && isspace(tkt->str[str_index]))
+        { 
+            deltax = 0;
+            lastwhite = str_index;
+            if (tkt->str[str_index] == '\n') //newline
+            {
+                if(!tkt->brk[ln])
+                    return 0;//it doesn't fit
+                tkt->brk[ln++] = str_index;
+            }
+        }
+        else 
+            deltax += extents.x_advance;
+
+        str_index += clusters[i].num_bytes;
+
+        if(x + extents.x_advance > *w)
+        {
+            //go back to last whitespace put the rest on a newline
+            x = deltax;
+            if(!tkt->brk[ln])
+                return 0;//it doesn't fit
+            tkt->brk[ln++] = lastwhite;
+        }
+        else
+        {
+            x += extents.x_advance;
+            if(x > xmax)
+                xmax = x;
+        }
+    }
+
+    tkt->glyphs = glyphs;
+    tkt->glyph_count = glyph_count;
+    tkt->clusters = clusters;
+    tkt->cluster_count = cluster_count;
+
+    ln++;
+    *w = xmax + 2*space;
+    *h = ln*(size+space) + space;
+    return 1;
+}
+
 //this function just makes the font stuff
 tk_font_stuff* tk_gimmeaFont(tk_t tk, char* fontpath, uint16_t h) 
 {
@@ -675,7 +804,6 @@ tk_font_stuff* tk_gimmeaFont(tk_t tk, char* fontpath, uint16_t h)
         return 0;
     } 
 
-    // get glyphs for the text
     // get the scaled font object
     fontface = cairo_font_face_reference(cairo_ft_font_face_create_for_ft_face(face,0));
     cairo_set_font_face(tk->cr, fontface);
@@ -691,8 +819,6 @@ tk_font_stuff* tk_gimmeaFont(tk_t tk, char* fontpath, uint16_t h)
     return tkf; 
 }
 
-//TODO: add Nlines to decide size of font
-//TODO: autodetect width?
 uint16_t tk_gimmeaText(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, tk_font_stuff* font, char* str)
 {
     uint16_t n = tk->nwidgets; 
@@ -709,7 +835,7 @@ uint16_t tk_gimmeaText(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, 
     tk_gimmeaWidget(tk,x,y,w,h);
 
     tk_setstring(&tk->tip[n],str);
-    tkt->str = tk->tip[n];
+    tkt->str = tk->tip[n];//TODO: this will show tooltips of the text...
     tk_addtolist(tk->hold_ratio,n);
 
 
@@ -720,6 +846,7 @@ uint16_t tk_gimmeaText(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, 
                     &clusters, &cluster_count, &clusterflags);
 
     tkt->tkf = font;
+    tkt->nlines = 1;
     tkt->glyphs = glyphs;
     tkt->glyph_count = glyph_count;
     tkt->clusters = clusters;
@@ -730,100 +857,69 @@ uint16_t tk_gimmeaText(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, 
     {
         //TODO: not sure if this is cause for abort
         fprintf(stderr, "OH NO, Text conversion failed!");
-    }
-
-    //TODO: cleanup properly glyphs and clusters, others?
+    } 
 
     tk->draw_f[n] = tk_drawtext;
     tk->value[n] = tkt;
 
-    return n; } 
+    return n; 
+} 
+
+void tk_showtip(tk_t tk, const PuglEvent* e, uint16_t n)
+{
+    uint16_t w,h;
+    n--;
+    tk_text_stuff* tkt = (tk_text_stuff*)tk->value[n];
+    tkt->str = tk->tip[tk->tover];
+    tk_settimer(tk,tk->ttip,0)
+
+    //find best place to put the tip
+    h = tk->h[0] - 4;
+    w = tk->y[0]-tk->y[tk->tover]-tk->w[tk->tover];
+    if(w>4) w-=4;
+    if(tk_textlayout(tk->cr,tkt,&w,&h))
+    {//it fits
+        tk->w[tk->ttip] = w;
+        tk->h[tk->ttip] = h;
+        tk->x[tk->ttip] = tk->x[tk->tover]+2;
+        tk->y[tk->ttip] = tk->y[tk->tover];//TODO: what if it needs more vspace?
+    } 
+    else
+    {
+        w = tk->y[tk->tover];
+        if(w>4) w-=4;
+        if(tk_textlayout(tk->cr,tkt,&w,&h))
+        {//it fits
+        }
+        else
+        {//don't show
+            return;
+        }
+    }
+
+}
+
 uint16_t tk_gimmeaTooltip(tk_t tk, tk_font_stuff* font)
 {
-    //need text, timer
-    tk_text_stuff* tkt = (tk_text_stuff*)calloc(1,sizeof(tk_text_stuff));
-
-    uint16_t n = tk->nwidgets; 
-    tk->x[n] = 0;
-    tk->y[n] = 0;
-    tk->w[n] = 0;
+    //need text 
+    uint16_t n = tk_gimmeaText(tk, 0, 0, 0, 12, font, " ");
     tk->h[n] = 0;
     tk->layer[n] = 0;
+    free(tk->tip[n]);
+    tk->tip[n] = 0;
+
+    tk_text_stuff* tkt = (tk_text_stuff*)tk->value[n];
+    tkt->nlines = 0;//disable text scaling
 
     tk_addtolist(tk->hold_ratio,n);//?
 
-    tkt->tkf = font;
-
     tk->draw_f[n] = tk_drawtip;
-    tk->value[n] = tkt;
+
+    //need timer
+    n = tk_gimmeaTimer(tk, 0);
+    tk->ttip = n; 
+    tk->callback_f[n] = tk_showtip;
+
+    return n;
 }
 
-//we assume there is a valid font with size and a string, we may change line brks
-// fontsize 0 will autoscale to fit
-//we will pass back the actual dimensions in w and h, and 
-//return  1 if the text fits in the provided size
-uint8_t tk_textlayout(tk_text_stuff* tkt, uint16_t *w, uint16_t *h)
-{
-    //TODO: get CR in here
-    uint8_t raster;
-    uint16_t i,size,glyph_index,byte_index,x,y,ln,deltax;
-
-    cairo_scaled_font_t* scaled_face = tkt->tkf->scaledface;
-    cairo_glyph_t* glyphs = tkt->glyphs;
-    int glyph_count = tkt->glyph_count;
-    cairo_text_cluster_t* clusters = tkt->clusters;
-    int cluster_count = tkt->cluster_count;
-    cairo_text_cluster_flags_t clusterflags = tkt->clusterflags;
-    cairo_status_t stat;
-    cairo_text_extents_t extents;
-
-    if(tkt->nlines>=1)
-    {
-        size = (*h/tkt->nlines)*.86;
-        if(size != tkt->tkf->fontsize)
-        {
-            cairo_set_font_face(cr, tkt->tkf->fontface);
-            tkt->tkf->fontsize = size; 
-            cairo_set_font_size(cr, h); 
-            cairo_scaled_font_destroy(tkt->tkf->scaledface);
-            tkt->tkf->scaledface = cairo_scaled_font_reference(cairo_get_scaled_font(cr));
-            raster = 1;
-        }
-    }
-    //TODO: else autosize, for now assume size is fixed
-    if(raster)
-    {
-        stat = cairo_scaled_font_text_to_glyphs(scaled_face, 0, 0, tkt->str, strlen(tkt->str), 
-                                                &glyphs, &glyph_count, 
-                                                &clusters, &cluster_count,
-                                                &clusterflags); 
-        if (stat == CAIRO_STATUS_SUCCESS)
-            tkt->strchange = 0;
-        //else return 0;
-        //TODO: cleanup old buffers
-    }
-
-    x = y = 0;
-    glyph_index = byte_index = 0;
-    for (i = 0; i < cluster_count; i++) 
-    { 
-        // get extents for the glyphs in the cluster
-        cairo_scaled_font_glyph_extents(scaled_face, &glyphs[glyph_index], clusters[i].num_glyphs, &extents);
-
-        if(isspace(tkt->str[byte_index]))
-        { 
-            deltax = 0;
-        }
-	    //if (cluster->num_bytes == 1 && text[byte_pos] == '\n') //newline
-
-        if(x + extents.x_advance > *w)
-            continue;
-        else
-        {
-            x += extents.x_advance;
-            deltax += extents.x_advance;
-            glyph_index += clusters[i].num_glyphs;
-            byte_index += clusters[i].num_bytes;
-        }
-    }
-}
