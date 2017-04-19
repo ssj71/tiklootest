@@ -871,7 +871,7 @@ void tk_showtip(tk_t tk, const PuglEvent* e, uint16_t n)
     n--;
     tk_text_stuff* tkt = (tk_text_stuff*)tk->value[n];
     tkt->str = tk->tip[tk->tover];
-    tk_settimer(tk,tk->ttip,0)
+    tk_settimer(tk,tk->ttip,0);
 
     //find best place to put the tip
     h = tk->h[0] - 4;
@@ -883,6 +883,8 @@ void tk_showtip(tk_t tk, const PuglEvent* e, uint16_t n)
         tk->h[tk->ttip] = h;
         tk->x[tk->ttip] = tk->x[tk->tover]+2;
         tk->y[tk->ttip] = tk->y[tk->tover];//TODO: what if it needs more vspace?
+        if(tk->y[tk->ttip]+h > tk->h[0])
+            tk->y[tk->ttip] = tk->h[0]-h+2;
     } 
     else
     {
