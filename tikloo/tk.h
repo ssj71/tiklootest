@@ -7,25 +7,29 @@
 #include"tk_types.h"
 
 
+//functions that return some kind of struct
 tk_t tk_gimmeaTikloo( uint16_t w, uint16_t h, char* title);
+tk_font_stuff* tk_gimmeaFont(tk_t tk, char* fontpath, uint16_t h);
 
+//functions that add widgets to the table
+uint16_t tk_addaWidget(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h); 
+uint16_t tk_addaDecoration(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h);//delete?
+uint16_t tk_addaDial(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, float min, float max, float val);
+uint16_t tk_addaButton(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint8_t val);
+uint16_t tk_addaText(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, tk_font_stuff* font, char* str);
+uint16_t tk_addaTimer(tk_t tk, float s);
+
+//core functions
 void tk_rollit(tk_t tk);
-//widget functions 
-uint16_t gimmeaWidget(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h); 
-uint16_t tk_gimmeaDecoration(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h);
-uint16_t tk_gimmeaDial(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, float min, float max, float val);
-uint16_t tk_gimmeaButton(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint8_t val);
-uint16_t tk_gimmeaText(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, tk_font_stuff* font, char* str);
-uint16_t tk_gimmeaTimer(tk_t tk, float s);
+void tk_idle(tk_t tk);
 
 //various helping functions
-tk_font_stuff* tk_gimmeaFont(tk_t tk, char* fontpath, uint16_t h);
 void tk_addtolist(uint16_t* list, uint16_t n);
 void tk_removefromlist(uint16_t* list, uint16_t n);
 void tk_insertinlist(uint16_t* list, uint16_t i, uint16_t n);
 void tk_setstring(char** str, char* msg);
 void tk_changelayer(tk_t tk, uint16_t n, uint16_t layer);
-void tk_settimer(tk_t tk, uint16_t n, float s) 
+void tk_settimer(tk_t tk, uint16_t n, float s);
 void tk_resizeeverything(tk_t tk, float w, float h);
 float tk_dialValue(tk_t tk, uint16_t n);
 

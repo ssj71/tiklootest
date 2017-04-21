@@ -2,7 +2,7 @@
 
 //tk_main.c
 
-//this is approximately based on priciples of data-oriented design, but really doesn't have the performance benefits of DOD since everything is dynamically allocated anyway. The goal is that it will have the coding benefits though.
+//this is approximately based on priciples of data-oriented design, but I'm not really shooting for the performance benefits of DOD. The goal is that it will have the coding benefits: powerful, flexible, simple to extend/tweak, and fewer LOC.
 
 #include<stdlib.h>
 #include<stdio.h>
@@ -463,7 +463,7 @@ void tk_changelayer(tk_t tk, uint16_t n, uint16_t layer)
 void tk_nocallback(tk_t tk, const PuglEvent* e, uint16_t n)
 {(void)tk;(void)e;(void)n;}
 
-uint16_t tk_gimmeaWidget(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h)
+uint16_t tk_addaWidget(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h)
 { 
     uint16_t n = tk->nwidgets++;
     tk->x[n] = x;
@@ -478,11 +478,11 @@ uint16_t tk_gimmeaWidget(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h
     return n;
 }
 
-uint16_t tk_gimmeaDecoration(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h)
+uint16_t tk_addaDecoration(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h)
 {
     uint16_t n = tk->nwidgets;
 
-    tk_gimmeaWidget(tk,x,y,w,h);
+    tk_addaWidget(tk,x,y,w,h);
     tk_addtolist(tk->hold_ratio,n); 
     return n; 
 }
@@ -538,12 +538,12 @@ void tk_dialcallback(tk_t tk, const PuglEvent* event, uint16_t n)
 }
 
 
-uint16_t tk_gimmeaDial(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, float min, float max, float val)
+uint16_t tk_addaDial(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, float min, float max, float val)
 {
     uint16_t n = tk->nwidgets;
     tk_dial_stuff* tkd = (tk_dial_stuff*)malloc(sizeof(tk_dial_stuff));
 
-    tk_gimmeaWidget(tk,x,y,w,h);
+    tk_addaWidget(tk,x,y,w,h);
     tk->extras[n] = (void*)tkd;
     tkd->min = min;
     tkd->max = max;
@@ -601,11 +601,11 @@ void tk_buttoncallback(tk_t tk, const PuglEvent* event, uint16_t n)
     }
 }
 
-uint16_t tk_gimmeaButton(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint8_t val)
+uint16_t tk_addaButton(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint8_t val)
 {
     uint16_t n = tk->nwidgets;
 
-    tk_gimmeaWidget(tk,x,y,w,h);
+    tk_addaWidget(tk,x,y,w,h);
     tk->value[n] = (void*)malloc(sizeof(uint8_t));
     *(uint8_t*)tk->value[n] = val&0x1;
 
@@ -627,7 +627,7 @@ void tk_settimer(tk_t tk, uint16_t n, float s)
         tk_removefromlist(tk->timer,n);
 }
 
-uint16_t tk_gimmeaTimer(tk_t tk, float s)
+uint16_t tk_addaTimer(tk_t tk, float s)
 {
     //may want to make this actually off the window
     uint16_t n = tk->nwidgets; 
@@ -654,7 +654,6 @@ uint16_t tk_gimmeaTimer(tk_t tk, float s)
 uint8_t tk_textlayout(cairo_t* cr, tk_text_stuff* tkt, uint16_t *w, uint16_t *h)
 {
     //TODO: what about scaling? do we have to re-render text all the time?
-    uint8_t raster=0;
     uint16_t i,size,space,glyph_index,str_index;
     uint16_t x,y,ln,lastwhite,deltax,xmax;
 
@@ -678,7 +677,7 @@ uint8_t tk_textlayout(cairo_t* cr, tk_text_stuff* tkt, uint16_t *w, uint16_t *h)
             cairo_set_font_size(cr, size); 
             cairo_scaled_font_destroy(tkt->tkf->scaledface);
             tkt->tkf->scaledface = cairo_scaled_font_reference(cairo_get_scaled_font(cr));
-            raster = 1;
+            tkt->strchange = 1;
         }
     }
     else if(*h < tkt->tkf->fontsize)
@@ -692,7 +691,7 @@ uint8_t tk_textlayout(cairo_t* cr, tk_text_stuff* tkt, uint16_t *w, uint16_t *h)
         //TODO: autosize, for now assume size is fixed
     }
 
-    if(raster)
+    if(tkt->strchange)
     {
         stat = cairo_scaled_font_text_to_glyphs(scaled_face, 0, 0, tkt->str, strlen(tkt->str), 
                                                 &glyphs, &glyph_count, 
@@ -759,6 +758,7 @@ uint8_t tk_textlayout(cairo_t* cr, tk_text_stuff* tkt, uint16_t *w, uint16_t *h)
     return 1;
 }
 
+//TODO make adda return something, whereas adda? adds to table
 //this function just makes the font stuff
 tk_font_stuff* tk_gimmeaFont(tk_t tk, char* fontpath, uint16_t h) 
 {
@@ -819,7 +819,7 @@ tk_font_stuff* tk_gimmeaFont(tk_t tk, char* fontpath, uint16_t h)
     return tkf; 
 }
 
-uint16_t tk_gimmeaText(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, tk_font_stuff* font, char* str)
+uint16_t tk_addaText(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, tk_font_stuff* font, char* str)
 {
     uint16_t n = tk->nwidgets; 
     tk_text_stuff* tkt = (tk_text_stuff*)calloc(1,sizeof(tk_text_stuff));
@@ -832,7 +832,7 @@ uint16_t tk_gimmeaText(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, 
     cairo_text_cluster_flags_t clusterflags;
     cairo_status_t stat;
 
-    tk_gimmeaWidget(tk,x,y,w,h);
+    tk_addaWidget(tk,x,y,w,h);
 
     tk_setstring(&tk->tip[n],str);
     tkt->str = tk->tip[n];//TODO: this will show tooltips of the text...
@@ -870,41 +870,80 @@ void tk_showtip(tk_t tk, const PuglEvent* e, uint16_t n)
     uint16_t w,h;
     n--;
     tk_text_stuff* tkt = (tk_text_stuff*)tk->value[n];
+    if(!tk->tover) return;//no tip
     tkt->str = tk->tip[tk->tover];
-    tk_settimer(tk,tk->ttip,0);
+    tkt->strchange = 1;
+    tk_settimer(tk,tk->ttip,0);//disable timer
+
+    tk->x[tk->ttip] = tk->x[tk->tover];
+    tk->y[tk->ttip] = tk->y[tk->tover];
 
     //find best place to put the tip
-    h = tk->h[0] - 4;
-    w = tk->y[0]-tk->y[tk->tover]-tk->w[tk->tover];
+    //first try to the right
+    h = tk->h[0];
+    w = tk->x[0]-tk->x[tk->tover]-tk->w[tk->tover];
+    if(h>4) h-=4;
     if(w>4) w-=4;
     if(tk_textlayout(tk->cr,tkt,&w,&h))
     {//it fits
-        tk->w[tk->ttip] = w;
-        tk->h[tk->ttip] = h;
-        tk->x[tk->ttip] = tk->x[tk->tover]+2;
-        tk->y[tk->ttip] = tk->y[tk->tover];//TODO: what if it needs more vspace?
-        if(tk->y[tk->ttip]+h > tk->h[0])
-            tk->y[tk->ttip] = tk->h[0]-h+2;
+        tk->x[tk->ttip] += tk->w[tk->tover]+2;
     } 
     else
-    {
-        w = tk->y[tk->tover];
+    {//try on the left side
+        h = tk->h[0];
+        w = tk->x[tk->tover];
+        if(h>4) h-=4;
         if(w>4) w-=4;
         if(tk_textlayout(tk->cr,tkt,&w,&h))
         {//it fits
+            tk->x[tk->ttip] -= w+2;
         }
         else
-        {//don't show
-            return;
-        }
-    }
+        {//try above
+            h = tk->y[tk->tover];
+            w = tk->w[0];
+            if(h>4) h-=4;
+            if(w>4) w-=4;
+            if(tk_textlayout(tk->cr,tkt,&w,&h))
+            {//it fits
+                tk->y[tk->ttip] -= h+2;
+            }
+            else
+            {//try below
+                h = tk->y[tk->tover];
+                w = tk->w[0];
+                if(h>4) h-=4;
+                if(w>4) w-=4;
 
+                if(tk_textlayout(tk->cr,tkt,&w,&h))
+                {//it fits
+                    tk->y[tk->ttip] += tk->h[tk->tover]+h+2;
+                }
+                else
+                {//don't show it
+                    tk->w[tk->ttip] = 0;
+                    tk->h[tk->ttip] = 0;
+                    tk->x[tk->ttip] = 0;
+                    tk->y[tk->ttip] = 0;
+                    return;
+                }
+            }//below
+        }//above
+    }//left
+    tk->w[tk->ttip] = w;
+    tk->h[tk->ttip] = h;
+    if(tk->y[tk->ttip]+h > tk->h[0])
+        tk->y[tk->ttip] = tk->h[0]-h+2;
+    if(tk->x[tk->ttip]+w > tk->w[0])
+        tk->x[tk->ttip] = tk->w[0]-w+2;
+
+    //TODO: Show it
 }
 
-uint16_t tk_gimmeaTooltip(tk_t tk, tk_font_stuff* font)
+uint16_t tk_addaTooltip(tk_t tk, tk_font_stuff* font)
 {
     //need text 
-    uint16_t n = tk_gimmeaText(tk, 0, 0, 0, 12, font, " ");
+    uint16_t n = tk_addaText(tk, 0, 0, 0, 12, font, " ");
     tk->h[n] = 0;
     tk->layer[n] = 0;
     free(tk->tip[n]);
@@ -918,7 +957,7 @@ uint16_t tk_gimmeaTooltip(tk_t tk, tk_font_stuff* font)
     tk->draw_f[n] = tk_drawtip;
 
     //need timer
-    n = tk_gimmeaTimer(tk, 0);
+    n = tk_addaTimer(tk, 0);
     tk->ttip = n; 
     tk->callback_f[n] = tk_showtip;
 

@@ -39,7 +39,7 @@ int main()
     tk = tk_gimmeaTikloo(128, //w
                          128, //h
                          "this is only a test");//title
-    tk_gimmeaDial(tk,
+    tk_addaDial(tk,
                   20, //x
                   20, //y
                   30, //w
@@ -47,7 +47,7 @@ int main()
                   0,  //min
                   100, //max
                   50); //val
-    tk_gimmeaDial(tk,
+    tk_addaDial(tk,
                   70, //x
                   20, //y
                   30, //w
@@ -55,14 +55,14 @@ int main()
                   0,  //min
                   100, //max
                   50); //val
-    n = tk_gimmeaButton(tk,
+    n = tk_addaButton(tk,
                         20, //x
                         70, //y
                         30, //w
                         40, //h
                         0); //val
     tk->callback_f[n] = freeze_item_ratio;
-    n = tk_gimmeaButton(tk,
+    n = tk_addaButton(tk,
                         70, //x
                         70, //y
                         30, //w
@@ -73,14 +73,14 @@ int main()
 
     tkf = tk_gimmeaFont(tk, "/usr/share/fonts/truetype/freefont/FreeSerif.ttf", //font path
                         10); //font size
-    n = tk_gimmeaText(tk,
+    n = tk_addaText(tk,
                          5, //x
                          5, //y
                          100, //w
                          10, //h
                          tkf, //font
                          "Don't Panic!"); //msg
-    n = tk_gimmeaTimer(tk, 5);//seconds
+    n = tk_addaTimer(tk, 5);//seconds
     tk->callback_f[n] = tick;
 
     tk_rollit(tk);
