@@ -345,15 +345,13 @@ static void tk_callback (PuglView* view, const PuglEvent* event)
         else 
         {//tooltip
             n=tk_dumbsearch(tk,event);
-            if(tk->ttip && n && strlen(tk->tip[n]))
-            {//ttip enabled, mouse is over a widget with a tip   
-                tk_settimer(tk,tk->ttip,TK_TOOLTIP_TIME);
-                tk->tover = n;
-            }
-            else
-            {
-                tk_settimer(tk,tk->ttip,0);
-                tk->tover = 0;
+            tk->tover = n;
+            if(tk->ttip)
+            {//ttip enabled
+                if(n && strlen(tk->tip[n]))//mouse is over a widget with a tip   
+                    tk_settimer(tk,tk->ttip,TK_TOOLTIP_TIME);
+                else
+                    tk_settimer(tk,tk->ttip,0);
             }
         }
         break;
