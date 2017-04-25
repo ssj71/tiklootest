@@ -61,18 +61,16 @@ typedef tk_stuff* tk_t;
 
 typedef enum
 {
-    //NOTE that some of these values are not unique, because the properties only apply in certain contexts. Pay attention
-    //Main Window Properties
-    TK_HOLD_RATIO = 0x1,
-
+    //NOTE that some of these values are not unique, because the properties only apply in certain contexts. Pay attention 
     //Any Item Properties
+    TK_HOLD_RATIO = 0x1,
     TK_NO_DAMAGE = 0x2,
 
     //Button Properties
-    TK_BUTTON_MOMENTARY = 0x1,
+    TK_BUTTON_MOMENTARY = 0x4,
 
     //Dial Properties
-    TK_VALUE_PARABOLIC = 0x1,//TODO: what about for xy points?
+    TK_VALUE_PARABOLIC = 0x4,//TODO: what about for xy points?
 
     
 }TK_PROPERTIES;

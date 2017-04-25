@@ -39,14 +39,15 @@ int main()
     tk = tk_gimmeaTikloo(128, //w
                          128, //h
                          "this is only a test");//title
-    tk_addaDial(tk,
-                  20, //x
-                  20, //y
-                  30, //w
-                  30, //h
-                  0,  //min
-                  100, //max
-                  50); //val
+    n = tk_addaDial(tk,
+                    20, //x
+                    20, //y
+                    30, //w
+                    30, //h
+                    0,  //min
+                    100, //max
+                    50); //val
+    tk_setstring(&tk->tip[n],"test tip.");//this rather long tooltip is mostly just to tell you that this dial here does nothing in particular, its really just a testbed to see if any of this stuff works, but hope your day is ok anyway.");
     tk_addaDial(tk,
                   70, //x
                   20, //y
@@ -82,6 +83,8 @@ int main()
                          "Don't Panic!"); //msg
     n = tk_addaTimer(tk, 5);//seconds
     tk->callback_f[n] = tick;
+
+    tk_addaTooltip(tk,tkf);
 
     tk_rollit(tk);
     return 0;

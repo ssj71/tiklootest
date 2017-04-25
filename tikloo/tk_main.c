@@ -293,6 +293,10 @@ uint16_t tk_dumbsearch(tk_t tk, const PuglEvent* event)
         x = event->scroll.x;
         y = event->scroll.y;
         break;
+    case PUGL_MOTION_NOTIFY:
+        x = event->motion.x;
+        y = event->motion.y;
+        break;
     default:
         return 0;
     }
@@ -348,10 +352,14 @@ static void tk_callback (PuglView* view, const PuglEvent* event)
             tk->tover = n;
             if(tk->ttip)
             {//ttip enabled
-                if(n && strlen(tk->tip[n]))//mouse is over a widget with a tip   
+                if(n && tk->tip[n] && strlen(tk->tip[n]))//mouse is over a widget with a tip   
                     tk_settimer(tk,tk->ttip,TK_TOOLTIP_TIME);
                 else
+                {
                     tk_settimer(tk,tk->ttip,0);
+                    if(tk->layer[tk->ttip-1])
+                        tk_changelayer(tk,tk->ttip-1,0);
+                }
             }
         }
         break;
@@ -628,7 +636,7 @@ void tk_settimer(tk_t tk, uint16_t n, float s)
 uint16_t tk_addaTimer(tk_t tk, float s)
 {
     //may want to make this actually off the window
-    uint16_t n = tk->nwidgets; 
+    uint16_t n = tk->nwidgets++; 
     tk->x[n] = 0;
     tk->y[n] = 0;
     tk->w[n] = 0;
@@ -863,28 +871,28 @@ uint16_t tk_addaText(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, tk
     return n; 
 } 
 
-void tk_showtip(tk_t tk, const PuglEvent* e, uint16_t n)
+void tk_showtipcallback(tk_t tk, const PuglEvent* e, uint16_t n)
 {
     uint16_t w,h;
-    n--;
+    n--;//text widget is 1 before timer part of ttip
     tk_text_stuff* tkt = (tk_text_stuff*)tk->value[n];
     if(!tk->tover) return;//no tip
     tkt->str = tk->tip[tk->tover];
     tkt->strchange = 1;
     tk_settimer(tk,tk->ttip,0);//disable timer
 
-    tk->x[tk->ttip] = tk->x[tk->tover];
-    tk->y[tk->ttip] = tk->y[tk->tover];
+    tk->x[n] = tk->x[tk->tover];
+    tk->y[n] = tk->y[tk->tover];
 
     //find best place to put the tip
     //first try to the right
     h = tk->h[0];
-    w = tk->x[0]-tk->x[tk->tover]-tk->w[tk->tover];
+    w = tk->w[0]-tk->x[tk->tover]-tk->w[tk->tover];
     if(h>4) h-=4;
     if(w>4) w-=4;
     if(tk_textlayout(tk->cr,tkt,&w,&h))
     {//it fits
-        tk->x[tk->ttip] += tk->w[tk->tover]+2;
+        tk->x[n] += tk->w[tk->tover]+2;
     } 
     else
     {//try on the left side
@@ -894,7 +902,7 @@ void tk_showtip(tk_t tk, const PuglEvent* e, uint16_t n)
         if(w>4) w-=4;
         if(tk_textlayout(tk->cr,tkt,&w,&h))
         {//it fits
-            tk->x[tk->ttip] -= w+2;
+            tk->x[n] -= w+2;
         }
         else
         {//try above
@@ -904,7 +912,7 @@ void tk_showtip(tk_t tk, const PuglEvent* e, uint16_t n)
             if(w>4) w-=4;
             if(tk_textlayout(tk->cr,tkt,&w,&h))
             {//it fits
-                tk->y[tk->ttip] -= h+2;
+                tk->y[n] -= h+2;
             }
             else
             {//try below
@@ -915,27 +923,27 @@ void tk_showtip(tk_t tk, const PuglEvent* e, uint16_t n)
 
                 if(tk_textlayout(tk->cr,tkt,&w,&h))
                 {//it fits
-                    tk->y[tk->ttip] += tk->h[tk->tover]+h+2;
+                    tk->y[n] += tk->h[tk->tover]+h+2;
                 }
                 else
                 {//don't show it
-                    tk->w[tk->ttip] = 0;
-                    tk->h[tk->ttip] = 0;
-                    tk->x[tk->ttip] = 0;
-                    tk->y[tk->ttip] = 0;
+                    tk->w[n] = 0;
+                    tk->h[n] = 0;
+                    tk->x[n] = 0;
+                    tk->y[n] = 0;
                     return;
                 }
             }//below
         }//above
     }//left
-    tk->w[tk->ttip] = w;
-    tk->h[tk->ttip] = h;
-    if(tk->y[tk->ttip]+h > tk->h[0])
-        tk->y[tk->ttip] = tk->h[0]-h+2;
-    if(tk->x[tk->ttip]+w > tk->w[0])
-        tk->x[tk->ttip] = tk->w[0]-w+2;
+    tk->w[n] = w;
+    tk->h[n] = h;
+    if(tk->y[n]+h > tk->h[0])
+        tk->y[n] = tk->h[0]-h+2;
+    if(tk->x[n]+w > tk->w[0])
+        tk->x[n] = tk->w[0]-w+2;
 
-    //TODO: Show it
+    tk_changelayer(tk,n,3);
 }
 
 uint16_t tk_addaTooltip(tk_t tk, tk_font_stuff* font)
@@ -957,7 +965,7 @@ uint16_t tk_addaTooltip(tk_t tk, tk_font_stuff* font)
     //need timer
     n = tk_addaTimer(tk, 0);
     tk->ttip = n; 
-    tk->callback_f[n] = tk_showtip;
+    tk->callback_f[n] = tk_showtipcallback;
 
     return n;
 }

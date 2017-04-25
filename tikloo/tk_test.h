@@ -14,3 +14,5 @@ static void tk_callback (PuglView* view, const PuglEvent* event);
 void tk_nocallback(tk_t tk, const PuglEvent* e, uint16_t n);
 void tk_dialcallback(tk_t tk, const PuglEvent* event, uint16_t n);
 void tk_buttoncallback(tk_t tk, const PuglEvent* event, uint16_t n);
+void tk_showtipcallback(tk_t tk, const PuglEvent* e, uint16_t n);
+uint8_t tk_textlayout(cairo_t* cr, tk_text_stuff* tkt, uint16_t *w, uint16_t *h);
