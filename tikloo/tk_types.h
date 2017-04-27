@@ -20,7 +20,7 @@ typedef struct tk_stuff
     //////primary table, each index correlates across arrays
     //size and position
     float *x,*y,*w,*h;
-    //items on higher layers recieve callbacks, never set to 0
+    //items on higher layers recieve callbacks, layer 0 is not drawn
     uint8_t *layer;
     //value could be any type so be careful here
     void **value;
@@ -42,14 +42,15 @@ typedef struct tk_stuff
     //////lists, values are indices of items with common properties
     uint16_t *hold_ratio; //items that don't change aspect ratio when scaling
     uint16_t *draw; //full list of items that are drawn
-    uint16_t *redraw; //list of items needing redraw
-    uint16_t* timer; //list of active timers
+    uint16_t *redraw; //list of items that have changed and need redraw
+    uint16_t *timer; //list of active timers
 
     //////global stuff
     float w0,h0;
     uint16_t nwidgets,tablesize;
     uint16_t drag;//index of widgets being dragged
     uint16_t ttip,tover;//index of tooltip widget, and current tip
+
     timer_lib_handle_t tlibh;
     PuglView* view;
     cairo_t* cr;
@@ -62,15 +63,17 @@ typedef tk_stuff* tk_t;
 typedef enum
 {
     //NOTE that some of these values are not unique, because the properties only apply in certain contexts. Pay attention 
-    //Any Item Properties
+    //Main Window Properties
     TK_HOLD_RATIO = 0x1,
-    TK_NO_DAMAGE = 0x2,
+    
+    //Any Item Properties
+    TK_NO_DAMAGE = 0x1,//if the item is redrawn, it doesn't affect items behind it
 
     //Button Properties
-    TK_BUTTON_MOMENTARY = 0x4,
+    TK_BUTTON_MOMENTARY = 0x2,
 
     //Dial Properties
-    TK_VALUE_PARABOLIC = 0x4,//TODO: what about for xy points?
+    TK_VALUE_PARABOLIC = 0x2,//TODO: what about for xy points?
 
     
 }TK_PROPERTIES;
@@ -96,8 +99,8 @@ typedef struct
 {
     char* str;//pointer to text
     uint8_t strchange,cursorstate;
-    uint16_t nlines,cursor,ln,col;
-    uint16_t *brk;
+    uint16_t cursor,ln,col;//cursor indx,lin,col position
+    uint16_t vlines,brklen,*brk;//visible lines, max num lines, linebreak/wrap indices
 
     tk_font_stuff* tkf;
     cairo_glyph_t* glyphs;

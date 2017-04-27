@@ -19,6 +19,9 @@
 #ifndef TK_TOOLTIP_TIME
 #define TK_TOOLTIP_TIME 1
 #endif
+#ifndef TK_STARTER_SIZE
+#define TK_STARTER_SIZE 64
+#endif
 
 //forward declarations are all in tk_test or tk.h
 //static void tk_callback (PuglView* view, const PuglEvent* event);
@@ -26,7 +29,7 @@
 
 tk_t tk_gimmeaTikloo(uint16_t w, uint16_t h, char* title)
 {
-    uint8_t starter_sz = 64;
+    uint8_t starter_sz = TK_STARTER_SIZE;
     tk_t tk = (tk_t)malloc(sizeof(tk_stuff));
 
     //initialize the table in the struct
@@ -261,7 +264,8 @@ void tk_redraw(tk_t tk)
 {
     uint16_t i;
     if( !tk->redraw[0] && !tk->redraw[1] )
-        return;
+        return;//empty list
+    //TODO: if we have to redraw the bg, we probably have to draweverything anyway, no?
     for(i=0; tk->redraw[i]||!i; i++)
     {
         tk_draw(tk,tk->redraw[i]);
@@ -278,8 +282,44 @@ void tk_draweverything(tk_t tk)
         //TODO: cache everything to avoid redraws?
     }
 }
+void tk_damage(tk_t tk, uint16_t n)
+{
+    uint16_t i,l,lmx;
+    uint16_t x,y,w,h,x2,y2;
+    x = tk->x[n];
+    y = tk->y[n];
+    w = tk->w[n];
+    h = tk->h[n];
+    lmx = tk->layer[n];
+    x2 = x--+w+1;
+    y2 = y--+h+1;
 
-uint16_t tk_dumbsearch(tk_t tk, const PuglEvent* event)
+    //set up clip area
+    cairo_new_path(tk->cr);
+    cairo_move_to(tk->cr, x,y);
+    cairo_line_to(tk->cr, x2, y);
+    cairo_line_to(tk->cr, x2, y2);
+    cairo_line_to(tk->cr, x, y2);
+    cairo_close_path(tk->cr);
+    cairo_clip(tk->cr);
+        
+    for(l=1;l<=lmx;l++)
+    {
+        for(i=0; tk->cb_f[i]; i++)
+        {
+            if( (tk->x[i] < x2 || tk->x[i] + tk->w[i] > x) &&
+                (tk->y[i] < y2 || tk->y[i] + tk->h[i] > y) &&
+                tk->layer[i] == l )
+            {
+                tk_draw(tk,i);
+            }
+        }
+    }
+
+    cairo_reset_clip(tk->cr);
+}
+
+uint16_t tk_eventsearch(tk_t tk, const PuglEvent* event)
 {
     uint16_t i,n=0,l=1;
     float x,y;
@@ -304,8 +344,7 @@ uint16_t tk_dumbsearch(tk_t tk, const PuglEvent* event)
     {
         if( x >= tk->x[i] && x <= tk->x[i] + tk->w[i] &&
             y >= tk->y[i] && y <= tk->y[i] + tk->h[i] &&
-            tk->layer[i] > l 
-          )
+            tk->layer[i] > l )
         {
             l = tk->layer[i];
             n = i; 
@@ -348,7 +387,7 @@ static void tk_callback (PuglView* view, const PuglEvent* event)
             tk->cb_f[tk->drag](tk,event,tk->drag);
         else 
         {//tooltip
-            n=tk_dumbsearch(tk,event);
+            n=tk_eventsearch(tk,event);
             tk->tover = n;
             if(tk->ttip)
             {//ttip enabled
@@ -371,12 +410,12 @@ static void tk_callback (PuglView* view, const PuglEvent* event)
         }
         //no break
     case PUGL_BUTTON_PRESS:
-        n = tk_dumbsearch(tk,event);
+        n = tk_eventsearch(tk,event);
         if(n)
             tk->cb_f[n](tk,event,n);
         break;
     case PUGL_SCROLL:
-        n = tk_dumbsearch(tk,event);
+        n = tk_eventsearch(tk,event);
         if(n)
             tk->cb_f[n](tk,event,n);
         break;
@@ -396,6 +435,27 @@ static void tk_callback (PuglView* view, const PuglEvent* event)
 }
 
 //SUNDRY HELPER FUNCTIONS
+void tk_addtogrowlist(uint16_t** list, uint16_t *len, uint16_t n)
+{
+    uint16_t i=0;
+    if(!*list || !*len)
+        *list = (uint16_t*)calloc(sizeof(uint16_t),10);
+    else if(list[*len-1])
+    {//list is full
+        *list = (uint16_t*)calloc(sizeof(uint16_t),2**len);
+        i = *len;
+        *len *=2;
+    }
+    else
+    {
+        for(i=0;*list[i];i++)//find end of list
+        {
+            if(*list[i]==n)
+                return;
+        }
+    }
+    *list[i] = n;
+}
 
 void tk_addtolist(uint16_t* list, uint16_t n)
 {
@@ -454,6 +514,7 @@ void tk_changelayer(tk_t tk, uint16_t n, uint16_t layer)
     {
         tk_removefromlist(tk->draw,n);
         tk_removefromlist(tk->redraw,n);
+        tk_damage(tk,n);
     }
     else
     {
@@ -518,6 +579,8 @@ void tk_dialcallback(tk_t tk, const PuglEvent* event, uint16_t n)
         //fprintf(stderr, "%f ",*v);
         tk->callback_f[n](tk,event,n);
         tk_addtolist(tk->redraw,n);//TODO: damage
+        if(!tk->props[n]&TK_NO_DAMAGE)
+            tk_damage(tk,n);
         break;
     case PUGL_BUTTON_PRESS:
         tk->drag = n;
@@ -537,6 +600,8 @@ void tk_dialcallback(tk_t tk, const PuglEvent* event, uint16_t n)
         //fprintf(stderr, "%f ",*v);
         tk->callback_f[n](tk,event,n);
         tk_addtolist(tk->redraw,n);
+        if(!tk->props[n]&TK_NO_DAMAGE)
+            tk_damage(tk,n); 
         break;
     default:
         break;
@@ -579,6 +644,8 @@ void tk_buttoncallback(tk_t tk, const PuglEvent* event, uint16_t n)
             *v ^= 0x01;
             tk->callback_f[n](tk,event,n);
             tk_addtolist(tk->redraw,n);
+            if(!tk->props[n]&TK_NO_DAMAGE)
+                tk_damage(tk,n);
         }
         break;
     case PUGL_BUTTON_PRESS:
@@ -589,6 +656,8 @@ void tk_buttoncallback(tk_t tk, const PuglEvent* event, uint16_t n)
             *v ^= 0x01;
             tk->callback_f[n](tk,event,n);
             tk_addtolist(tk->redraw,n);
+            if(!tk->props[n]&TK_NO_DAMAGE)
+                tk_damage(tk,n);
         }
         break;
     case PUGL_BUTTON_RELEASE:
@@ -600,6 +669,8 @@ void tk_buttoncallback(tk_t tk, const PuglEvent* event, uint16_t n)
             *v ^= 0x01;
             tk->callback_f[n](tk,event,n);
             tk_addtolist(tk->redraw,n);
+            if(!tk->props[n]&TK_NO_DAMAGE)
+                tk_damage(tk,n);
         }
         break;
     default:
@@ -672,10 +743,10 @@ uint8_t tk_textlayout(cairo_t* cr, tk_text_stuff* tkt, uint16_t *w, uint16_t *h)
     cairo_status_t stat;
     cairo_text_extents_t extents;
 
-    if(tkt->nlines>=1)
+    if(tkt->vlines>=1)
     {
-        size = (*h/tkt->nlines)*.86;
-        space = *h/tkt->nlines - size;
+        size = (*h/tkt->vlines)*.86;
+        space = *h/tkt->vlines - size;
         if(size != tkt->tkf->fontsize)
         {
             cairo_set_font_face(cr, tkt->tkf->fontface);
@@ -727,7 +798,7 @@ uint8_t tk_textlayout(cairo_t* cr, tk_text_stuff* tkt, uint16_t *w, uint16_t *h)
             lastwhite = str_index;
             if (tkt->str[str_index] == '\n') //newline
             {
-                if(!tkt->brk[ln])
+                if(ln>tkt->vlines)
                     return 0;//it doesn't fit
                 tkt->brk[ln++] = str_index;
             }
@@ -741,8 +812,9 @@ uint8_t tk_textlayout(cairo_t* cr, tk_text_stuff* tkt, uint16_t *w, uint16_t *h)
         {
             //go back to last whitespace put the rest on a newline
             x = deltax;
-            if(!tkt->brk[ln])
+            if(ln>tkt->vlines)
                 return 0;//it doesn't fit
+            //TODO: Somewhere I need to init brk
             tkt->brk[ln++] = lastwhite;
         }
         else
@@ -852,7 +924,7 @@ uint16_t tk_addaText(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, tk
                     &clusters, &cluster_count, &clusterflags);
 
     tkt->tkf = font;
-    tkt->nlines = 1;
+    tkt->vlines = 1;
     tkt->glyphs = glyphs;
     tkt->glyph_count = glyph_count;
     tkt->clusters = clusters;
@@ -956,9 +1028,9 @@ uint16_t tk_addaTooltip(tk_t tk, tk_font_stuff* font)
     tk->tip[n] = 0;
 
     tk_text_stuff* tkt = (tk_text_stuff*)tk->value[n];
-    tkt->nlines = 0;//disable text scaling
+    tkt->vlines = 0;//disable text scaling
 
-    tk_addtolist(tk->hold_ratio,n);//?
+    //tk_addtolist(tk->hold_ratio,n);//?
 
     tk->draw_f[n] = tk_drawtip;
 
