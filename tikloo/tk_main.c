@@ -438,21 +438,23 @@ static void tk_callback (PuglView* view, const PuglEvent* event)
 void tk_addtogrowlist(uint16_t** list, uint16_t *len, uint16_t n)
 {
     uint16_t i=0;
+    uint16_t *newlist;
     if(!*list || !*len)
         *list = (uint16_t*)calloc(sizeof(uint16_t),10);
     else if(list[*len-1])
     {//list is full
-        *list = (uint16_t*)calloc(sizeof(uint16_t),2**len);
+        newlist = (uint16_t*)calloc(sizeof(uint16_t),2**len);
+        memcpy(newlist,*list,sizeof(uint16_t)**len);
+        free(*list);
+        *list = newlist;
         i = *len;
         *len *=2;
     }
     else
     {
         for(i=0;*list[i];i++)//find end of list
-        {
             if(*list[i]==n)
                 return;
-        }
     }
     *list[i] = n;
 }
@@ -475,6 +477,7 @@ void tk_removefromlist(uint16_t* list, uint16_t n)
             list[i] = list[i+1]; 
 }
 
+//insert n in position i
 void tk_insertinlist(uint16_t* list, uint16_t n, uint16_t i)
 {
     uint16_t j,k;
@@ -514,7 +517,7 @@ void tk_changelayer(tk_t tk, uint16_t n, uint16_t layer)
     {
         tk_removefromlist(tk->draw,n);
         tk_removefromlist(tk->redraw,n);
-        tk_damage(tk,n);
+        tk_damage(tk,n); 
     }
     else
     {
@@ -731,7 +734,7 @@ uint16_t tk_addaTimer(tk_t tk, float s)
 uint8_t tk_textlayout(cairo_t* cr, tk_text_stuff* tkt, uint16_t *w, uint16_t *h)
 {
     //TODO: what about scaling? do we have to re-render text all the time?
-    uint16_t i,size,space,glyph_index,str_index;
+    uint16_t i,vlines,size,space,glyph_index,str_index;
     uint16_t x,y,ln,lastwhite,deltax,xmax;
 
     cairo_scaled_font_t* scaled_face = tkt->tkf->scaledface;
@@ -743,7 +746,8 @@ uint8_t tk_textlayout(cairo_t* cr, tk_text_stuff* tkt, uint16_t *w, uint16_t *h)
     cairo_status_t stat;
     cairo_text_extents_t extents;
 
-    if(tkt->vlines>=1)
+    vlines = tkt->vlines;
+    if(vlines>=1)
     {
         size = (*h/tkt->vlines)*.86;
         space = *h/tkt->vlines - size;
@@ -765,6 +769,7 @@ uint8_t tk_textlayout(cairo_t* cr, tk_text_stuff* tkt, uint16_t *w, uint16_t *h)
     {
         size = tkt->tkf->fontsize;
         space = .14*size;
+        vlines = (*h-space)/(size+space);
         //TODO: autosize, for now assume size is fixed
     }
 
@@ -783,6 +788,7 @@ uint8_t tk_textlayout(cairo_t* cr, tk_text_stuff* tkt, uint16_t *w, uint16_t *h)
         if(clusters != tkt->clusters)
             free(tkt->clusters);
     }
+    tkt->brk[0] = 0; //clear list
 
     x = y = ln = xmax = 0;
     glyph_index = str_index = 0;
@@ -798,9 +804,9 @@ uint8_t tk_textlayout(cairo_t* cr, tk_text_stuff* tkt, uint16_t *w, uint16_t *h)
             lastwhite = str_index;
             if (tkt->str[str_index] == '\n') //newline
             {
-                if(ln>tkt->vlines)
+                if(ln>vlines)
                     return 0;//it doesn't fit
-                tkt->brk[ln++] = str_index;
+                tk_addtogrowlist(&tkt->brk,&tkt->brklen,str_index);
             }
         }
         else 
@@ -812,10 +818,9 @@ uint8_t tk_textlayout(cairo_t* cr, tk_text_stuff* tkt, uint16_t *w, uint16_t *h)
         {
             //go back to last whitespace put the rest on a newline
             x = deltax;
-            if(ln>tkt->vlines)
+            if(ln>vlines)
                 return 0;//it doesn't fit
-            //TODO: Somewhere I need to init brk
-            tkt->brk[ln++] = lastwhite;
+            tk_addtogrowlist(&tkt->brk,&tkt->brklen,lastwhite);
         }
         else
         {
@@ -900,8 +905,11 @@ tk_font_stuff* tk_gimmeaFont(tk_t tk, char* fontpath, uint16_t h)
 uint16_t tk_addaText(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, tk_font_stuff* font, char* str)
 {
     uint16_t n = tk->nwidgets; 
+    uint16_t w2 = w;
+    uint16_t h2 = h;
     tk_text_stuff* tkt = (tk_text_stuff*)calloc(1,sizeof(tk_text_stuff));
 
+/*
     //cairo stuff
     cairo_glyph_t* glyphs = NULL;
     int glyph_count = 0;
@@ -909,6 +917,7 @@ uint16_t tk_addaText(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, tk
     int cluster_count = 0;
     cairo_text_cluster_flags_t clusterflags;
     cairo_status_t stat;
+*/
 
     tk_addaWidget(tk,x,y,w,h);
 
@@ -916,15 +925,20 @@ uint16_t tk_addaText(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, tk
     tkt->str = tk->tip[n];//TODO: this will show tooltips of the text...
     tk_addtolist(tk->hold_ratio,n);
 
+    tk_addtogrowlist(&tkt->brk,&tkt->brklen,0);//alloc list for linebreaks
 
     // get glyphs for the text
+    tkt->tkf = font;
+    tkt->vlines = 1;
+
+    tk_textlayout(tk->cr,tkt,&w2,&h2);
+    //TODO: what if w and h don't fit?
+/*
     stat = cairo_scaled_font_text_to_glyphs(font->scaledface, 0, 0, 
                     str, strlen(str), 
                     &glyphs, &glyph_count, 
                     &clusters, &cluster_count, &clusterflags);
 
-    tkt->tkf = font;
-    tkt->vlines = 1;
     tkt->glyphs = glyphs;
     tkt->glyph_count = glyph_count;
     tkt->clusters = clusters;
@@ -936,7 +950,7 @@ uint16_t tk_addaText(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, tk
         //TODO: not sure if this is cause for abort
         fprintf(stderr, "OH NO, Text conversion failed!");
     } 
-
+*/
     tk->draw_f[n] = tk_drawtext;
     tk->value[n] = tkt;
 
