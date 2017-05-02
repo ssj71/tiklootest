@@ -101,6 +101,7 @@ typedef struct
     uint8_t strchange,cursorstate;
     uint16_t cursor,ln,col;//cursor indx,lin,col position
     uint16_t vlines,brklen,*brk;//visible lines, max num lines, linebreak/wrap indices
+    float scale;
 
     tk_font_stuff* tkf;
     cairo_glyph_t* glyphs;

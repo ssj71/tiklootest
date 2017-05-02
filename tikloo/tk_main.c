@@ -727,13 +727,11 @@ uint16_t tk_addaTimer(tk_t tk, float s)
     return n;
 }
 
-//we assume there is a valid font with size and a string, we may change line brks
-// fontsize 0 will autoscale to fit
+//we assume there is a valid font with set size and a string, we will set line brks
 //we will pass back the actual dimensions in w and h, and 
 //return  1 if the text fits in the provided size
 uint8_t tk_textlayout(cairo_t* cr, tk_text_stuff* tkt, uint16_t *w, uint16_t *h)
 {
-    //TODO: what about scaling? do we have to re-render text all the time?
     uint16_t i,vlines,size,space,glyph_index,str_index;
     uint16_t x,y,ln,lastwhite,deltax,xmax;
 
@@ -746,10 +744,11 @@ uint8_t tk_textlayout(cairo_t* cr, tk_text_stuff* tkt, uint16_t *w, uint16_t *h)
     cairo_status_t stat;
     cairo_text_extents_t extents;
 
+#if(0)
     vlines = tkt->vlines;
     if(vlines>=1)
     {
-        size = (*h/tkt->vlines)*.86;
+        size = tkt->scale*(tkt->tkf->fontsize)*.86;
         space = *h/tkt->vlines - size;
         if(size != tkt->tkf->fontsize)
         {
@@ -761,7 +760,7 @@ uint8_t tk_textlayout(cairo_t* cr, tk_text_stuff* tkt, uint16_t *w, uint16_t *h)
             tkt->strchange = 1;
         }
     }
-    else if(*h < tkt->tkf->fontsize)
+    else if(*h < tkt->tkf->fontsize*tkt->scale)
     {//it doesn't fit
         return 1;
     }
@@ -772,6 +771,9 @@ uint8_t tk_textlayout(cairo_t* cr, tk_text_stuff* tkt, uint16_t *w, uint16_t *h)
         vlines = (*h-space)/(size+space);
         //TODO: autosize, for now assume size is fixed
     }
+#endif
+//we don't resize here (anymore)
+// we need to still calculate size and space
 
     if(tkt->strchange)
     {
@@ -929,8 +931,7 @@ uint16_t tk_addaText(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, tk
 
     // get glyphs for the text
     tkt->tkf = font;
-    tkt->vlines = 1;
-
+    tkt->scale = 1;
     tk_textlayout(tk->cr,tkt,&w2,&h2);
     //TODO: what if w and h don't fit?
 /*
@@ -1041,8 +1042,7 @@ uint16_t tk_addaTooltip(tk_t tk, tk_font_stuff* font)
     free(tk->tip[n]);
     tk->tip[n] = 0;
 
-    tk_text_stuff* tkt = (tk_text_stuff*)tk->value[n];
-    tkt->vlines = 0;//disable text scaling
+    //tk_text_stuff* tkt = (tk_text_stuff*)tk->value[n];
 
     //tk_addtolist(tk->hold_ratio,n);//?
 
