@@ -15,7 +15,10 @@
 #include "pugl/pugl.h"
 #include "timer.h"
 
-typedef struct tk_stuff
+//forward declaration
+typedef struct t tk_text_table;
+
+typedef struct
 {
     //////primary table, each index correlates across arrays
     //size and position
@@ -31,13 +34,16 @@ typedef struct tk_stuff
     //draw function
     void (**draw_f)(cairo_t*, float, float, void*); //surface, w, h, value
     //built in callback, must not be 0
-    void (**cb_f)(struct tk_stuff*, const PuglEvent*, uint16_t); 
+    void (**cb_f)(struct tk_table*, const PuglEvent*, uint16_t); 
     //user callback, runs after the cb_f
-    void (**callback_f)(struct tk_stuff*, const PuglEvent*, uint16_t);
+    void (**callback_f)(struct tk_table*, const PuglEvent*, uint16_t);
     //item specific data of any type, take care
     void **extras;
     //opaque data set by user
     void **user;
+
+    //////there is also a text specific table
+    tk_text_table tkt;
 
     //////lists, values are indices of items with common properties
     uint16_t *hold_ratio; //items that don't change aspect ratio when scaling
@@ -56,9 +62,10 @@ typedef struct tk_stuff
     cairo_t* cr;
     uint8_t quit;
 
-}tk_stuff;
 
-typedef tk_stuff* tk_t;
+}tk_table;
+
+typedef tk_table* tk_t;
 
 typedef enum
 {
@@ -95,6 +102,7 @@ typedef struct
     cairo_scaled_font_t* scaledface;
 }tk_font_stuff;
 
+#if(0)
 typedef struct
 {
     char* str;//pointer to text
@@ -110,6 +118,34 @@ typedef struct
     int cluster_count;
     cairo_text_cluster_flags_t clusterflags;
 }tk_text_stuff;
+#endif
 
+//text stuff
+typedef struct
+{
+    char** str;//pointer to text
+    uint8_t* strchange;
+    uint8_t* cursorstate;
+    uint16_t* cursor;//cursor location in string
+    uint16_t* selection;//selection length
+    uint16_t* ln;//viewport line
+    uint16_t* col;//veiwport column
+    uint16_t**brklen;
+    uint16_t* brk;//visible lines, max num lines, linebreak/wrap indices
+    float scale;
+
+    tk_font_stuff** tkf;
+    cairo_glyph_t** glyphs;
+    uint16_t* glyph_count;
+    cairo_text_cluster_t** clusters;
+    uint16_t* cluster_count;
+    cairo_text_cluster_flags_t* clusterflags; 
+}tk_text_table;
+
+typedef struct
+{
+    tk_text_table* tkt;
+    uint16_t n;//index
+}tk_text_stuff;
 
 #endif

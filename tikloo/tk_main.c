@@ -30,7 +30,7 @@
 tk_t tk_gimmeaTikloo(uint16_t w, uint16_t h, char* title)
 {
     uint8_t starter_sz = TK_STARTER_SIZE;
-    tk_t tk = (tk_t)malloc(sizeof(tk_stuff));
+    tk_t tk = (tk_t)malloc(sizeof(tk_table));
 
     //initialize the table in the struct
     tk->x = (float*)calloc(starter_sz,sizeof(float));
@@ -45,6 +45,10 @@ tk_t tk_gimmeaTikloo(uint16_t w, uint16_t h, char* title)
     tk->extras = (void**)calloc(starter_sz,sizeof(void*));
     tk->user = (void**)calloc(starter_sz,sizeof(void*));
 
+    //init the text table
+    tk->tkt.str = (char**)calloc(starter_sz,sizeof(char*));
+
+    //init the lists
     //lists always keep an extra 0 at the end so the end can be found even if full
     tk->hold_ratio = (uint16_t*)calloc(starter_sz+1,sizeof(float));
     tk->draw = (uint16_t*)calloc(starter_sz+1,sizeof(float));
