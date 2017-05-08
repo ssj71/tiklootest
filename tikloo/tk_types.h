@@ -53,8 +53,9 @@ typedef struct
 
     //////global stuff
     float w0,h0;
-    uint16_t nwidgets,tablesize;
-    uint16_t drag;//index of widgets being dragged
+    uint16_t nitems,tablesize;
+    uint16_t drag;//index of item being dragged
+    uint16_t focus;//index of item last clicked (focused)
     uint16_t ttip,tover;//index of tooltip widget, and current tip
 
     timer_lib_handle_t tlibh;
@@ -117,12 +118,13 @@ typedef struct
     cairo_text_cluster_t* clusters;
     int cluster_count;
     cairo_text_cluster_flags_t clusterflags;
-}tk_text_stuff;
+}tk_0ld_text_stuff;
 #endif
 
 //text stuff
 typedef struct
 {
+    ////// main text table
     char** str;//pointer to text
     uint8_t* strchange;
     uint8_t* cursorstate;
@@ -139,7 +141,9 @@ typedef struct
     uint16_t* glyph_count;
     cairo_text_cluster_t** clusters;
     uint16_t* cluster_count;
-    cairo_text_cluster_flags_t* clusterflags; 
+
+    ////// text global
+    uint16_t nitems,tablesize;
 }tk_text_table;
 
 typedef struct

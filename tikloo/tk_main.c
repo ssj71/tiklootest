@@ -45,8 +45,27 @@ tk_t tk_gimmeaTikloo(uint16_t w, uint16_t h, char* title)
     tk->extras = (void**)calloc(starter_sz,sizeof(void*));
     tk->user = (void**)calloc(starter_sz,sizeof(void*));
 
-    //init the text table
-    tk->tkt.str = (char**)calloc(starter_sz,sizeof(char*));
+    //init the text table to len 0
+    tk->tkt.str = 0;
+    tk->tkt.str = 0;//pointer to text
+    tk->tkt.strchange = 0;
+    tk->tkt.cursorstate = 0;
+    tk->tkt.cursor = 0;//cursor location in string
+    tk->tkt.selection = 0;//selection length
+    tk->tkt.ln = 0;//viewport line
+    tk->tkt.col = 0;//veiwport column
+    tk->tkt.brklen = 0;
+    tk->tkt.brk = 0;//visible lines, max num lines, linebreak/wrap indices
+    tk->tkt.scale = 0;
+
+    tk->tkt.tkf = 0;
+    tk->tkt.glyphs = 0;
+    tk->tkt.glyph_count = 0;
+    tk->tkt.clusters = 0;
+    tk->tkt.cluster_count = 0;
+
+    tk->tkt.nitems = 0;
+    tk->tkt.tablesize = 0;
 
     //init the lists
     //lists always keep an extra 0 at the end so the end can be found even if full
@@ -80,7 +99,7 @@ tk_t tk_gimmeaTikloo(uint16_t w, uint16_t h, char* title)
     tk->draw_f[0] = tk_drawbg;
 
     tk->drag = 0;
-    tk->nwidgets = 1;
+    tk->nitems = 1;
     tk->tablesize = starter_sz;
     tk->ttip = 0;
     tk->quit = 0;
@@ -539,7 +558,7 @@ void tk_nocallback(tk_t tk, const PuglEvent* e, uint16_t n)
 
 uint16_t tk_addaWidget(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h)
 { 
-    uint16_t n = tk->nwidgets++;
+    uint16_t n = tk->nitems++;
     tk->x[n] = x;
     tk->y[n] = y;
     tk->w[n] = w;
@@ -554,7 +573,7 @@ uint16_t tk_addaWidget(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h)
 
 uint16_t tk_addaDecoration(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h)
 {
-    uint16_t n = tk->nwidgets;
+    uint16_t n = tk->nitems;
 
     tk_addaWidget(tk,x,y,w,h);
     tk_addtolist(tk->hold_ratio,n); 
@@ -618,7 +637,7 @@ void tk_dialcallback(tk_t tk, const PuglEvent* event, uint16_t n)
 
 uint16_t tk_addaDial(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, float min, float max, float val)
 {
-    uint16_t n = tk->nwidgets;
+    uint16_t n = tk->nitems;
     tk_dial_stuff* tkd = (tk_dial_stuff*)malloc(sizeof(tk_dial_stuff));
 
     tk_addaWidget(tk,x,y,w,h);
@@ -687,7 +706,7 @@ void tk_buttoncallback(tk_t tk, const PuglEvent* event, uint16_t n)
 
 uint16_t tk_addaButton(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint8_t val)
 {
-    uint16_t n = tk->nwidgets;
+    uint16_t n = tk->nitems;
 
     tk_addaWidget(tk,x,y,w,h);
     tk->value[n] = (void*)malloc(sizeof(uint8_t));
@@ -714,7 +733,7 @@ void tk_settimer(tk_t tk, uint16_t n, float s)
 uint16_t tk_addaTimer(tk_t tk, float s)
 {
     //may want to make this actually off the window
-    uint16_t n = tk->nwidgets++; 
+    uint16_t n = tk->nitems++; 
     tk->x[n] = 0;
     tk->y[n] = 0;
     tk->w[n] = 0;
@@ -910,7 +929,7 @@ tk_font_stuff* tk_gimmeaFont(tk_t tk, char* fontpath, uint16_t h)
 
 uint16_t tk_addaText(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, tk_font_stuff* font, char* str)
 {
-    uint16_t n = tk->nwidgets; 
+    uint16_t n = tk->nitems; 
     uint16_t w2 = w;
     uint16_t h2 = h;
     tk_text_stuff* tkt = (tk_text_stuff*)calloc(1,sizeof(tk_text_stuff));
