@@ -22,6 +22,9 @@
 #ifndef TK_STARTER_SIZE
 #define TK_STARTER_SIZE 64
 #endif
+#ifndef TK_TEXT_STARTER_SIZE
+#define TK_TEXT_STARTER_SIZE 16
+#endif
 
 //forward declarations are all in tk_test or tk.h
 //static void tk_callback (PuglView* view, const PuglEvent* event);
@@ -46,7 +49,6 @@ tk_t tk_gimmeaTikloo(uint16_t w, uint16_t h, char* title)
     tk->user = (void**)calloc(starter_sz,sizeof(void*));
 
     //init the text table to len 0
-    tk->tkt.str = 0;
     tk->tkt.str = 0;//pointer to text
     tk->tkt.strchange = 0;
     tk->tkt.cursorstate = 0;
@@ -927,13 +929,23 @@ tk_font_stuff* tk_gimmeaFont(tk_t tk, char* fontpath, uint16_t h)
     return tkf; 
 }
 
+void tk_growtexttable(tk_text_table* tkt)
+{
+    uint8_t starter_sz = TK_TEXT_STARTER_SIZE;
+    void* tmp;
+    if(tkt->tablesize)
+        starter_sz = 2*tkt->tablesize;
+    tmp = calloc(
+}
+
 uint16_t tk_addaText(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, tk_font_stuff* font, char* str)
 {
     uint16_t n = tk->nitems; 
     uint16_t w2 = w;
     uint16_t h2 = h;
-    tk_text_stuff* tkt = (tk_text_stuff*)calloc(1,sizeof(tk_text_stuff));
+    //tk_text_stuff* tkt = (tk_text_stuff*)calloc(1,sizeof(tk_text_stuff));
 
+    
 /*
     //cairo stuff
     cairo_glyph_t* glyphs = NULL;
