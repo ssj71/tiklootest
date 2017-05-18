@@ -4,6 +4,7 @@
 //tk_types.h
 
 //this header describes the main type and what is available within the struct as well as supporting types
+//go to the bottom of the file for the primary table
 
 #ifndef TK_TYPES_H
 #define TK_TYPES_H
@@ -15,10 +16,81 @@
 #include "pugl/pugl.h"
 #include "timer.h"
 
-//forward declaration
-typedef struct t tk_text_table;
+//text stuff
+typedef struct
+{
+    uint16_t fontsize;
+
+    FT_Library library;
+    FT_Face face;
+    cairo_font_face_t* fontface;
+    cairo_scaled_font_t* scaledface;
+}tk_font_stuff;
+
+typedef struct tk_text_table
+{
+    ////// main text table
+    uint16_t* n;//item in main table
+    char** str;//pointer to text
+    uint8_t* strchange;
+    uint16_t* cursor;//cursor location in string
+    uint16_t* select;//selection length
+    uint16_t* ln;//viewport line
+    uint16_t* col;//veiwport column
+    uint16_t* brklen;
+    uint16_t** brk;//linebreak/wrap indices
+
+    tk_font_stuff** tkf;
+    cairo_glyph_t** glyphs;
+    cairo_text_cluster_t** clusters;
+    cairo_text_extents_t** extents;
+    uint16_t* glyph_count;
+    uint16_t* cluster_count;
+    uint16_t* extents_count;//length of extents array
+
+    ////// text global
+    float scale;
+    uint8_t cursorstate;
+    uint16_t nitems,tablesize;
+}tk_text_table;
 
 typedef struct
+{
+    tk_text_table* tkt;
+    uint16_t n;//index
+}tk_text_stuff;
+
+// dial
+typedef struct
+{
+    float min, max;
+    float x0, y0, v0;//drag initiation point
+    char* units;
+}tk_dial_stuff;
+
+
+// main properties and table
+typedef enum
+{
+    //NOTE that some of these values are not unique, because the properties only apply in certain contexts. Pay attention 
+    //Main Window Properties
+    TK_HOLD_RATIO = 0x1,
+    
+    //Any Item Properties
+    TK_NO_DAMAGE = 0x1,//if the item is redrawn, it doesn't affect items behind it
+
+    //Button Properties
+    TK_BUTTON_MOMENTARY = 0x2,
+
+    //Dial Properties
+    TK_VALUE_PARABOLIC = 0x2,//TODO: what about for xy points?
+
+    //Text Properties
+    TK_TEXT_WRAP = 0x2,
+    
+}TK_PROPERTIES;
+
+typedef struct tk_table
 {
     //////primary table, each index correlates across arrays
     //size and position
@@ -65,93 +137,4 @@ typedef struct
 }tk_table;
 
 typedef tk_table* tk_t;
-
-typedef enum
-{
-    //NOTE that some of these values are not unique, because the properties only apply in certain contexts. Pay attention 
-    //Main Window Properties
-    TK_HOLD_RATIO = 0x1,
-    
-    //Any Item Properties
-    TK_NO_DAMAGE = 0x1,//if the item is redrawn, it doesn't affect items behind it
-
-    //Button Properties
-    TK_BUTTON_MOMENTARY = 0x2,
-
-    //Dial Properties
-    TK_VALUE_PARABOLIC = 0x2,//TODO: what about for xy points?
-
-    //Text Properties
-    TK_TEXT_WRAP = 0x2,
-    
-}TK_PROPERTIES;
-
-typedef struct
-{
-    float min, max;
-    float x0, y0, v0;//drag initiation point
-    char* units;
-}tk_dial_stuff;
-
-typedef struct
-{
-    uint16_t fontsize;
-
-    FT_Library library;
-    FT_Face face;
-    cairo_font_face_t* fontface;
-    cairo_scaled_font_t* scaledface;
-}tk_font_stuff;
-
-#if(0)
-typedef struct
-{
-    char* str;//pointer to text
-    uint8_t strchange,cursorstate;
-    uint16_t cursor,ln,col;//cursor indx,lin,col position
-    uint16_t vlines,brklen,*brk;//visible lines, max num lines, linebreak/wrap indices
-    float scale;
-
-    tk_font_stuff* tkf;
-    cairo_glyph_t* glyphs;
-    int glyph_count;
-    cairo_text_cluster_t* clusters;
-    int cluster_count;
-    cairo_text_cluster_flags_t clusterflags;
-}tk_0ld_text_stuff;
-#endif
-
-//text stuff
-typedef struct
-{
-    ////// main text table
-    char** str;//pointer to text
-    uint8_t* strchange;
-    uint16_t* cursor;//cursor location in string
-    uint16_t* select;//selection length
-    uint16_t* ln;//viewport line
-    uint16_t* col;//veiwport column
-    uint16_t* brklen;
-    uint16_t* brk;//visible lines, max num lines, linebreak/wrap indices
-
-    tk_font_stuff** tkf;
-    cairo_glyph_t** glyphs;
-    cairo_text_cluster_t** clusters;
-    cairo_text_extents_t** extents;
-    uint16_t* glyph_count;
-    uint16_t* cluster_count;
-    uint16_t* extents_count;
-
-    ////// text global
-    float scale;
-    uint8_t cursorstate;
-    uint16_t nitems,tablesize;
-}tk_text_table;
-
-typedef struct
-{
-    tk_text_table* tkt;
-    uint16_t n;//index
-}tk_text_stuff;
-
 #endif

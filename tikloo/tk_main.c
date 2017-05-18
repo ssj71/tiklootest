@@ -77,9 +77,9 @@ void tk_growprimarytable(tk_t tk)
         memcpy(tmpt.draw,      tk->draw,      osz*sizeof(uint16_t)+1);
         memcpy(tmpt.redraw,    tk->redraw,    osz*sizeof(uint16_t)+1);
 
-        memcpy(tmpt.draw_f,    tk->draw_f,    osz*sizeof((void(*)(cairo_t*,float,float,void*))));
-        memcpy(tmpt.cb_f,      tk->cb_f,      osz*sizeof((void(*)(tk_t,PuglEvent*,uint16_t))));
-        memcpy(tmpt.callback_f,tk->callback_f,osz*sizeof((void(*)(tk_t,PuglEvent*,uint16_t))));
+        memcpy(tmpt.draw_f,    tk->draw_f,    osz*sizeof(void(*)(cairo_t*,float,float,void*)));
+        memcpy(tmpt.cb_f,      tk->cb_f,      osz*sizeof(void(*)(tk_t,PuglEvent*,uint16_t)));
+        memcpy(tmpt.callback_f,tk->callback_f,osz*sizeof(void(*)(tk_t,PuglEvent*,uint16_t)));
     }
 
     tk->x =      tmpt.x;
@@ -155,7 +155,7 @@ tk_t tk_gimmeaTikloo(uint16_t w, uint16_t h, char* title)
 
     tk->drag = 0;
     tk->nitems = 1;
-    tk->tablesize = starter_sz;
+    tk->tablesize = TK_STARTER_SIZE;
     tk->ttip = 0;
     tk->quit = 0;
 
@@ -263,7 +263,6 @@ void tk_rollit(tk_t tk)
 //for plugins
 void tk_idle(tk_t tk)
 {
-//TODO: need to init timers
     puglProcessEvents(tk->view); 
     tk_checktimers(tk);
     tk_redraw(tk);
@@ -330,6 +329,19 @@ void tk_resizeeverything(tk_t tk,float w, float h)
     //update window shift
     tk->x[0] = dx;
     tk->y[0] = dy;
+
+    //scale text
+    tk->tkt.scale = sm1;
+    for(i=0;i<tk->tkt.nitems;i++)
+    {
+        n = tk->tkt.n[i];
+        dx = tk->w[n];
+        dy = tk->h[n];
+        //TODO: unless they've changed ratio they don't actually need a re-layout
+        //TODO: do anything if it doesn't fit?
+        tk_textlayout(tk->cr,&tk->tkt,i,&dx,&dy,tk->props[n]&TK_TEXT_WRAP);
+        
+    }
 }
 
 void tk_draw(tk_t tk,uint16_t n)
@@ -615,7 +627,7 @@ uint16_t tk_addaWidget(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h)
 { 
     uint16_t n = tk->nitems++;
     if (tk->nitems == tk->tablesize)
-        tk_growprimarytable(tk)
+        tk_growprimarytable(tk);
     tk->x[n] = x;
     tk->y[n] = y;
     tk->w[n] = w;
@@ -876,13 +888,12 @@ uint8_t tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, 
 {
     uint8_t fit;
     uint16_t i,size,glyph_index,str_index;
-    uint16_t x,y,lastwhite,deltax,xmax,;
+    uint16_t x,y,lastwhite,deltax,xmax;
 
     cairo_scaled_font_t* scaled_face = tkt->tkf[n]->scaledface;
     cairo_glyph_t* glyphs = tkt->glyphs[n];
     int glyph_count = tkt->glyph_count[n];
-    cairo_text_cluster_t* clusters = tkt->clusters[n];
-    int cluster_count = tkt->cluster_count[n];
+    cairo_text_cluster_t* clusters = tkt->clusters[n]; int cluster_count = tkt->cluster_count[n];
     cairo_text_extents_t* extents = tkt->extents[n];
     int extents_count = tkt->extents_count[n];
     cairo_text_cluster_flags_t clusterflags;
@@ -891,7 +902,7 @@ uint8_t tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, 
     *w /= tkt->scale;
     *h /= tkt->scale;
 
-#if(0)
+#if 0
 //we don't resize here (anymore)
     vlines = tkt->vlines;
     if(vlines>=1)
@@ -922,10 +933,10 @@ uint8_t tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, 
 #endif
 
 //TODO: we need to still calculate size and space 
-    size = tkt->tkf->size;
+    size = tkt->tkf[n]->fontsize;
     if(tkt->strchange)
     {
-        stat = cairo_scaled_font_text_to_glyphs(scaled_face, 0, 0, tkt->str, strlen(tkt->str), 
+        stat = cairo_scaled_font_text_to_glyphs(scaled_face, 0, 0, tkt->str[n], strlen(tkt->str[n]), 
                                                 &glyphs, &glyph_count, 
                                                 &clusters, &cluster_count,
                                                 &clusterflags); 
@@ -1084,11 +1095,11 @@ uint16_t tk_addaText(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, tk
     tk_addaWidget(tk,x,y,w,h);
     
     if(!tkt->tablesize || s >= tkt->tablesize)
-        tk_growtexttable(*tk->tkt);
+        tk_growtexttable(&tk->tkt);
 
     tk_setstring(&tkt->str[s],str);
 
-    tk_addtogrowlist(&tkt->brk,&tkt->brklen,0);//alloc list for linebreaks
+    tk_addtogrowlist(&tkt->brk[s],&tkt->brklen[s],0);//alloc list for linebreaks
 
     // get glyphs for the text
     tkt->tkf = font;
@@ -1099,6 +1110,7 @@ uint16_t tk_addaText(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, tk
     tk->draw_f[n] = tk_drawtext;
     tkts->tkt = tkt;
     tkts->n = s;
+    tkt->n[s] = n;
     tk->value[n] = tkts;
 
     return n; 
@@ -1124,7 +1136,7 @@ void tk_showtipcallback(tk_t tk, const PuglEvent* e, uint16_t n)
     w = tk->w[0]-tk->x[tk->tover]-tk->w[tk->tover];
     if(h>4) h-=4;
     if(w>4) w-=4;
-    if(tk_textlayout(tk->cr,&tkts->tkt,s,&w,&h,1))
+    if(tk_textlayout(tk->cr,tkts->tkt,s,&w,&h,1))
     {//it fits
         tk->x[n] += tk->w[tk->tover]+2;
     } 
@@ -1134,7 +1146,7 @@ void tk_showtipcallback(tk_t tk, const PuglEvent* e, uint16_t n)
         w = tk->x[tk->tover];
         if(h>4) h-=4;
         if(w>4) w-=4;
-        if(tk_textlayout(tk->cr,&tkts->tkt,s,&w,&h,1))
+        if(tk_textlayout(tk->cr,tkts->tkt,s,&w,&h,1))
         {//it fits
             tk->x[n] -= w+2;
         }
@@ -1144,7 +1156,7 @@ void tk_showtipcallback(tk_t tk, const PuglEvent* e, uint16_t n)
             w = tk->w[0];
             if(h>4) h-=4;
             if(w>4) w-=4;
-            if(tk_textlayout(tk->cr,&tkts->tkt,s,&w,&h,1))
+            if(tk_textlayout(tk->cr,tkts->tkt,s,&w,&h,1))
             {//it fits
                 tk->y[n] -= h+2;
             }
@@ -1155,7 +1167,7 @@ void tk_showtipcallback(tk_t tk, const PuglEvent* e, uint16_t n)
                 if(h>4) h-=4;
                 if(w>4) w-=4;
 
-                if(tk_textlayout(tk->cr,&tkts->tkt,s,&w,&h,1))
+                if(tk_textlayout(tk->cr,tkts->tkt,s,&w,&h,1))
                 {//it fits
                     tk->y[n] += tk->h[tk->tover]+h+2;
                 }
