@@ -61,9 +61,7 @@ typedef struct
     timer_lib_handle_t tlibh;
     PuglView* view;
     cairo_t* cr;
-    uint8_t quit;
-
-
+    uint8_t quit; 
 }tk_table;
 
 typedef tk_table* tk_t;
@@ -83,6 +81,8 @@ typedef enum
     //Dial Properties
     TK_VALUE_PARABOLIC = 0x2,//TODO: what about for xy points?
 
+    //Text Properties
+    TK_TEXT_WRAP = 0x2,
     
 }TK_PROPERTIES;
 
@@ -127,22 +127,24 @@ typedef struct
     ////// main text table
     char** str;//pointer to text
     uint8_t* strchange;
-    uint8_t* cursorstate;
     uint16_t* cursor;//cursor location in string
-    uint16_t* selection;//selection length
+    uint16_t* select;//selection length
     uint16_t* ln;//viewport line
     uint16_t* col;//veiwport column
-    uint16_t**brklen;
+    uint16_t* brklen;
     uint16_t* brk;//visible lines, max num lines, linebreak/wrap indices
-    float scale;
 
     tk_font_stuff** tkf;
     cairo_glyph_t** glyphs;
-    uint16_t* glyph_count;
     cairo_text_cluster_t** clusters;
+    cairo_text_extents_t** extents;
+    uint16_t* glyph_count;
     uint16_t* cluster_count;
+    uint16_t* extents_count;
 
     ////// text global
+    float scale;
+    uint8_t cursorstate;
     uint16_t nitems,tablesize;
 }tk_text_table;
 
