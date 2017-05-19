@@ -111,6 +111,7 @@ tk_t tk_gimmeaTikloo(uint16_t w, uint16_t h, char* title)
     //init the text table to len 0
     tk->tkt.str = 0;
     tk->tkt.strchange = 0;
+    tk->tkt.n = 0;
     tk->tkt.cursor = 0;
     tk->tkt.select = 0;
     tk->tkt.ln = 0;
@@ -270,7 +271,7 @@ void tk_idle(tk_t tk)
 
 void tk_resizeeverything(tk_t tk,float w, float h)
 {
-    uint16_t i,n;
+    uint16_t i,n,tw,th;
     float sx,sy,sx0,sy0,sx1,sy1,smx,smy,sm0,sm1,dx,dy;
 
     sx = w/(tk->w[0]);//scale change (relative)
@@ -335,11 +336,11 @@ void tk_resizeeverything(tk_t tk,float w, float h)
     for(i=0;i<tk->tkt.nitems;i++)
     {
         n = tk->tkt.n[i];
-        dx = tk->w[n];
-        dy = tk->h[n];
+        tw = tk->w[n];
+        th = tk->h[n];
         //TODO: unless they've changed ratio they don't actually need a re-layout
         //TODO: do anything if it doesn't fit?
-        tk_textlayout(tk->cr,&tk->tkt,i,&dx,&dy,tk->props[n]&TK_TEXT_WRAP);
+        tk_textlayout(tk->cr,&tk->tkt,i,&tw,&th,tk->props[n]&TK_TEXT_WRAP);
         
     }
 }
@@ -934,20 +935,20 @@ uint8_t tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, 
 
 //TODO: we need to still calculate size and space 
     size = tkt->tkf[n]->fontsize;
-    if(tkt->strchange)
+    if(tkt->strchange[n])
     {
         stat = cairo_scaled_font_text_to_glyphs(scaled_face, 0, 0, tkt->str[n], strlen(tkt->str[n]), 
                                                 &glyphs, &glyph_count, 
                                                 &clusters, &cluster_count,
                                                 &clusterflags); 
         if (stat == CAIRO_STATUS_SUCCESS)
-            tkt->strchange = 0;
+            tkt->strchange[n] = 0;
         //else return 0;
         //TODO: cleanup old buffers
-        if(glyphs != tkt->glyphs)
-            free(tkt->glyphs);
-        if(clusters != tkt->clusters)
-            free(tkt->clusters);
+        if(glyphs != tkt->glyphs[n])
+            free(tkt->glyphs[n]);
+        if(clusters != tkt->clusters[n])
+            free(tkt->clusters[n]);
         if(cluster_count > extents_count)
         {
             free(tkt->extents[n]);
@@ -955,7 +956,7 @@ uint8_t tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, 
             extents_count = cluster_count;
         }
     }
-    tkt->brk[0] = 0; //clear list
+    tkt->brk[n][0] = 0; //clear list
 
     x = xmax = 0;
     y = size;
@@ -966,11 +967,11 @@ uint8_t tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, 
         cairo_scaled_font_glyph_extents(scaled_face, &glyphs[glyph_index], clusters[i].num_glyphs, &extents[i]);
         glyph_index += clusters[i].num_glyphs;
 
-        if(clusters[i].num_bytes == 1 && isspace(tkt->str[str_index]))
+        if(clusters[i].num_bytes == 1 && isspace(tkt->str[n][str_index]))
         { 
             deltax = 0;
             lastwhite = str_index;
-            if (tkt->str[str_index] == '\n') //newline
+            if (tkt->str[n][str_index] == '\n') //newline
             {
                 tk_addtogrowlist(&tkt->brk[n],&tkt->brklen[n],str_index);
                 y += size;
@@ -1024,10 +1025,11 @@ void tk_growtexttable(tk_text_table* tkt)
     tk_text_table tmpt;
     if(tkt->tablesize)
         sz = 2*tkt->tablesize;
-    tmpt.str =          (char*)calloc(sz,sizeof(char*));
+    tmpt.str =         (char**)calloc(sz,sizeof(char*));
     tmpt.strchange = (uint8_t*)calloc(sz,sizeof(uint8_t));
+    tmpt.n =        (uint16_t*)calloc(sz,sizeof(uint16_t));
     tmpt.cursor =   (uint16_t*)calloc(sz,sizeof(uint16_t));
-    tmpt.select =(uint16_t*)calloc(sz,sizeof(uint16_t));
+    tmpt.select =   (uint16_t*)calloc(sz,sizeof(uint16_t));
     tmpt.ln =       (uint16_t*)calloc(sz,sizeof(uint16_t));
     tmpt.col =      (uint16_t*)calloc(sz,sizeof(uint16_t));
     tmpt.brklen =   (uint16_t*)calloc(sz,sizeof(uint16_t));
@@ -1046,6 +1048,7 @@ void tk_growtexttable(tk_text_table* tkt)
         osz = tkt->tablesize;
         memcpy(tmpt.str,      tkt->str,      osz*sizeof(char*));
         memcpy(tmpt.strchange,tkt->strchange,osz*sizeof(uint8_t));
+        memcpy(tmpt.n,        tkt->n,        osz*sizeof(uint16_t));
         memcpy(tmpt.cursor,   tkt->cursor,   osz*sizeof(uint16_t));
         memcpy(tmpt.select,   tkt->select,   osz*sizeof(uint16_t));
         memcpy(tmpt.ln,       tkt->ln,       osz*sizeof(uint16_t));
@@ -1064,6 +1067,7 @@ void tk_growtexttable(tk_text_table* tkt)
 
     tkt->str = tmpt.str;
     tkt->strchange = tmpt.strchange;
+    tkt->n = tmpt.n;
     tkt->cursor = tmpt.cursor;
     tkt->select = tmpt.select;
     tkt->ln = tmpt.ln;
@@ -1102,7 +1106,7 @@ uint16_t tk_addaText(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, tk
     tk_addtogrowlist(&tkt->brk[s],&tkt->brklen[s],0);//alloc list for linebreaks
 
     // get glyphs for the text
-    tkt->tkf = font;
+    tkt->tkf[s] = font;
     tkt->scale = 1;
     tk_textlayout(tk->cr,tkt,s,&w2,&h2,0); 
     //TODO: what if w and h don't fit?

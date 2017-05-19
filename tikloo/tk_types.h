@@ -30,9 +30,9 @@ typedef struct
 typedef struct tk_text_table
 {
     ////// main text table
-    uint16_t* n;//item in main table
     char** str;//pointer to text
     uint8_t* strchange;
+    uint16_t* n;//item in main table
     uint16_t* cursor;//cursor location in string
     uint16_t* select;//selection length
     uint16_t* ln;//viewport line
