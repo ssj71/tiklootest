@@ -14,15 +14,13 @@ void tk_drawtextcolor(cairo_t *cr, float w, float h, void* valp, float* line, fl
     cairo_text_extents_t* extents = tkt->extents[n];
     int i;
 
-
     //TODO: cache drawing?
-    cairo_save( cr );
-    cairo_scale(cr,tkt->scale,tkt->scale);
-
-    // text paints on bottom line
-    cairo_translate(cr, 0, tkt->tkf[n]->fontsize);
     w /= tkt->scale;
     h /= tkt->scale;
+    if(!w || !h)
+        return;
+    cairo_save( cr );
+    cairo_scale(cr,tkt->scale,tkt->scale);
 
     // draw each cluster
     int glyph_index = 0;
@@ -30,8 +28,6 @@ void tk_drawtextcolor(cairo_t *cr, float w, float h, void* valp, float* line, fl
     int ln=0,x=0,y=0;
 
     //TODO: handle viewport
-    //start at foot of 1st line
-    cairo_translate(cr, 0, tkt->tkf[n]->fontsize);
     for (i = 0; i < cluster_count; i++) 
     { 
         if(byte_index == tkt->brk[n][ln])
@@ -42,7 +38,7 @@ void tk_drawtextcolor(cairo_t *cr, float w, float h, void* valp, float* line, fl
             y += tkt->tkf[n]->fontsize;
             if(y > h)
             {
-                x = w;
+                x = w-extents[i].x_advance;
                 i = cluster_count;
             }
         }
@@ -85,7 +81,8 @@ void tk_drawtext(cairo_t *cr, float w, float h, void* valp)
 
 void tk_drawtip(cairo_t *cr, float w, float h, void* valp)
 {
-    float line[] = {.2,.2,.2,1,.5};//rgba width
+    //float line[] = {.2,.2,.2,1,.5};//rgba width
+    float line[] = {.9,.9,.9,1,.5};//rgba width
     float fill[] = {.9,.9,.9,1};//rgba
 
     //draw a background square 
@@ -102,8 +99,9 @@ void tk_drawtip(cairo_t *cr, float w, float h, void* valp)
     cairo_restore( cr ) ;
     // */
 
-    cairo_translate(cr,2,2);
-    tk_drawtextcolor(cr,w,h-2,valp,line,fill);
-    cairo_translate(cr,-2,-2);
+    //cairo_translate(cr,2,2);
+    //tk_drawtextcolor(cr,w,h-2,valp,line,fill);
+    //cairo_translate(cr,-2,-2);
+    tk_drawtextcolor(cr,w,h,valp,line,fill);
 
 }

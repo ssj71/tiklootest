@@ -1108,6 +1108,7 @@ uint16_t tk_addaText(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, tk
     // get glyphs for the text
     tkt->tkf[s] = font;
     tkt->scale = 1;
+    tkt->strchange[s] = 1;
     tk_textlayout(tk->cr,tkt,s,&w2,&h2,0); 
     //TODO: what if w and h don't fit?
 
