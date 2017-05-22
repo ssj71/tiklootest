@@ -47,7 +47,7 @@ int main()
                     0,  //min
                     100, //max
                     50); //val
-    tk_setstring(&tk->tip[n],"test tip.");//this rather long tooltip is mostly just to tell you that this dial here does nothing in particular, its really just a testbed to see if any of this stuff works, but hope your day is ok anyway.");
+    tk_setstring(&tk->tip[n],"test tip. this rather long tooltip is mostly just to tell you that this dial here does nothing in particular, its really just a testbed to see if any of this stuff works, but hope your day is ok anyway.");
     tk_addaDial(tk,
                   70, //x
                   20, //y

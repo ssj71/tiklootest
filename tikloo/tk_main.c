@@ -531,8 +531,11 @@ void tk_addtogrowlist(uint16_t** list, uint16_t *len, uint16_t n)
     uint16_t i=0;
     uint16_t *newlist;
     if(!*list || !*len)
-        *list = (uint16_t*)calloc(sizeof(uint16_t),10);
-    else if(list[*len-1])
+    {
+        *list = (uint16_t*)calloc(sizeof(uint16_t),2);
+        *len = 2;
+    }
+    else if((*list)[*len-1])
     {//list is full
         newlist = (uint16_t*)calloc(sizeof(uint16_t),2**len);
         memcpy(newlist,*list,sizeof(uint16_t)**len);
@@ -543,11 +546,11 @@ void tk_addtogrowlist(uint16_t** list, uint16_t *len, uint16_t n)
     }
     else
     {
-        for(i=0;*list[i];i++)//find end of list
-            if(*list[i]==n)
+        for(i=0;(*list)[i];i++)//find end of list
+            if((*list)[i]==n)
                 return;
     }
-    *list[i] = n;
+    (*list)[i] = n;
 }
 
 void tk_addtolist(uint16_t* list, uint16_t n)
@@ -1205,6 +1208,8 @@ uint16_t tk_addaTooltip(tk_t tk, tk_font_stuff* font)
     tk->layer[n] = 0;
     free(tk->tip[n]);
     tk->tip[n] = 0;
+    free(tk->tkt.str[tk->tkt.nitems-1]);//this just gets pointed to the tooltip str
+    tk->tkt.str[tk->tkt.nitems-1] = tk->tip[0];//just a placeholder
 
     //tk_text_stuff* tkt = (tk_text_stuff*)tk->value[n];
 
