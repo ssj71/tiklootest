@@ -976,32 +976,34 @@ uint8_t tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, 
             lastwhite = str_index;
             if (tkt->str[n][str_index] == '\n') //newline
             {
-                tk_addtogrowlist(&tkt->brk[n],&tkt->brklen[n],str_index);
+                tk_addtogrowlist(&tkt->brk[n],&tkt->brklen[n],str_index+1);
+                x = 0;
                 y += size;
             }
         }
         else 
+        { 
+            if(wrap && x + extents[i].x_advance > *w)
+            {
+                //go back to last whitespace put the rest on a newline
+                if(deltax == x)
+                {//single word doesn't fit on a line
+                    x = 0;
+                    tk_addtogrowlist(&tkt->brk[n],&tkt->brklen[n],str_index);
+                }
+                else
+                {
+                    x = deltax;
+                    tk_addtogrowlist(&tkt->brk[n],&tkt->brklen[n],lastwhite+1);
+                }
+                y += size;
+            }
             deltax += extents[i].x_advance;
-
+        }
+        x += extents[i].x_advance;
+        if(x > xmax)
+            xmax = x;
         str_index += clusters[i].num_bytes;
-
-        if(wrap && x + extents[i].x_advance > *w)
-        {
-            //go back to last whitespace put the rest on a newline
-            if(deltax == x)
-                //single word doesn't fit on a line
-                x = extents[i].x_advance;
-            else
-                x = deltax;
-            tk_addtogrowlist(&tkt->brk[n],&tkt->brklen[n],lastwhite);
-            y += size;
-        }
-        else
-        {
-            x += extents[i].x_advance;
-            if(x > xmax)
-                xmax = x;
-        }
     }
 
     tkt->glyphs[n] = glyphs;

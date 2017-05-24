@@ -25,14 +25,15 @@ void tk_drawtextcolor(cairo_t *cr, float w, float h, void* valp, float* line, fl
 
     // draw each cluster
     int glyph_index = 0;
-    int byte_index = 0;
+    int str_index = 0;
     int ln=0,x=0,y=0;
 
     //TODO: handle viewport
     for (i = 0; i < cluster_count; i++) 
     { 
-        if(tkt->brk[n][ln] && byte_index == tkt->brk[n][ln])
+        if(tkt->brk[n][ln] && str_index == tkt->brk[n][ln])
         {
+            fprintf(stderr, "brk '%c' %i\n",tkt->str[n][str_index],x);
             ln++;
             cairo_translate(cr, -x, tkt->tkf[n]->fontsize);
             x = 0;//tkt->col[n];
@@ -40,20 +41,12 @@ void tk_drawtextcolor(cairo_t *cr, float w, float h, void* valp, float* line, fl
             if(y > h)
             {//can't fit more
                 cairo_restore( cr );
+                fprintf(stderr, "can't fit\n");
                 return;
             }
         }
-        if(x + extents[i].x_advance > w)
-        {
-            //just go to next cluster
-            glyph_index += clusters[i].num_glyphs;
-            byte_index += clusters[i].num_bytes; 
-        }
-        else
+        if(x + extents[i].x_advance <= w)
         { 
-            x += extents[i].x_advance;
-
-            // draw black text with green stroke
             cairo_set_source_rgba(cr, fill[0], fill[1], fill[2], fill[3]);
             cairo_fill_preserve(cr);
             cairo_set_source_rgba(cr, line[0], line[1], line[2], line[3]);
@@ -63,10 +56,19 @@ void tk_drawtextcolor(cairo_t *cr, float w, float h, void* valp, float* line, fl
             // put paths for current cluster to context
             cairo_glyph_path(cr, &glyphs[glyph_index], clusters[i].num_glyphs);
 
-            // glyph/byte position
+            x += extents[i].x_advance; 
+            // advance glyph/str position
             glyph_index += clusters[i].num_glyphs;
-            byte_index += clusters[i].num_bytes; 
+            str_index += clusters[i].num_bytes; 
         }
+        else
+            //finish the line
+            for( ; i < cluster_count && i < tkt->brk[n][ln]; i++)
+            {
+                // advance glyph/str position
+                glyph_index += clusters[i].num_glyphs;
+                str_index += clusters[i].num_bytes; 
+            }
     }
 
     cairo_restore( cr );
