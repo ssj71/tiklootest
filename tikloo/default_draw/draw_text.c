@@ -33,7 +33,7 @@ void tk_drawtextcolor(cairo_t *cr, float w, float h, void* valp, float* line, fl
     { 
         if(tkt->brk[n][ln] && str_index == tkt->brk[n][ln])
         {
-            fprintf(stderr, "brk '%c' %i\n",tkt->str[n][str_index],x);
+            //fprintf(stderr, "brk '%c' %i\n",tkt->str[n][str_index],x);
             ln++;
             cairo_translate(cr, -x, tkt->tkf[n]->fontsize);
             x = 0;//tkt->col[n];

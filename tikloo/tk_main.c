@@ -970,6 +970,7 @@ uint8_t tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, 
         cairo_scaled_font_glyph_extents(scaled_face, &glyphs[glyph_index], clusters[i].num_glyphs, &extents[i]);
         glyph_index += clusters[i].num_glyphs;
 
+        deltax += extents[i].x_advance;
         if(clusters[i].num_bytes == 1 && isspace(tkt->str[n][str_index]))
         { 
             deltax = 0;
@@ -977,33 +978,28 @@ uint8_t tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, 
             if (tkt->str[n][str_index] == '\n') //newline
             {
                 tk_addtogrowlist(&tkt->brk[n],&tkt->brklen[n],str_index+1);
+                y += size;
                 x = 0;
-                y += size;
             }
-        }
-        else 
-        { 
-            if(wrap && x + extents[i].x_advance > *w)
-            {
-                //go back to last whitespace put the rest on a newline
-                if(deltax == x)
-                {//single word doesn't fit on a line
-                    x = 0;
-                    tk_addtogrowlist(&tkt->brk[n],&tkt->brklen[n],str_index);
-                }
-                else
-                {
-                    x = deltax;
-                    tk_addtogrowlist(&tkt->brk[n],&tkt->brklen[n],lastwhite+1);
-                }
-                y += size;
-            }
-            deltax += extents[i].x_advance;
+        } 
+
+        if(wrap && x + extents[i].x_advance > *w)
+        {
+            //go back to last whitespace put the rest on a newline
+            if(deltax == x)
+                //single word doesn't fit on a line
+                x = 0;
+            else
+                x = deltax;
+            tk_addtogrowlist(&tkt->brk[n],&tkt->brklen[n],lastwhite+1);
+            y += size;
         }
         x += extents[i].x_advance;
         if(x > xmax)
             xmax = x;
-        str_index += clusters[i].num_bytes;
+        fprintf(stderr, "'%c' %f, %i, %i\n",tkt->str[n][str_index],extents[i].x_advance,x,deltax);
+
+        str_index += clusters[i].num_bytes; 
     }
 
     tkt->glyphs[n] = glyphs;
