@@ -73,7 +73,6 @@ int main()
     tk_addtolist(tk->hold_ratio,n);
     tk->callback_f[n] = freeze_ratio;
     tk_setstring(&tk->tip[n],"testytestytestytestytestytestytestytestytestytestytestytesty");
-    tk_setstring(&tk->tip[n],"test tip. this rather long tooltip is mostly just to tell you that this dial here does nothing in particular, its really just a testbed to see if any of this stuff works, but hope your day is ok anyway.");
 
     tkf = tk_gimmeaFont(tk, "/usr/share/fonts/truetype/freefont/FreeSerif.ttf", //font path
                         10); //font size

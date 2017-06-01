@@ -934,7 +934,7 @@ uint8_t tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, 
     tkt->brk[n][0] = 0; //clear list
     tkt->brk[n][tkt->brklen[n]-1] = 0; //clear list
 
-    x = xmax = 0;
+    x = xmax = deltax = 0;
     y = size;
     glyph_index = str_index = 0;
     for (i = 0; i < cluster_count; i++) 
@@ -961,8 +961,10 @@ uint8_t tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, 
         {
             //go back to last whitespace put the rest on a newline
             if(deltax == x)
-                //single word doesn't fit on a line
+            {//single word doesn't fit on a line
                 x = 0;
+                lastwhite = str_index-1;
+            }
             else
                 x = deltax;
             tk_addtogrowlist(&tkt->brk[n],&tkt->brklen[n],lastwhite+1);
