@@ -33,7 +33,6 @@ void tk_drawtextcolor(cairo_t *cr, float w, float h, void* valp, float* line, fl
     { 
         if(tkt->brk[n][ln] && str_index == tkt->brk[n][ln])
         {
-            fprintf(stderr, "brk '%c' %i,%i\n",tkt->str[n][str_index],x,whitex);
             ln++;
             cairo_translate(cr, -x, tkt->tkf[n]->fontsize);
             x = 0;//tkt->col[n];
@@ -42,7 +41,6 @@ void tk_drawtextcolor(cairo_t *cr, float w, float h, void* valp, float* line, fl
             if(y > h)
             {//can't fit more
                 cairo_restore( cr );
-                fprintf(stderr, "can't fit\n");
                 return;
             }
         }
@@ -72,7 +70,7 @@ void tk_drawtextcolor(cairo_t *cr, float w, float h, void* valp, float* line, fl
         else
         {
             //finish the line
-            for( ; i < cluster_count && i < tkt->brk[n][ln]; i++)
+            for( ; i < cluster_count && str_index < tkt->brk[n][ln]; i++)
             {
                 // advance glyph/str position
                 glyph_index += clusters[i].num_glyphs;
