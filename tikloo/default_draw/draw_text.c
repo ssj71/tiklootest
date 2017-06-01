@@ -26,17 +26,18 @@ void tk_drawtextcolor(cairo_t *cr, float w, float h, void* valp, float* line, fl
     // draw each cluster
     int glyph_index = 0;
     int str_index = 0;
-    int ln=0,x=0,y=0;
+    int ln=0,x=0,y=0,whitex=0;
 
     //TODO: handle viewport
     for (i = 0; i < cluster_count; i++) 
     { 
         if(tkt->brk[n][ln] && str_index == tkt->brk[n][ln])
         {
-            //fprintf(stderr, "brk '%c' %i\n",tkt->str[n][str_index],x);
+            fprintf(stderr, "brk '%c' %i,%i\n",tkt->str[n][str_index],x,whitex);
             ln++;
             cairo_translate(cr, -x, tkt->tkf[n]->fontsize);
             x = 0;//tkt->col[n];
+            whitex = 0;
             y += tkt->tkf[n]->fontsize;
             if(y > h)
             {//can't fit more
@@ -45,7 +46,8 @@ void tk_drawtextcolor(cairo_t *cr, float w, float h, void* valp, float* line, fl
                 return;
             }
         }
-        if(x + extents[i].x_advance <= w)
+        //TODO: whitespace doesn't seem to actually move the pen, so somehow we need to look for that and skip on a line break
+        if(x + whitex <= w)
         { 
             cairo_set_source_rgba(cr, fill[0], fill[1], fill[2], fill[3]);
             cairo_fill_preserve(cr);
@@ -56,12 +58,19 @@ void tk_drawtextcolor(cairo_t *cr, float w, float h, void* valp, float* line, fl
             // put paths for current cluster to context
             cairo_glyph_path(cr, &glyphs[glyph_index], clusters[i].num_glyphs);
 
-            x += extents[i].x_advance; 
             // advance glyph/str position
             glyph_index += clusters[i].num_glyphs;
             str_index += clusters[i].num_bytes; 
+            if(clusters[i].num_bytes == 1 && isspace(tkt->str[n][str_index]))
+                whitex += extents[i].x_advance; 
+            else
+            {
+                x += extents[i].x_advance + whitex;
+                whitex = 0;
+            }
         }
         else
+        {
             //finish the line
             for( ; i < cluster_count && i < tkt->brk[n][ln]; i++)
             {
@@ -69,6 +78,9 @@ void tk_drawtextcolor(cairo_t *cr, float w, float h, void* valp, float* line, fl
                 glyph_index += clusters[i].num_glyphs;
                 str_index += clusters[i].num_bytes; 
             }
+            x += whitex;
+            whitex = 0; 
+        }
     }
 
     cairo_restore( cr );

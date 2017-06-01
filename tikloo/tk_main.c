@@ -971,6 +971,7 @@ uint8_t tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, 
         glyph_index += clusters[i].num_glyphs;
 
         deltax += extents[i].x_advance;
+        x += extents[i].x_advance;
         if(clusters[i].num_bytes == 1 && isspace(tkt->str[n][str_index]))
         { 
             deltax = 0;
@@ -983,7 +984,7 @@ uint8_t tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, 
             }
         } 
 
-        if(wrap && x + extents[i].x_advance > *w)
+        if(wrap && x > *w)
         {
             //go back to last whitespace put the rest on a newline
             if(deltax == x)
@@ -992,12 +993,12 @@ uint8_t tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, 
             else
                 x = deltax;
             tk_addtogrowlist(&tkt->brk[n],&tkt->brklen[n],lastwhite+1);
+            fprintf(stderr, "break! %i\n",lastwhite+1);
             y += size;
         }
-        x += extents[i].x_advance;
         if(x > xmax)
             xmax = x;
-        fprintf(stderr, "'%c' %f, %i, %i\n",tkt->str[n][str_index],extents[i].x_advance,x,deltax);
+        fprintf(stderr, "%i '%c' %f, %i, %i\n",str_index,tkt->str[n][str_index],extents[i].x_advance,x,deltax);
 
         str_index += clusters[i].num_bytes; 
     }
