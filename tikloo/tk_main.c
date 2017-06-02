@@ -143,12 +143,10 @@ tk_t tk_gimmeaTikloo(uint16_t w, uint16_t h, char* title)
     tk->h0 = h;
 
     tk->layer[0] = 1;
-    //we must do this so that we can draw the 0th widget, otherwise its an empty list;
-    //rollit will fix TODO: so what about idle?
-    tk->draw[0] = 0xffff;
-    tk->draw[1] = 0;
-    tk->redraw[0] = 0;
-    tk->redraw[1] = 0;
+//    tk->draw[0] = 0;
+//    tk->draw[1] = 0;
+//    tk->redraw[0] = 0;
+//    tk->redraw[1] = 0;
     tk_setstring(&tk->tip[0],title);
 
     tk->cb_f[0] = tk_nocallback;
@@ -197,7 +195,7 @@ void tk_cleanup(tk_t tk)
             free(tk->extras[i]);
         //we let the user free anything in user data 
     }
-    //TODO: this is currently a sieve of memory
+    //TODO: this currently holds memory like a sieve
     free(tk->x); free(tk->y); free(tk->w); free(tk->h);
     free(tk->layer); free(tk->value); free(tk->tip);
     free(tk->props); free(tk->extras); free(tk->user);
@@ -237,7 +235,6 @@ void tk_rollit(tk_t tk)
     PuglView* view = tk->view;
 
     puglShowWindow(view);
-    tk->draw[0] = 0;//we faked a number here before so it wasn't an empty list
 
     if(tk->timer)
     {
@@ -367,7 +364,8 @@ void tk_redraw(tk_t tk)
 void tk_draweverything(tk_t tk)
 {
     uint16_t i;
-    for(i=0; tk->draw[i]||!i; i++)
+    tk_draw(tk,0);//always draw bg
+    for(i=0; tk->draw[i]; i++)
     {
         tk_draw(tk,tk->draw[i]);
         //TODO: cache everything to avoid redraws?
@@ -386,6 +384,7 @@ void tk_damage(tk_t tk, uint16_t n)
     y2 = y--+h+1;
 
     //set up clip area
+    cairo_save(tk->cr);
     cairo_new_path(tk->cr);
     cairo_move_to(tk->cr, x,y);
     cairo_line_to(tk->cr, x2, y);
@@ -393,21 +392,25 @@ void tk_damage(tk_t tk, uint16_t n)
     cairo_line_to(tk->cr, x, y2);
     cairo_close_path(tk->cr);
     cairo_clip(tk->cr);
+    fprintf(stderr,"%i,%i,%i,%i damaged:",x,y,x2,y2);
         
     for(l=1;l<=lmx;l++)
     {
         for(i=0; tk->cb_f[i]; i++)
         {
-            if( (tk->x[i] < x2 || tk->x[i] + tk->w[i] > x) &&
-                (tk->y[i] < y2 || tk->y[i] + tk->h[i] > y) &&
-                tk->layer[i] == l )
+            if( tk->x[i] < x2 && tk->x[i] + tk->w[i] > x &&
+                tk->y[i] < y2 && tk->y[i] + tk->h[i] > y &&
+                i != n && tk->layer[i] == l )
             {
+                fprintf(stderr," %i",i);
                 tk_draw(tk,i);
             }
         }
     }
+    fprintf(stderr,"\n");
 
-    cairo_reset_clip(tk->cr);
+    cairo_restore(tk->cr);
+    //cairo_reset_clip(tk->cr);
 }
 
 uint16_t tk_eventsearch(tk_t tk, const PuglEvent* event)
@@ -968,13 +971,10 @@ uint8_t tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, 
             else
                 x = deltax;
             tk_addtogrowlist(&tkt->brk[n],&tkt->brklen[n],lastwhite+1);
-            fprintf(stderr, "break! %i\n",lastwhite+1);
             y += size;
         }
         if(x > xmax)
             xmax = x;
-        fprintf(stderr, "%i '%c' %f, %i, %i\n",str_index,tkt->str[n][str_index],extents[i].x_advance,x,deltax);
-
         str_index += clusters[i].num_bytes; 
     }
 

@@ -118,7 +118,7 @@ void testlists()
     printf("index %i\n",listindex(list,12));
     test(listcontains(list,12),"Inserted to end");
     tk_removefromlist(list,12);
-    test(listcontains(list,12)-1,"Removed again");
+    test(listcontains(list,12)-1,"Removed again"); 
 }
 
 int main()
