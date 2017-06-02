@@ -841,7 +841,8 @@ tk_font_stuff* tk_gimmeaFont(tk_t tk, char* fontpath, uint16_t h)
     FT_Error    error;
     //cairo stuff
     cairo_font_face_t* fontface;
-    cairo_scaled_font_t* scaledface; 
+    cairo_scaled_font_t* scaledfont; 
+    cairo_font_extents_t extents;
 
 
     //now font setup stuff 
@@ -878,13 +879,16 @@ tk_font_stuff* tk_gimmeaFont(tk_t tk, char* fontpath, uint16_t h)
     fontface = cairo_font_face_reference(cairo_ft_font_face_create_for_ft_face(face,0));
     cairo_set_font_face(tk->cr, fontface);
     cairo_set_font_size(tk->cr, fontsize);
-    scaledface = cairo_scaled_font_reference(cairo_get_scaled_font(tk->cr));
+    scaledfont = cairo_scaled_font_reference(cairo_get_scaled_font(tk->cr));
+
+    cairo_scaled_font_extents(scaledfont,&extents);
 
     tkf->library = library;
     tkf->face = face;
-    tkf->fontsize = fontsize;
+    tkf->fontsize = extents.height;
+    tkf->base = extents.ascent;
     tkf->fontface = fontface;
-    tkf->scaledface = scaledface;
+    tkf->scaledfont = scaledfont;
 
     return tkf; 
 }
@@ -898,7 +902,7 @@ uint8_t tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, 
     uint16_t i,size,glyph_index,str_index;
     uint16_t x,y,lastwhite,deltax,xmax;
 
-    cairo_scaled_font_t* scaled_face = tkt->tkf[n]->scaledface;
+    cairo_scaled_font_t* scaled_face = tkt->tkf[n]->scaledfont;
     cairo_glyph_t* glyphs = tkt->glyphs[n];
     int glyph_count = tkt->glyph_count[n];
     cairo_text_cluster_t* clusters = tkt->clusters[n]; 

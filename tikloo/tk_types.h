@@ -20,11 +20,12 @@
 typedef struct
 {
     uint16_t fontsize;
+    uint16_t base;//distance distance to font baseline
 
     FT_Library library;
     FT_Face face;
     cairo_font_face_t* fontface;
-    cairo_scaled_font_t* scaledface;
+    cairo_scaled_font_t* scaledfont;
 }tk_font_stuff;
 
 typedef struct tk_text_table

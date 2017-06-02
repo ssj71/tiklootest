@@ -21,7 +21,7 @@ void tk_drawtextcolor(cairo_t *cr, float w, float h, void* valp, float* line, fl
         return;
     cairo_save( cr );
     cairo_scale(cr,tkt->scale,tkt->scale);
-    cairo_translate(cr, 0, tkt->tkf[n]->fontsize);//start at foot of line
+    cairo_translate(cr, 2, tkt->tkf[n]->base);//start at foot of line
 
     // draw each cluster
     int glyph_index = 0;
