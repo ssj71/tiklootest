@@ -1,4 +1,5 @@
 #include "tk_default_draw.h"
+#include<ctype.h>
 
 // here we assume a single line
 // line and fill must be arrays describing rgba (and a width for line)

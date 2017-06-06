@@ -544,7 +544,7 @@ void tk_addtogrowlist(uint16_t** list, uint16_t *len, uint16_t n)
         memcpy(newlist,*list,sizeof(uint16_t)**len);
         free(*list);
         *list = newlist;
-        i = *len;
+        i = *len-1;
         *len *=2;
     }
     else
@@ -1163,6 +1163,7 @@ void tk_showtipcallback(tk_t tk, const PuglEvent* e, uint16_t n)
                     tk->h[n] = 0;
                     tk->x[n] = 0;
                     tk->y[n] = 0;
+                    fprintf(stderr,"tooltip too long\n");
                     return;
                 }
             }//below
