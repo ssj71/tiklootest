@@ -74,7 +74,8 @@ int main()
     tk->callback_f[n] = freeze_ratio;
     tk_setstring(&tk->tip[n],"testytestytestytestytestytestytestytestytestytestytestytesty");
 
-    tkf = tk_gimmeaFont(tk, "/usr/share/fonts/truetype/freefont/FreeSerif.ttf", //font path
+    tkf = tk_gimmeaFileFont(tk, "/usr/share/fonts/truetype/freefont/FreeSerif.ttf", //font path
+                        0,   //font index
                         10); //font size
     n = tk_addaText(tk,
                          5, //x

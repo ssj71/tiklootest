@@ -101,7 +101,7 @@ void tk_growprimarytable(tk_t tk)
     tk->callback_f = tmpt.callback_f;
 }
 
-tk_t tk_gimmeaTikloo(uint16_t w, uint16_t h, char* title)
+tk_t tk_gimmeaTiKloo(uint16_t w, uint16_t h, char* title)
 {
     tk_t tk = (tk_t)malloc(sizeof(tk_table));
 
@@ -337,8 +337,7 @@ void tk_resizeeverything(tk_t tk,float w, float h)
         th = tk->h[n];
         //TODO: unless they've changed ratio they don't actually need a re-layout
         //TODO: do anything if it doesn't fit?
-        tk_textlayout(tk->cr,&tk->tkt,i,&tw,&th,tk->props[n]&TK_TEXT_WRAP);
-        
+        tk_textlayout(tk->cr,&tk->tkt,i,&tw,&th,tk->props[n]&TK_TEXT_WRAP); 
     }
 }
 
@@ -829,8 +828,10 @@ uint16_t tk_addaTimer(tk_t tk, float s)
 }
 
 
-//this function just makes the font stuff
-tk_font_stuff* tk_gimmeaFont(tk_t tk, char* fontpath, uint16_t h) 
+//this function makes the font stuff from a binary blob or file
+//fsize is binary size (if 0 the 2nd variable must be a path)
+//findex is the font index in the file
+tk_font_stuff* tk_gimmeaFont(tk_t tk, uint8_t* font, uint32_t fsize, uint32_t findex, uint16_t h) 
 {
     int fontsize = h;
     tk_font_stuff* tkf = (tk_font_stuff*)malloc(sizeof(tk_font_stuff));
@@ -854,10 +855,17 @@ tk_font_stuff* tk_gimmeaFont(tk_t tk, char* fontpath, uint16_t h)
         return 0;
     }
 
-    error = FT_New_Face( library,
-         fontpath,
-         0,
-         &face );
+    if(fsize)
+        error = FT_New_Memory_Face( library,
+             font,
+             fsize,
+             findex,
+             &face );
+    else
+        error = FT_New_Face( library,
+             (char*)font,
+             findex,
+             &face );
     if ( error == FT_Err_Unknown_File_Format )
     {
       //... the font file could be opened and read, but it appears

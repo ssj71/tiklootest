@@ -8,8 +8,8 @@
 
 
 //functions that return some kind of struct
-tk_t tk_gimmeaTikloo( uint16_t w, uint16_t h, char* title);
-tk_font_stuff* tk_gimmeaFont(tk_t tk, char* fontpath, uint16_t h);
+tk_t tk_gimmeaTiKloo( uint16_t w, uint16_t h, char* title);
+tk_font_stuff* tk_gimmeaFont(tk_t tk, uint8_t* font, uint32_t fsize, uint32_t findex, uint16_t h);
 
 //functions that add widgets to the table
 uint16_t tk_addaWidget(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h); 
