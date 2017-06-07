@@ -33,10 +33,9 @@ void tick(tk_t tk, const PuglEvent* event, uint16_t n)
 int main()
 {
     tk_t tk;
-    tk_font_stuff* tkf;
     uint16_t n;
 
-    tk = tk_gimmeaTikloo(128, //w
+    tk = tk_gimmeaTiKloo(128, //w
                          128, //h
                          "this is only a test");//title
     n = tk_addaDial(tk,
@@ -74,20 +73,20 @@ int main()
     tk->callback_f[n] = freeze_ratio;
     tk_setstring(&tk->tip[n],"testytestytestytestytestytestytestytestytestytestytestytesty");
 
-    tkf = tk_gimmeaFileFont(tk, "/usr/share/fonts/truetype/freefont/FreeSerif.ttf", //font path
-                        0,   //font index
-                        10); //font size
+    //tkf = tk_gimmeaFileFont(tk, "/usr/share/fonts/truetype/freefont/FreeSerif.ttf", //font path
+    //                    0,   //font index
+    //                    10); //font size
     n = tk_addaText(tk,
                          5, //x
                          5, //y
                          100, //w
                          10, //h
-                         tkf, //font
+                         0, //font (0 uses default)
                          "Don't Panic!"); //msg
     n = tk_addaTimer(tk, 5);//seconds
     tk->callback_f[n] = tick;
 
-    tk_addaTooltip(tk,tkf);
+    tk_addaTooltip(tk,0);//font (0 uses default)
 
     tk_rollit(tk);
     return 0;

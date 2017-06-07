@@ -12,6 +12,7 @@
 #include"tk.h"
 #include"tk_default_draw.h"
 #include"tk_test.h"
+#include"fonts/FreeSerif.h"
 #include"csleep.h"
 #include"timer.h"
 
@@ -831,7 +832,7 @@ uint16_t tk_addaTimer(tk_t tk, float s)
 //this function makes the font stuff from a binary blob or file
 //fsize is binary size (if 0 the 2nd variable must be a path)
 //findex is the font index in the file
-tk_font_stuff* tk_gimmeaFont(tk_t tk, uint8_t* font, uint32_t fsize, uint32_t findex, uint16_t h) 
+tk_font_stuff* tk_gimmeaFont(tk_t tk, const uint8_t* font, uint32_t fsize, uint32_t findex, uint16_t h) 
 {
     int fontsize = h;
     tk_font_stuff* tkf = (tk_font_stuff*)malloc(sizeof(tk_font_stuff));
@@ -1095,6 +1096,10 @@ uint16_t tk_addaText(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, tk
     tk_addtogrowlist(&tkt->brk[s],&tkt->brklen[s],0);//alloc list for linebreaks
 
     // get glyphs for the text
+    if(!font)
+    {
+        font = tk_gimmeaFont(tk,FreeSerif,sizeof(FreeSerif),0,10);
+    }
     tkt->tkf[s] = font;
     tkt->scale = 1;
     tkt->strchange[s] = 1;
