@@ -73,20 +73,22 @@ int main()
     tk->callback_f[n] = freeze_ratio;
     tk_setstring(&tk->tip[n],"testytestytestytestytestytestytestytestytestytestytestytesty");
 
-    //tkf = tk_gimmeaFileFont(tk, "/usr/share/fonts/truetype/freefont/FreeSerif.ttf", //font path
-    //                    0,   //font index
-    //                    10); //font size
+    tk_font_stuff* tkf = tk_gimmeaFont(tk, "/usr/share/fonts/truetype/freefont/FreeSerif.ttf", //font path
+                        0,   //font binary size (0 for path)
+                        0,   //font index
+                        10); //font height
     n = tk_addaText(tk,
                          5, //x
                          5, //y
-                         100, //w
+                         180, //w
                          10, //h
-                         0, //font (0 uses default)
+                         tkf,
+                         //0, //font (0 uses default)
                          "Don't Panic!"); //msg
     n = tk_addaTimer(tk, 5);//seconds
     tk->callback_f[n] = tick;
 
-    tk_addaTooltip(tk,0);//font (0 uses default)
+    tk_addaTooltip(tk,tkf);//0);//font (0 uses default)
 
     tk_rollit(tk);
     return 0;

@@ -979,7 +979,7 @@ uint8_t tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, 
             if(deltax == x)
             {//single word doesn't fit on a line
                 x = 0;
-                lastwhite = str_index-1;
+                lastwhite = str_index-2;
             }
             else
                 x = deltax;
@@ -1118,6 +1118,8 @@ uint16_t tk_addaText(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, tk
 void tk_showtipcallback(tk_t tk, const PuglEvent* e, uint16_t n)
 {
     uint16_t w,h,s;
+    const uint8_t b = 4;//buffer around edges
+    const uint8_t b2 = 2*b;
     n--;//text widget is 1 before timer part of ttip
     tk_text_stuff* tkts = (tk_text_stuff*)tk->value[n];
     s = tkts->n;
@@ -1133,8 +1135,8 @@ void tk_showtipcallback(tk_t tk, const PuglEvent* e, uint16_t n)
     //first try to the right
     h = tk->h[0];
     w = tk->w[0]-tk->x[tk->tover]-tk->w[tk->tover];
-    if(h>4) h-=4;
-    if(w>4) w-=4;
+    if(h>b2) h-=b2;
+    if(w>b2) w-=b2;
     if(tk_textlayout(tk->cr,tkts->tkt,s,&w,&h,1))
     {//it fits
         tk->x[n] += tk->w[tk->tover]+2;
@@ -1143,32 +1145,32 @@ void tk_showtipcallback(tk_t tk, const PuglEvent* e, uint16_t n)
     {//try on the left side
         h = tk->h[0];
         w = tk->x[tk->tover];
-        if(h>4) h-=4;
-        if(w>4) w-=4;
+        if(h>b2) h-=b2;
+        if(w>b2) w-=b2;
         if(tk_textlayout(tk->cr,tkts->tkt,s,&w,&h,1))
         {//it fits
-            tk->x[n] -= w+2;
+            tk->x[n] -= w+b;
         }
         else
         {//try above
             h = tk->y[tk->tover];
             w = tk->w[0];
-            if(h>4) h-=4;
-            if(w>4) w-=4;
+            if(h>b2) h-=b2;
+            if(w>b2) w-=b2;
             if(tk_textlayout(tk->cr,tkts->tkt,s,&w,&h,1))
             {//it fits
-                tk->y[n] -= h+2;
+                tk->y[n] -= h+b;
             }
             else
             {//try below
                 h = tk->y[tk->tover];
                 w = tk->w[0];
-                if(h>4) h-=4;
-                if(w>4) w-=4;
+                if(h>b2) h-=b2;
+                if(w>b2) w-=b2;
 
                 if(tk_textlayout(tk->cr,tkts->tkt,s,&w,&h,1))
                 {//it fits
-                    tk->y[n] += tk->h[tk->tover]+h+2;
+                    tk->y[n] += tk->h[tk->tover]+h+b;
                 }
                 else
                 {//don't show it
@@ -1182,12 +1184,15 @@ void tk_showtipcallback(tk_t tk, const PuglEvent* e, uint16_t n)
             }//below
         }//above
     }//left
-    tk->w[n] = w;
-    tk->h[n] = h;
-    if(tk->y[n]+h > tk->h[0])
-        tk->y[n] = tk->h[0]-h+2;
-    if(tk->x[n]+w > tk->w[0])
-        tk->x[n] = tk->w[0]-w+2;
+    tk->w[n] = w+b;
+    tk->h[n] = h+b;
+    if(tk->y[n]+h+b > tk->h[0])
+        tk->y[n] = tk->h[0]-h-b2;
+    if(tk->x[n]+w+b > tk->w[0])
+    {
+        tk->x[n] = tk->w[0]-w-b2;
+        fprintf(stderr,"too fat\n");
+        }
 
     tk_changelayer(tk,n,3);
 }

@@ -56,6 +56,7 @@ void tk_drawtextcolor(cairo_t *cr, float w, float h, void* valp, float* line, fl
 
             // put paths for current cluster to context
             cairo_glyph_path(cr, &glyphs[glyph_index], clusters[i].num_glyphs);
+            fprintf(stderr,"%c i%i g%i\n",tkt->str[n][str_index],i,glyph_index);
 
             // advance glyph/str position
             glyph_index += clusters[i].num_glyphs;
@@ -81,6 +82,8 @@ void tk_drawtextcolor(cairo_t *cr, float w, float h, void* valp, float* line, fl
             whitex = 0; 
         }
     }
+    cairo_glyph_path(cr, &glyphs[glyph_index], clusters[i].num_glyphs);
+    fprintf(stderr,"%c i%i g%i\n",tkt->str[n][str_index],i,glyph_index);
 
     cairo_restore( cr );
 } 
@@ -114,9 +117,8 @@ void tk_drawtip(cairo_t *cr, float w, float h, void* valp)
     // */
 
     cairo_save( cr );
-    //cairo_translate(cr,2,0);
+    cairo_translate(cr,0,-10);
     tk_drawtextcolor(cr,w,h,valp,line,fill);
-    //cairo_translate(cr,-2,0);
     cairo_restore( cr ) ;
 
 }
