@@ -46,18 +46,19 @@ file(GLOB FONTS "${CMAKE_CURRENT_SOURCE_DIR}/fonts/*.*")
 foreach(FONT ${FONTS})
     get_filename_component(FFNAME ${FONT} NAME_WE)
     get_filename_component(FFEXT ${FONT} EXT)
+    string(REPLACE "-" "_" VARNAME ${FFNAME})
     if(NOT ${FFEXT} MATCHES ".h") 
-        if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/fonts/${FFNAME}.h)
+        if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/fonts/${VARNAME}.h)
             message("-- Preping ${FFNAME}${FFEXT} for bin2c")
-            list(APPEND FONTCFILES ${FFNAME}.h)
-            add_custom_command(OUTPUT ${FFNAME}.h
-                COMMAND bin2c ${FONT} ${CMAKE_CURRENT_SOURCE_DIR}/fonts/${FFNAME}.h ${FFNAME}
-                COMMENT "Converting ${FONT} to header"
+            list(APPEND FONTCFILES ${VARNAME}.h)
+            add_custom_command(OUTPUT ${VARNAME}.h
+                COMMAND bin2c ${FONT} ${CMAKE_CURRENT_SOURCE_DIR}/fonts/${VARNAME}.h ${VARNAME}
+                COMMENT "Converting ${FFNAME}${FFEXT} to header"
                 DEPENDS bin2c
             )
         endif()
     else() 
-        list(APPEND FONTCFILES ${FFNAME}.h)
+        list(APPEND FONTCFILES ${VARNAME}.h)
     endif()
 endforeach()
 

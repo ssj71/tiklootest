@@ -88,7 +88,7 @@ void tk_drawtextcolor(cairo_t *cr, float w, float h, void* valp, float* line, fl
 //this defaults to a light text, you can easily write your own to get the color you desire!
 void tk_drawtext(cairo_t *cr, float w, float h, void* valp)
 {
-    float line[] = {.9,.9,.9,1,.5};//rgba width
+    float line[] = {.9,.9,.9,1,0};//rgba width
     float fill[] = {.9,.9,.9,1};//rgba
     tk_drawtextcolor(cr,w,h,valp,line,fill);
 }
@@ -96,7 +96,7 @@ void tk_drawtext(cairo_t *cr, float w, float h, void* valp)
 void tk_drawtip(cairo_t *cr, float w, float h, void* valp)
 {
     //float line[] = {.2,.2,.2,1,.5};//rgba width
-    float line[] = {.9,.9,.9,1,.5};//rgba width
+    float line[] = {.9,.9,.9,1,0};//rgba width
     float fill[] = {.9,.9,.9,1};//rgba
 
     //draw a background square 
@@ -114,9 +114,9 @@ void tk_drawtip(cairo_t *cr, float w, float h, void* valp)
     // */
 
     cairo_save( cr );
-    cairo_translate(cr,2,0);
+    //cairo_translate(cr,2,0);
     tk_drawtextcolor(cr,w,h,valp,line,fill);
-    cairo_translate(cr,-2,0);
+    //cairo_translate(cr,-2,0);
     cairo_restore( cr ) ;
 
 }

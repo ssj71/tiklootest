@@ -12,7 +12,7 @@
 #include"tk.h"
 #include"tk_default_draw.h"
 #include"tk_test.h"
-#include"fonts/FreeSerif.h"
+#include"fonts/LibraSerifModern_Regular.h"
 #include"csleep.h"
 #include"timer.h"
 
@@ -1098,7 +1098,7 @@ uint16_t tk_addaText(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, tk
     // get glyphs for the text
     if(!font)
     {
-        font = tk_gimmeaFont(tk,FreeSerif,sizeof(FreeSerif),0,10);
+        font = tk_gimmeaFont(tk,LibraSerifModern_Regular,sizeof(LibraSerifModern_Regular),0,10);
     }
     tkt->tkf[s] = font;
     tkt->scale = 1;
