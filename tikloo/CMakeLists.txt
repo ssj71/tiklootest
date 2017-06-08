@@ -39,18 +39,25 @@ else()
 endif()
 
 #embed fonts (taken from https://github.com/rkitover/bin2c)
+#note that if you change the font file you must remove the generated .h
+#to regenerate it
 add_executable(bin2c bin2c.c) 
 file(GLOB FONTS "${CMAKE_CURRENT_SOURCE_DIR}/fonts/*.*")
 foreach(FONT ${FONTS})
     get_filename_component(FFNAME ${FONT} NAME_WE)
     get_filename_component(FFEXT ${FONT} EXT)
     if(NOT ${FFEXT} MATCHES ".h") 
+        if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/fonts/${FFNAME}.h)
+            message("-- Preping ${FFNAME}${FFEXT} for bin2c")
+            list(APPEND FONTCFILES ${FFNAME}.h)
+            add_custom_command(OUTPUT ${FFNAME}.h
+                COMMAND bin2c ${FONT} ${CMAKE_CURRENT_SOURCE_DIR}/fonts/${FFNAME}.h ${FFNAME}
+                COMMENT "Converting ${FONT} to header"
+                DEPENDS bin2c
+            )
+        endif()
+    else() 
         list(APPEND FONTCFILES ${FFNAME}.h)
-        add_custom_command(OUTPUT ${FFNAME}.h
-            COMMAND bin2c ${FONT} ${CMAKE_CURRENT_SOURCE_DIR}/fonts/${FFNAME}.h ${FFNAME}
-            COMMENT "Converting ${FONT}"
-            DEPENDS bin2c
-        )
     endif()
 endforeach()
 
@@ -75,6 +82,4 @@ add_library(tikloo STATIC
     ${DEFAULT_DRAW_SRC}
     ${PUGL_SRC}
     ${FONTCFILES}
-)
-
-add_dependencies(tikloo bin2c)
+) 
