@@ -30,7 +30,7 @@ void tk_drawtextcolor(cairo_t *cr, float w, float h, void* valp, float* line, fl
     int ln=0,x=0,y=0,whitex=0;
 
     //TODO: handle viewport
-    for (i = 0; i < cluster_count; i++) 
+    for (i = 0; i < cluster_count+1; i++) 
     { 
         if(tkt->brk[n][ln] && str_index == tkt->brk[n][ln])
         {
@@ -82,8 +82,6 @@ void tk_drawtextcolor(cairo_t *cr, float w, float h, void* valp, float* line, fl
             whitex = 0; 
         }
     }
-    cairo_glyph_path(cr, &glyphs[glyph_index], clusters[i].num_glyphs);
-    fprintf(stderr,"%c i%i g%i\n",tkt->str[n][str_index],i,glyph_index);
 
     cairo_restore( cr );
 } 

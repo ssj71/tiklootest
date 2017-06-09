@@ -601,10 +601,10 @@ void tk_insertinlist(uint16_t* list, uint16_t n, uint16_t i)
 
 void tk_setstring(char** str, char* msg)
 {
-    
+    uint16_t l = strlen(msg)+1;
     if( *str )
         free(*str);
-    *str = (char*)calloc(strlen(msg)+1,sizeof(char));
+    *str = (char*)calloc(l,sizeof(char));
     strcpy(*str,msg);
 }
 
@@ -940,11 +940,11 @@ uint8_t tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, 
             free(tkt->glyphs[n]);
         if(clusters != tkt->clusters[n])
             free(tkt->clusters[n]);
-        if(cluster_count > extents_count)
+        if(cluster_count+1 > extents_count)
         {
             free(tkt->extents[n]);
-            extents = (cairo_text_extents_t*)calloc(cluster_count,sizeof(cairo_text_extents_t)); 
-            extents_count = cluster_count;
+            extents = (cairo_text_extents_t*)calloc(cluster_count+1,sizeof(cairo_text_extents_t)); 
+            extents_count = cluster_count+1;
         }
     }
     tkt->brk[n][0] = 0; //clear list
@@ -953,7 +953,7 @@ uint8_t tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, 
     x = xmax = deltax = 0;
     y = size;
     glyph_index = str_index = 0;
-    for (i = 0; i < cluster_count; i++) 
+    for (i = 0; i < cluster_count+1; i++) 
     { 
         // get extents for the glyphs in the cluster
         cairo_scaled_font_glyph_extents(scaled_face, &glyphs[glyph_index], clusters[i].num_glyphs, &extents[i]);
