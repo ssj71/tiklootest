@@ -538,20 +538,17 @@ void tk_addtogrowlist(uint16_t** list, uint16_t *len, uint16_t n)
         *list = (uint16_t*)calloc(sizeof(uint16_t),4);
         *len = 4;
     }
-    else if((*list)[*len-2])
+    //check for duplicates
+    for(i=0;(*list)[i];i++)//find end of list
+        if((*list)[i]==n)
+            return;//already in list
+    if(i == *len)
     {//list is full
         newlist = (uint16_t*)calloc(sizeof(uint16_t),2**len);
         memcpy(newlist,*list,sizeof(uint16_t)**len);
         free(*list);
         *list = newlist;
-        i = *len-1;
         *len *=2;
-    }
-    else
-    {
-        for(i=0;(*list)[i];i++)//find end of list
-            if((*list)[i]==n)
-                return;//already in list
     }
     (*list)[i] = n;
     (*list)[i+1] = 0;
@@ -601,10 +598,10 @@ void tk_insertinlist(uint16_t* list, uint16_t n, uint16_t i)
 
 void tk_setstring(char** str, char* msg)
 {
-    uint16_t l = strlen(msg)+1;
+    uint16_t l = strlen(msg);
     if( *str )
         free(*str);
-    *str = (char*)calloc(l,sizeof(char));
+    *str = (char*)calloc(l+2,sizeof(char));
     strcpy(*str,msg);
 }
 
@@ -904,11 +901,12 @@ tk_font_stuff* tk_gimmeaFont(tk_t tk, const uint8_t* font, uint32_t fsize, uint3
 
 //we assume there is a valid font with set size and a string, we will set line brks 
 //we will pass back the actual dimensions in w and h, and 
-//return  1 if the text fits in the provided size
+//return  1 if the text fits in the provided size 
 uint8_t tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, uint16_t *h, uint8_t wrap)
 {
+//TODO: this should be changed to batch process all strings?
     uint8_t fit;
-    uint16_t i,size,glyph_index,str_index;
+    uint16_t l,i,size,glyph_index,str_index;
     uint16_t x,y,lastwhite,deltax,xmax;
 
     cairo_scaled_font_t* scaled_face = tkt->tkf[n]->scaledfont;
@@ -928,8 +926,11 @@ uint8_t tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, 
     size = tkt->tkf[n]->fontsize;
     if(tkt->strchange[n])
     {
+        l = strlen(tkt->str[n]);
+        if(tkt->str[n][l-1] != ' ')
+            tkt->str[n][l++] = ' ';
         stat = cairo_scaled_font_text_to_glyphs(scaled_face, 0, 0, 
-                                                tkt->str[n], strlen(tkt->str[n]), 
+                                                tkt->str[n], l,
                                                 &glyphs, &glyph_count, 
                                                 &clusters, &cluster_count,
                                                 &clusterflags); 
@@ -940,11 +941,11 @@ uint8_t tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, 
             free(tkt->glyphs[n]);
         if(clusters != tkt->clusters[n])
             free(tkt->clusters[n]);
-        if(cluster_count+1 > extents_count)
+        if(cluster_count > extents_count)
         {
             free(tkt->extents[n]);
-            extents = (cairo_text_extents_t*)calloc(cluster_count+1,sizeof(cairo_text_extents_t)); 
-            extents_count = cluster_count+1;
+            extents = (cairo_text_extents_t*)calloc(cluster_count,sizeof(cairo_text_extents_t)); 
+            extents_count = cluster_count;
         }
     }
     tkt->brk[n][0] = 0; //clear list
@@ -953,7 +954,7 @@ uint8_t tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, 
     x = xmax = deltax = 0;
     y = size;
     glyph_index = str_index = 0;
-    for (i = 0; i < cluster_count+1; i++) 
+    for (i = 0; i < cluster_count; i++) 
     { 
         // get extents for the glyphs in the cluster
         cairo_scaled_font_glyph_extents(scaled_face, &glyphs[glyph_index], clusters[i].num_glyphs, &extents[i]);
