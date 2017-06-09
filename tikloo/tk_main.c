@@ -604,7 +604,7 @@ void tk_setstring(char** str, char* msg)
     
     if( *str )
         free(*str);
-    *str = (char*)calloc(strlen(msg),sizeof(char));
+    *str = (char*)calloc(strlen(msg)+1,sizeof(char));
     strcpy(*str,msg);
 }
 
