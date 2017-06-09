@@ -392,7 +392,6 @@ void tk_damage(tk_t tk, uint16_t n)
     cairo_line_to(tk->cr, x, y2);
     cairo_close_path(tk->cr);
     cairo_clip(tk->cr);
-    fprintf(stderr,"%i,%i,%i,%i damaged:",x,y,x2,y2);
         
     for(l=1;l<=lmx;l++)
     {
@@ -410,7 +409,6 @@ void tk_damage(tk_t tk, uint16_t n)
     fprintf(stderr,"\n");
 
     cairo_restore(tk->cr);
-    //cairo_reset_clip(tk->cr);
 }
 
 uint16_t tk_eventsearch(tk_t tk, const PuglEvent* event)
@@ -1190,10 +1188,7 @@ void tk_showtipcallback(tk_t tk, const PuglEvent* e, uint16_t n)
     if(tk->y[n]+h+b > tk->h[0])
         tk->y[n] = tk->h[0]-h-b2;
     if(tk->x[n]+w+b > tk->w[0])
-    {
         tk->x[n] = tk->w[0]-w-b2;
-        fprintf(stderr,"too fat\n");
-        }
 
     tk_changelayer(tk,n,3);
 }

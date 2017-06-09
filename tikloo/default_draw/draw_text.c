@@ -98,6 +98,7 @@ void tk_drawtip(cairo_t *cr, float w, float h, void* valp)
     //float line[] = {.2,.2,.2,1,.5};//rgba width
     float line[] = {.9,.9,.9,1,0};//rgba width
     float fill[] = {.9,.9,.9,1};//rgba
+    //float scale = ((tk_text_table*)((tk_text_stuff*)valp)->tkt)->scale;
 
     //draw a background square 
     cairo_save( cr );
@@ -114,7 +115,7 @@ void tk_drawtip(cairo_t *cr, float w, float h, void* valp)
     // */
 
     cairo_save( cr );
-    cairo_translate(cr,0,-10);
+    //cairo_translate(cr,-4*scale,-4*scale);//this should correspond with b in textlayout
     tk_drawtextcolor(cr,w,h,valp,line,fill);
     cairo_restore( cr ) ;
 
