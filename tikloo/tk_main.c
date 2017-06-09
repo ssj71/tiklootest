@@ -391,7 +391,10 @@ void tk_damage(tk_t tk, uint16_t n)
     cairo_line_to(tk->cr, x2, y2);
     cairo_line_to(tk->cr, x, y2);
     cairo_close_path(tk->cr);
-    cairo_clip(tk->cr);
+    cairo_clip_preserve(tk->cr);
+
+    cairo_set_source_rgba(tk->cr, 0,0,0,1);
+    cairo_fill(tk->cr);
         
     for(l=1;l<=lmx;l++)
     {
@@ -401,12 +404,10 @@ void tk_damage(tk_t tk, uint16_t n)
                 tk->y[i] < y2 && tk->y[i] + tk->h[i] > y &&
                 i != n && tk->layer[i] == l )
             {
-                fprintf(stderr," %i",i);
                 tk_draw(tk,i);
             }
         }
     }
-    fprintf(stderr,"\n");
 
     cairo_restore(tk->cr);
 }
@@ -1119,6 +1120,7 @@ void tk_showtipcallback(tk_t tk, const PuglEvent* e, uint16_t n)
     uint16_t w,h,s;
     const uint8_t b = 4;//buffer around edges
     const uint8_t b2 = 2*b;
+    float ww,wh;//window w and h
     n--;//text widget is 1 before timer part of ttip
     tk_text_stuff* tkts = (tk_text_stuff*)tk->value[n];
     s = tkts->n;
@@ -1127,45 +1129,47 @@ void tk_showtipcallback(tk_t tk, const PuglEvent* e, uint16_t n)
     tkts->tkt->strchange[s] = 1;
     tk_settimer(tk,tk->ttip,0);//disable timer
 
+    ww = tk->w[0]+2*tk->x[0];
+    wh = tk->h[0]+2*tk->y[0];
     tk->x[n] = tk->x[tk->tover];
     tk->y[n] = tk->y[tk->tover];
 
     //find best place to put the tip
     //first try to the right
-    h = tk->h[0];
-    w = tk->w[0]-tk->x[tk->tover]-tk->w[tk->tover];
-    if(h>b2) h-=b2;
+    w = ww-tk->x[tk->tover]-tk->w[tk->tover];
+    h = wh;
     if(w>b2) w-=b2;
+    if(h>b2) h-=b2;
     if(tk_textlayout(tk->cr,tkts->tkt,s,&w,&h,1))
     {//it fits
-        tk->x[n] += tk->w[tk->tover]+2;
+        tk->x[n] += tk->w[tk->tover]+b;
     } 
     else
     {//try on the left side
-        h = tk->h[0];
         w = tk->x[tk->tover];
-        if(h>b2) h-=b2;
+        h = wh;
         if(w>b2) w-=b2;
+        if(h>b2) h-=b2;
         if(tk_textlayout(tk->cr,tkts->tkt,s,&w,&h,1))
         {//it fits
             tk->x[n] -= w+b;
         }
         else
         {//try above
+            w = ww;
             h = tk->y[tk->tover];
-            w = tk->w[0];
-            if(h>b2) h-=b2;
             if(w>b2) w-=b2;
+            if(h>b2) h-=b2;
             if(tk_textlayout(tk->cr,tkts->tkt,s,&w,&h,1))
             {//it fits
                 tk->y[n] -= h+b;
             }
             else
             {//try below
-                h = tk->y[tk->tover];
-                w = tk->w[0];
-                if(h>b2) h-=b2;
+                w = ww;
+                h = wh-tk->y[tk->tover]-tk->h[tk->tover];
                 if(w>b2) w-=b2;
+                if(h>b2) h-=b2;
 
                 if(tk_textlayout(tk->cr,tkts->tkt,s,&w,&h,1))
                 {//it fits
@@ -1173,10 +1177,10 @@ void tk_showtipcallback(tk_t tk, const PuglEvent* e, uint16_t n)
                 }
                 else
                 {//don't show it
-                    tk->w[n] = 0;
-                    tk->h[n] = 0;
                     tk->x[n] = 0;
                     tk->y[n] = 0;
+                    tk->w[n] = 0;
+                    tk->h[n] = 0;
                     fprintf(stderr,"tooltip too long\n");
                     return;
                 }
@@ -1185,10 +1189,10 @@ void tk_showtipcallback(tk_t tk, const PuglEvent* e, uint16_t n)
     }//left
     tk->w[n] = w+b;
     tk->h[n] = h+b;
-    if(tk->y[n]+h+b > tk->h[0])
-        tk->y[n] = tk->h[0]-h-b2;
-    if(tk->x[n]+w+b > tk->w[0])
-        tk->x[n] = tk->w[0]-w-b2;
+    if(tk->x[n]+w+b > ww)
+        tk->x[n] = ww-w-b2;
+    if(tk->y[n]+h+b > wh)
+        tk->y[n] = wh-h-b2;
 
     tk_changelayer(tk,n,3);
 }
