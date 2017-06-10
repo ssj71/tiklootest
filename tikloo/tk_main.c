@@ -186,8 +186,32 @@ void tk_cleanup(tk_t tk)
 {
     uint16_t i;
     timer_lib_shutdown(tk->tlibh);
+
+    //deal with text table
+    tk_rmdupfont(tk->tkt.tkf);
+    for(i=0;tk->tkt.glyphs[i];i++)
+    {//free text double arrays
+        if(tk->tkt.str[i])
+            free(tk->tkt.str[i]);
+        if(tk->tkt.brk[i])
+            free(tk->tkt.brk[i]);
+        if(tk->tkt.tkf[i])
+            free(tk->tkt.tkf[i]);
+            //TODO: cleanup font stuff cairo makes?
+        if(tk->tkt.glyphs[i])
+            free(tk->tkt.glyphs[i]);
+        if(tk->tkt.clusters[i])
+            free(tk->tkt.clusters[i]);
+        if(tk->tkt.extents[i])
+            free(tk->tkt.extents[i]); 
+    }
+    free(tk->tkt.strchange); free(tk->tkt.n); 
+    free(tk->tkt.cursor); free(tk->tkt.select);
+    free(tk->tkt.ln); free(tk->tkt.col); free(tk->tkt.brklen);
+    free(tk->tkt.glyph_count); free(tk->tkt.cluster_count); free(tk->tkt.extents_count); 
+
     for(i=0;tk->cb_f[i];i++)
-    {
+    {//free double arrays
         if(tk->value[i])
             free(tk->value[i]);
         if(tk->tip[i])
@@ -196,12 +220,12 @@ void tk_cleanup(tk_t tk)
             free(tk->extras[i]);
         //we let the user free anything in user data 
     }
-    //TODO: this currently holds memory like a sieve
+
     free(tk->x); free(tk->y); free(tk->w); free(tk->h);
     free(tk->layer); free(tk->value); free(tk->tip);
     free(tk->props); free(tk->extras); free(tk->user);
+    free(tk->hold_ratio); free(tk->draw); free(tk->redraw);
     free(tk->draw_f); free(tk->cb_f); free(tk->callback_f);
-    free(tk->hold_ratio);
     free(tk);
     puglDestroy(tk->view);
 }
@@ -621,6 +645,19 @@ void tk_changelayer(tk_t tk, uint16_t n, uint16_t layer)
         tk_insertinlist(tk->redraw,n,i);
     }
     tk->layer[n] = layer;
+}
+
+//this function is to avoid double frees on shared fonts in cleanup
+void tk_rmdupfont(tk_font_stuff** a)
+{
+    uint16_t i,j;
+    for(i=0;a[i];i++)
+        for(j=i+1;a[j];j++)
+            if(a[i] == a[j])
+            {//rm first instance
+                a[i] = 0;
+                continue;
+            }
 }
 
 //WIDGET STUFF
@@ -1098,7 +1135,12 @@ uint16_t tk_addaText(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, tk
     // get glyphs for the text
     if(!font)
     {
-        font = tk_gimmeaFont(tk,LibraSerifModern_Regular,sizeof(LibraSerifModern_Regular),0,10);
+        if(tkt->tkf[0])//check for default font
+            font = tkt->tkf[0];
+        else
+        {//make the default font
+            font = tk_gimmeaFont(tk,LibraSerifModern_Regular,sizeof(LibraSerifModern_Regular),0,10);
+        }
     }
     tkt->tkf[s] = font;
     tkt->scale = 1;

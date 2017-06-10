@@ -92,5 +92,6 @@ int main()
     tk_addaTooltip(tk,0);//font (0 uses default)
 
     tk_rollit(tk);
+    //here we should free anything we added to user[] but there isn't anything
     return 0;
 }

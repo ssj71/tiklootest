@@ -53,6 +53,7 @@ typedef struct tk_text_table
     float scale;
     uint8_t cursorstate;
     uint16_t nitems,tablesize;
+    uint16_t dff;//default font
 }tk_text_table;
 
 typedef struct
