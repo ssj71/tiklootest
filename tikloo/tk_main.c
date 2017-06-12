@@ -192,25 +192,30 @@ void tk_cleanup(tk_t tk)
     for(i=0;tk->tkt.glyphs[i];i++)
         if(tk->tkt.str[i] && !(tk->ttip && i ==n))//must skip tooltip
             free(tk->tkt.str[i]);
+    free(tk->tkt.str);
     n = i;
-    for(i=0;i<0;i++)
+    for(i=0;i<n;i++)
         if(tk->tkt.brk[i])
             free(tk->tkt.brk[i]);
+    free(tk->tkt.brk);
     tk_rmdupptr((void**)(tk->tkt.tkf));
-    for(i=0;i<0;i++)
+    for(i=0;i<n;i++)
         if(tk->tkt.tkf[i])
             free(tk->tkt.tkf[i]);
-    for(i=0;tk->tkt.glyphs[i];i++)
+    free(tk->tkt.tkf);
+    for(i=0;i<n;i++)
         if(tk->tkt.glyphs[i])
             cairo_glyph_free(tk->tkt.glyphs[i]);
-            //free(tk->tkt.glyphs[i]);
-    for(i=0;tk->tkt.glyphs[i];i++)
+    free(tk->tkt.glyphs);
+    for(i=0;i<n;i++)
         if(tk->tkt.clusters[i])
             cairo_text_cluster_free(tk->tkt.clusters[i]);
-            //free(tk->tkt.clusters[i]);
-    for(i=0;tk->tkt.glyphs[i];i++)
+    free(tk->tkt.clusters);
+    for(i=0;i<n;i++)
         if(tk->tkt.extents[i])
             free(tk->tkt.extents[i]); 
+    free(tk->tkt.extents); 
+
     free(tk->tkt.strchange); free(tk->tkt.n); 
     free(tk->tkt.cursor); free(tk->tkt.select);
     free(tk->tkt.ln); free(tk->tkt.col); free(tk->tkt.brklen);
@@ -229,13 +234,14 @@ void tk_cleanup(tk_t tk)
             free(tk->extras[i]);
     //we let the user free anything in user data 
 
+    if(tk->timer) free(tk->timer);
     free(tk->x); free(tk->y); free(tk->w); free(tk->h);
     free(tk->layer); free(tk->value); free(tk->tip);
     free(tk->props); free(tk->extras); free(tk->user);
     free(tk->hold_ratio); free(tk->draw); free(tk->redraw);
     free(tk->draw_f); free(tk->cb_f); free(tk->callback_f);
-    free(tk);
     puglDestroy(tk->view);
+    free(tk);
 }
 
 void tk_checktimers(tk_t tk)
@@ -585,7 +591,7 @@ void tk_addtogrowlist(uint16_t** list, uint16_t *len, uint16_t n)
     for(i=0;(*list)[i];i++)//find end of list
         if((*list)[i]==n)
             return;//already in list
-    if(i == *len)
+    if(i == *len-1)
     {//list is full
         newlist = (uint16_t*)calloc(sizeof(uint16_t),2**len);
         memcpy(newlist,*list,sizeof(uint16_t)**len);
@@ -1001,7 +1007,6 @@ uint8_t tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, 
         }
     }
     tkt->brk[n][0] = 0; //clear list
-    tkt->brk[n][tkt->brklen[n]-1] = 0; //clear list
 
     x = xmax = deltax = 0;
     y = size;

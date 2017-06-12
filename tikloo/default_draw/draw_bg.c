@@ -25,5 +25,5 @@ void tk_drawbg(cairo_t *cr, float w, float h, void* valp)
     cairo_set_tolerance(cr, 0.1);
     cairo_set_antialias(cr, CAIRO_ANTIALIAS_DEFAULT);
     cairo_set_fill_rule(cr, CAIRO_FILL_RULE_WINDING);
-    cairo_fill_preserve(cr);
+    cairo_fill(cr);
 }
