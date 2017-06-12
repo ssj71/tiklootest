@@ -184,42 +184,49 @@ tk_t tk_gimmeaTiKloo(uint16_t w, uint16_t h, char* title)
 
 void tk_cleanup(tk_t tk)
 {
-    uint16_t i;
+    uint16_t i,n;
     timer_lib_shutdown(tk->tlibh);
 
-    //deal with text table
-    tk_rmdupfont(tk->tkt.tkf);
+    //deal with text table 
+    //free text double arrays 
+    n = ((tk_text_stuff*)(tk->value[tk->ttip-1]))->n;
     for(i=0;tk->tkt.glyphs[i];i++)
-    {//free text double arrays
-        if(tk->tkt.str[i])
+        if(tk->tkt.str[i] && !(tk->ttip && i ==n))//must skip tooltip
             free(tk->tkt.str[i]);
+    for(i=0;tk->tkt.glyphs[i];i++)
         if(tk->tkt.brk[i])
             free(tk->tkt.brk[i]);
+    tk_rmdupptr((void**)(tk->tkt.tkf));
+    for(i=0;tk->tkt.glyphs[i];i++)
         if(tk->tkt.tkf[i])
             free(tk->tkt.tkf[i]);
             //TODO: cleanup font stuff cairo makes?
+    for(i=0;tk->tkt.glyphs[i];i++)
         if(tk->tkt.glyphs[i])
             free(tk->tkt.glyphs[i]);
+    for(i=0;tk->tkt.glyphs[i];i++)
         if(tk->tkt.clusters[i])
             free(tk->tkt.clusters[i]);
+    for(i=0;tk->tkt.glyphs[i];i++)
         if(tk->tkt.extents[i])
             free(tk->tkt.extents[i]); 
-    }
     free(tk->tkt.strchange); free(tk->tkt.n); 
     free(tk->tkt.cursor); free(tk->tkt.select);
     free(tk->tkt.ln); free(tk->tkt.col); free(tk->tkt.brklen);
     free(tk->tkt.glyph_count); free(tk->tkt.cluster_count); free(tk->tkt.extents_count); 
 
+    //now the main table
+    //free double arrays
     for(i=0;tk->cb_f[i];i++)
-    {//free double arrays
         if(tk->value[i])
             free(tk->value[i]);
+    for(i=0;tk->cb_f[i];i++)
         if(tk->tip[i])
             free(tk->tip[i]);
+    for(i=0;tk->cb_f[i];i++)
         if(tk->extras[i])
             free(tk->extras[i]);
-        //we let the user free anything in user data 
-    }
+    //we let the user free anything in user data 
 
     free(tk->x); free(tk->y); free(tk->w); free(tk->h);
     free(tk->layer); free(tk->value); free(tk->tip);
@@ -294,12 +301,14 @@ void tk_idle(tk_t tk)
 void tk_resizeeverything(tk_t tk,float w, float h)
 {
     uint16_t i,n,tw,th;
-    float sx,sy,sx0,sy0,sx1,sy1,smx,smy,sm0,sm1,dx,dy;
+    float sx,sy,sx0,sy0,sx1,sy1,smx,smy,sm0,sm1,dx,dy,x0,y0;
 
+    x0 = tk->x[0];
+    y0 = tk->y[0];
     sx = w/(tk->w[0]);//scale change (relative)
     sy = h/(tk->h[0]);
-    sx0 = (tk->w[0]+2*tk->x[0])/tk->w0;//old scaling (absolute)
-    sy0 = (tk->h[0]+2*tk->y[0])/tk->h0;
+    sx0 = (tk->w[0]+2*x0)/tk->w0;//old scaling (absolute)
+    sy0 = (tk->h[0]+2*y0)/tk->h0;
     sx1 = w/tk->w0;//new scaling (absolute)
     sy1 = h/tk->h0;
     sm0 = sx0<sy0?sx0:sy0;//old small dim
@@ -337,17 +346,23 @@ void tk_resizeeverything(tk_t tk,float w, float h)
     } 
 
     //scale items
-    for(i=1;tk->cb_f[i];i++)
+    n = tk->nitems;
+    for(i=1;i<n;i++)
     {
-        tk->x[i] -= tk->x[0]; //remove old shift
-        tk->y[i] -= tk->y[0];
+        tk->x[i] -= x0; //remove old shift
         tk->x[i] *= sx;
-        tk->y[i] *= sy;
-        tk->w[i] *= sx;
-        tk->h[i] *= sy;
         tk->x[i] += dx; //add new shift
+    } 
+    for(i=1;i<n;i++)
+    {
+        tk->y[i] -= y0;
+        tk->y[i] *= sy;
         tk->y[i] += dy;
     } 
+    for(i=1;i<n;i++)
+        tk->w[i] *= sx;
+    for(i=1;i<n;i++)
+        tk->h[i] *= sy;
 
     //update window shift
     tk->x[0] = dx;
@@ -647,8 +662,8 @@ void tk_changelayer(tk_t tk, uint16_t n, uint16_t layer)
     tk->layer[n] = layer;
 }
 
-//this function is to avoid double frees on shared fonts in cleanup
-void tk_rmdupfont(tk_font_stuff** a)
+//this function is to avoid double frees in cleanup
+void tk_rmdupptr(void** a)
 {
     uint16_t i,j;
     for(i=0;a[i];i++)

@@ -8,7 +8,7 @@ void tk_redraw(tk_t tk);
 void tk_draweverything(tk_t tk);
 uint16_t tk_dumbsearch(tk_t tk, const PuglEvent* event);
 static void tk_callback (PuglView* view, const PuglEvent* event);
-void tk_rmdupfont(tk_font_stuff** a);
+void tk_rmdupptr(void** a);
 
 //WIDGET STUFF
 void tk_nocallback(tk_t tk, const PuglEvent* e, uint16_t n);
