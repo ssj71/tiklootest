@@ -137,7 +137,6 @@ tk_t tk_gimmeaTiKloo(uint16_t w, uint16_t h, char* title)
     tk->tkt.tablesize = 0;
 
     //now initialize the main window widget
-    //TODO: check that everything is nz
     tk->w[0] = w;
     tk->h[0] = h;
     tk->w0 = w;
@@ -193,20 +192,22 @@ void tk_cleanup(tk_t tk)
     for(i=0;tk->tkt.glyphs[i];i++)
         if(tk->tkt.str[i] && !(tk->ttip && i ==n))//must skip tooltip
             free(tk->tkt.str[i]);
-    for(i=0;tk->tkt.glyphs[i];i++)
+    n = i;
+    for(i=0;i<0;i++)
         if(tk->tkt.brk[i])
             free(tk->tkt.brk[i]);
     tk_rmdupptr((void**)(tk->tkt.tkf));
-    for(i=0;tk->tkt.glyphs[i];i++)
+    for(i=0;i<0;i++)
         if(tk->tkt.tkf[i])
             free(tk->tkt.tkf[i]);
-            //TODO: cleanup font stuff cairo makes?
     for(i=0;tk->tkt.glyphs[i];i++)
         if(tk->tkt.glyphs[i])
-            free(tk->tkt.glyphs[i]);
+            cairo_glyph_free(tk->tkt.glyphs[i]);
+            //free(tk->tkt.glyphs[i]);
     for(i=0;tk->tkt.glyphs[i];i++)
         if(tk->tkt.clusters[i])
-            free(tk->tkt.clusters[i]);
+            cairo_text_cluster_free(tk->tkt.clusters[i]);
+            //free(tk->tkt.clusters[i]);
     for(i=0;tk->tkt.glyphs[i];i++)
         if(tk->tkt.extents[i])
             free(tk->tkt.extents[i]); 
@@ -390,7 +391,7 @@ void tk_draw(tk_t tk,uint16_t n)
 void tk_redraw(tk_t tk)
 {
     uint16_t i;
-    if( !tk->redraw[0] && !tk->redraw[1] )
+    if( !tk->redraw[0] )
         return;//empty list
     //TODO: if we have to redraw the bg, we probably have to draweverything anyway, no?
     for(i=0; tk->redraw[i]||!i; i++)
@@ -516,7 +517,11 @@ static void tk_callback (PuglView* view, const PuglEvent* event)
         break;
     case PUGL_MOTION_NOTIFY:
         if(tk->drag)
+        {
             tk->cb_f[tk->drag](tk,event,tk->drag);
+            if(tk->ttip)
+                tk_settimer(tk,tk->ttip,0);
+        }
         else 
         {//tooltip
             n=tk_eventsearch(tk,event);
@@ -745,7 +750,6 @@ void tk_dialcallback(tk_t tk, const PuglEvent* event, uint16_t n)
         tkd->y0 = 0;
         break;
     case PUGL_SCROLL:
-        //TODO: scroll
         *v += event->scroll.dx/(30.f*s)+ event->scroll.dy/(3.f*s);
         if(*v > 1) *v = 1;
         if(*v < 0) *v = 0;
@@ -801,7 +805,6 @@ void tk_buttoncallback(tk_t tk, const PuglEvent* event, uint16_t n)
         }
         break;
     case PUGL_BUTTON_PRESS:
-        //TODO: decide if being dragged
         tk->drag = n;
         if(tk->props[n]&TK_BUTTON_MOMENTARY)
         {
@@ -973,7 +976,6 @@ uint8_t tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, 
     *w /= tkt->scale;
     *h /= tkt->scale;
 
-//TODO: we need to still calculate size and space 
     size = tkt->tkf[n]->fontsize;
     if(tkt->strchange[n])
     {
@@ -987,11 +989,10 @@ uint8_t tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, 
                                                 &clusterflags); 
         if (stat == CAIRO_STATUS_SUCCESS)
             tkt->strchange[n] = 0;
-        //TODO: cleanup old buffers
         if(glyphs != tkt->glyphs[n])
-            free(tkt->glyphs[n]);
+            cairo_glyph_free(tkt->glyphs[n]);
         if(clusters != tkt->clusters[n])
-            free(tkt->clusters[n]);
+            cairo_text_cluster_free(tkt->clusters[n]);
         if(cluster_count > extents_count)
         {
             free(tkt->extents[n]);
