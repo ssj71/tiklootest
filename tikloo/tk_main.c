@@ -31,76 +31,6 @@
 //static void tk_callback (PuglView* view, const PuglEvent* event);
 //void tk_nocallback(tk_t tk, const PuglEvent* e, uint16_t n);
 
-void tk_growprimarytable(tk_t tk)
-{
-    uint8_t osz,sz = TK_STARTER_SIZE;
-    tk_table tmpt;
-    if(tk->tablesize)
-        sz = tk->tablesize*2;
-    //initialize the table in the struct
-    tmpt.x = (float*)calloc(sz,sizeof(float));
-    tmpt.y = (float*)calloc(sz,sizeof(float));
-    tmpt.w = (float*)calloc(sz,sizeof(float));
-    tmpt.h = (float*)calloc(sz,sizeof(float));
-
-    tmpt.layer =  (uint8_t*)calloc(sz+1,sizeof(uint8_t)); 
-    tmpt.value =    (void**)calloc(sz,sizeof(void*)); 
-    tmpt.tip =      (char**)calloc(sz,sizeof(char*));
-    tmpt.props = (uint16_t*)calloc(sz,sizeof(uint16_t));
-    tmpt.extras =   (void**)calloc(sz,sizeof(void*));
-    tmpt.user =     (void**)calloc(sz,sizeof(void*));
-
-    //init the lists
-    //lists always keep an extra 0 at the end so the end can be found even if full
-    tmpt.hold_ratio = (uint16_t*)calloc(sz+1,sizeof(float));
-    tmpt.draw =       (uint16_t*)calloc(sz+1,sizeof(float));
-    tmpt.redraw =     (uint16_t*)calloc(sz+1,sizeof(float));
-
-    tmpt.draw_f = (void(**)(cairo_t*,float,float,void*))calloc(sz,sizeof(&tk_drawnothing));
-    tmpt.cb_f = (void(**)(tk_t,const PuglEvent*,uint16_t))calloc(sz,sizeof(&tk_callback));
-    tmpt.callback_f = (void(**)(tk_t,const PuglEvent*,uint16_t))calloc(sz,sizeof(&tk_callback));
-
-    if(tk->tablesize)
-    {
-        osz = tk->tablesize;
-        memcpy(tmpt.x,      tk->x,      osz*sizeof(float));
-        memcpy(tmpt.y,      tk->y,      osz*sizeof(float));
-        memcpy(tmpt.w,      tk->w,      osz*sizeof(float));
-        memcpy(tmpt.h,      tk->h,      osz*sizeof(float));
-        memcpy(tmpt.layer,  tk->layer,  osz*sizeof(uint8_t));
-        memcpy(tmpt.value,  tk->value,  osz*sizeof(void*));
-        memcpy(tmpt.tip,    tk->tip,    osz*sizeof(char*));
-        memcpy(tmpt.props,  tk->props,  osz*sizeof(uint16_t));
-        memcpy(tmpt.extras, tk->extras, osz*sizeof(void*));
-        memcpy(tmpt.user,   tk->user,   osz*sizeof(void*));
-        
-        memcpy(tmpt.hold_ratio,tk->hold_ratio,osz*sizeof(uint16_t)+1);
-        memcpy(tmpt.draw,      tk->draw,      osz*sizeof(uint16_t)+1);
-        memcpy(tmpt.redraw,    tk->redraw,    osz*sizeof(uint16_t)+1);
-
-        memcpy(tmpt.draw_f,    tk->draw_f,    osz*sizeof(void(*)(cairo_t*,float,float,void*)));
-        memcpy(tmpt.cb_f,      tk->cb_f,      osz*sizeof(void(*)(tk_t,PuglEvent*,uint16_t)));
-        memcpy(tmpt.callback_f,tk->callback_f,osz*sizeof(void(*)(tk_t,PuglEvent*,uint16_t)));
-    }
-
-    tk->x =      tmpt.x;
-    tk->y =      tmpt.y;
-    tk->w =      tmpt.w;
-    tk->h =      tmpt.h;
-    tk->layer =  tmpt.layer;
-    tk->value =  tmpt.value;
-    tk->tip =    tmpt.tip;
-    tk->props =  tmpt.props;
-    tk->extras = tmpt.extras;
-    tk->user =   tmpt.user;
-
-    tk->hold_ratio = tmpt.hold_ratio;
-    tk->draw =       tmpt.draw;
-    tk->redraw =     tmpt.redraw; 
-    tk->draw_f =     tmpt.draw_f;
-    tk->cb_f =       tmpt.cb_f;
-    tk->callback_f = tmpt.callback_f;
-}
 
 tk_t tk_gimmeaTiKloo(uint16_t w, uint16_t h, char* title)
 {
@@ -179,6 +109,41 @@ tk_t tk_gimmeaTiKloo(uint16_t w, uint16_t h, char* title)
     tk->cr = (cairo_t*)puglGetContext(tk->view);
     
     return (tk_t) tk;
+} 
+
+//for standalone apps
+void tk_rollit(tk_t tk)
+{ 
+    PuglView* view = tk->view;
+
+    puglShowWindow(view);
+
+    if(tk->timer)
+    {
+        while (!tk->quit)
+        {
+            csleep(1);// these are crappy timers jsyk, we sleep for 1ms in between
+            puglProcessEvents(view);
+            tk_checktimers(tk);
+            tk_redraw(tk);
+        }
+    }
+    else
+        while (!tk->quit)
+        {
+            //no timers
+            puglWaitForEvent(view);
+            puglProcessEvents(view);
+            tk_redraw(tk);
+        } 
+}
+
+//for plugins
+void tk_idle(tk_t tk)
+{
+    puglProcessEvents(tk->view); 
+    tk_checktimers(tk);
+    tk_redraw(tk);
 }
 
 void tk_cleanup(tk_t tk)
@@ -244,65 +209,75 @@ void tk_cleanup(tk_t tk)
     free(tk);
 }
 
-void tk_checktimers(tk_t tk)
+void tk_growprimarytable(tk_t tk)
 {
-    uint16_t i,n;
-    float *nexttime,period, t = (float)timer_current_seconds(tk->tlibh);
-    for(i=0;tk->timer && tk->timer[i];i++)
+    uint8_t osz,sz = TK_STARTER_SIZE;
+    tk_table tmpt;
+    if(tk->tablesize)
+        sz = tk->tablesize*2;
+    //initialize the table in the struct
+    tmpt.x = (float*)calloc(sz,sizeof(float));
+    tmpt.y = (float*)calloc(sz,sizeof(float));
+    tmpt.w = (float*)calloc(sz,sizeof(float));
+    tmpt.h = (float*)calloc(sz,sizeof(float));
+
+    tmpt.layer =  (uint8_t*)calloc(sz+1,sizeof(uint8_t)); 
+    tmpt.value =    (void**)calloc(sz,sizeof(void*)); 
+    tmpt.tip =      (char**)calloc(sz,sizeof(char*));
+    tmpt.props = (uint16_t*)calloc(sz,sizeof(uint16_t));
+    tmpt.extras =   (void**)calloc(sz,sizeof(void*));
+    tmpt.user =     (void**)calloc(sz,sizeof(void*));
+
+    //init the lists
+    //lists always keep an extra 0 at the end so the end can be found even if full
+    tmpt.hold_ratio = (uint16_t*)calloc(sz+1,sizeof(float));
+    tmpt.draw =       (uint16_t*)calloc(sz+1,sizeof(float));
+    tmpt.redraw =     (uint16_t*)calloc(sz+1,sizeof(float));
+
+    tmpt.draw_f = (void(**)(cairo_t*,float,float,void*))calloc(sz,sizeof(&tk_drawnothing));
+    tmpt.cb_f = (void(**)(tk_t,const PuglEvent*,uint16_t))calloc(sz,sizeof(&tk_callback));
+    tmpt.callback_f = (void(**)(tk_t,const PuglEvent*,uint16_t))calloc(sz,sizeof(&tk_callback));
+
+    if(tk->tablesize)
     {
-        n = tk->timer[i];
-        nexttime = (float*)tk->extras[n];
-        if(t>=*nexttime)
-        {
-            tk->callback_f[n](tk,0,n);
-            period = *(float*)tk->value[n];
-            if(period)
-            {
-                *nexttime += period;//set timer for next tick
-                if(*nexttime+period<t)
-                    *nexttime = t+period;//we're way overdue, start again from now
-            }
-            else
-                tk_removefromlist(tk->timer,tk->timer[i--]);//decrement since the current item was removed
-        }
-    } 
-}
-
-//for standalone apps
-void tk_rollit(tk_t tk)
-{ 
-    PuglView* view = tk->view;
-
-    puglShowWindow(view);
-
-    if(tk->timer)
-    {
-        while (!tk->quit)
-        {
-            csleep(1);// these are crappy timers jsyk, we sleep for 1ms in between
-            puglProcessEvents(view);
-            tk_checktimers(tk);
-            tk_redraw(tk);
-        }
-    }
-    else
-        while (!tk->quit)
-        {
-            //no timers
-            puglWaitForEvent(view);
-            puglProcessEvents(view);
-            tk_redraw(tk);
-        }
+        osz = tk->tablesize;
+        memcpy(tmpt.x,      tk->x,      osz*sizeof(float));
+        memcpy(tmpt.y,      tk->y,      osz*sizeof(float));
+        memcpy(tmpt.w,      tk->w,      osz*sizeof(float));
+        memcpy(tmpt.h,      tk->h,      osz*sizeof(float));
+        memcpy(tmpt.layer,  tk->layer,  osz*sizeof(uint8_t));
+        memcpy(tmpt.value,  tk->value,  osz*sizeof(void*));
+        memcpy(tmpt.tip,    tk->tip,    osz*sizeof(char*));
+        memcpy(tmpt.props,  tk->props,  osz*sizeof(uint16_t));
+        memcpy(tmpt.extras, tk->extras, osz*sizeof(void*));
+        memcpy(tmpt.user,   tk->user,   osz*sizeof(void*));
         
-    tk_cleanup(tk);    
-}
+        memcpy(tmpt.hold_ratio,tk->hold_ratio,osz*sizeof(uint16_t)+1);
+        memcpy(tmpt.draw,      tk->draw,      osz*sizeof(uint16_t)+1);
+        memcpy(tmpt.redraw,    tk->redraw,    osz*sizeof(uint16_t)+1);
 
-//for plugins
-void tk_idle(tk_t tk)
-{
-    puglProcessEvents(tk->view); 
-    tk_checktimers(tk);
-    tk_redraw(tk);
+        memcpy(tmpt.draw_f,    tk->draw_f,    osz*sizeof(void(*)(cairo_t*,float,float,void*)));
+        memcpy(tmpt.cb_f,      tk->cb_f,      osz*sizeof(void(*)(tk_t,PuglEvent*,uint16_t)));
+        memcpy(tmpt.callback_f,tk->callback_f,osz*sizeof(void(*)(tk_t,PuglEvent*,uint16_t)));
+    }
+
+    tk->x =      tmpt.x;
+    tk->y =      tmpt.y;
+    tk->w =      tmpt.w;
+    tk->h =      tmpt.h;
+    tk->layer =  tmpt.layer;
+    tk->value =  tmpt.value;
+    tk->tip =    tmpt.tip;
+    tk->props =  tmpt.props;
+    tk->extras = tmpt.extras;
+    tk->user =   tmpt.user;
+
+    tk->hold_ratio = tmpt.hold_ratio;
+    tk->draw =       tmpt.draw;
+    tk->redraw =     tmpt.redraw; 
+    tk->draw_f =     tmpt.draw_f;
+    tk->cb_f =       tmpt.cb_f;
+    tk->callback_f = tmpt.callback_f;
 }
 
 void tk_resizeeverything(tk_t tk,float w, float h)
@@ -456,6 +431,30 @@ void tk_damage(tk_t tk, uint16_t n)
     }
 
     cairo_restore(tk->cr);
+}
+
+void tk_checktimers(tk_t tk)
+{
+    uint16_t i,n;
+    float *nexttime,period, t = (float)timer_current_seconds(tk->tlibh);
+    for(i=0;tk->timer && tk->timer[i];i++)
+    {
+        n = tk->timer[i];
+        nexttime = (float*)tk->extras[n];
+        if(t>=*nexttime)
+        {
+            tk->callback_f[n](tk,0,n);
+            period = *(float*)tk->value[n];
+            if(period)
+            {
+                *nexttime += period;//set timer for next tick
+                if(*nexttime+period<t)
+                    *nexttime = t+period;//we're way overdue, start again from now
+            }
+            else
+                tk_removefromlist(tk->timer,tk->timer[i--]);//decrement since the current item was removed
+        }
+    } 
 }
 
 uint16_t tk_eventsearch(tk_t tk, const PuglEvent* event)
@@ -705,16 +704,6 @@ uint16_t tk_addaWidget(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h)
     tk->cb_f[n] = tk_nocallback;
     tk->callback_f[n] = tk_nocallback;
     return n;
-}
-
-uint16_t tk_addaDecoration(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h)
-{
-    uint16_t n = tk->nitems;
-
-    tk_addaWidget(tk,x,y,w,h);
-    tk->layer[n] = 1;
-    tk_addtolist(tk->hold_ratio,n); 
-    return n; 
 }
 
 float tk_dialvalue(tk_t tk, uint16_t n)
