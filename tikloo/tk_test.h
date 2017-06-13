@@ -8,7 +8,6 @@ void tk_resizeeverything(tk_t tk, float w, float h);
 void tk_draw(tk_t tk,uint16_t n);
 void tk_redraw(tk_t tk);
 void tk_draweverything(tk_t tk);
-void tk_damage(tk_t tk, uint16_t n);//may need to move this to tk.h
 
 void tk_checktimers(tk_t tk);
 uint16_t tk_eventsearch(tk_t tk, const PuglEvent* event);

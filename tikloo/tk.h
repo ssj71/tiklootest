@@ -25,6 +25,7 @@ void tk_idle(tk_t tk);
 void tk_cleanup(tk_t tk);
 
 //various helping functions
+void tk_damage(tk_t tk, uint16_t n);//redraw item and any underneath
 void tk_addtogrowlist(uint16_t** list, uint16_t *len, uint16_t n);
 void tk_addtolist(uint16_t* list, uint16_t n);
 void tk_removefromlist(uint16_t* list, uint16_t n);

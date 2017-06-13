@@ -201,7 +201,8 @@ void tk_cleanup(tk_t tk)
 
     if(tk->timer) free(tk->timer);
     free(tk->x); free(tk->y); free(tk->w); free(tk->h);
-    free(tk->layer); free(tk->value); free(tk->tip);
+    free(tk->layer); free(tk->value); free(tk->ds);
+    free(tk->tip);
     free(tk->props); free(tk->extras); free(tk->user);
     free(tk->hold_ratio); free(tk->draw); free(tk->redraw);
     free(tk->draw_f); free(tk->cb_f); free(tk->callback_f);
@@ -221,12 +222,13 @@ void tk_growprimarytable(tk_t tk)
     tmpt.w = (float*)calloc(sz,sizeof(float));
     tmpt.h = (float*)calloc(sz,sizeof(float));
 
-    tmpt.layer =  (uint8_t*)calloc(sz+1,sizeof(uint8_t)); 
-    tmpt.value =    (void**)calloc(sz,sizeof(void*)); 
-    tmpt.tip =      (char**)calloc(sz,sizeof(char*));
-    tmpt.props = (uint16_t*)calloc(sz,sizeof(uint16_t));
-    tmpt.extras =   (void**)calloc(sz,sizeof(void*));
-    tmpt.user =     (void**)calloc(sz,sizeof(void*));
+    tmpt.layer =   (uint8_t*)calloc(sz+1,sizeof(uint8_t)); 
+    tmpt.value =     (void**)calloc(sz,sizeof(void*)); 
+    tmpt.ds =(tk_draw_stuff*)calloc(sz,sizeof(tk_draw_stuff)); 
+    tmpt.tip =       (char**)calloc(sz,sizeof(char*));
+    tmpt.props =  (uint16_t*)calloc(sz,sizeof(uint16_t));
+    tmpt.extras =    (void**)calloc(sz,sizeof(void*));
+    tmpt.user =      (void**)calloc(sz,sizeof(void*));
 
     //init the lists
     //lists always keep an extra 0 at the end so the end can be found even if full
@@ -246,6 +248,7 @@ void tk_growprimarytable(tk_t tk)
         memcpy(tmpt.w,      tk->w,      osz*sizeof(float));
         memcpy(tmpt.h,      tk->h,      osz*sizeof(float));
         memcpy(tmpt.layer,  tk->layer,  osz*sizeof(uint8_t));
+        memcpy(tmpt.ds,     tk->ds,     osz*sizeof(void*));
         memcpy(tmpt.value,  tk->value,  osz*sizeof(void*));
         memcpy(tmpt.tip,    tk->tip,    osz*sizeof(char*));
         memcpy(tmpt.props,  tk->props,  osz*sizeof(uint16_t));
@@ -267,6 +270,7 @@ void tk_growprimarytable(tk_t tk)
     tk->h =      tmpt.h;
     tk->layer =  tmpt.layer;
     tk->value =  tmpt.value;
+    tk->ds =     tmpt.ds;
     tk->tip =    tmpt.tip;
     tk->props =  tmpt.props;
     tk->extras = tmpt.extras;
@@ -366,18 +370,22 @@ void tk_resizeeverything(tk_t tk,float w, float h)
 void tk_draw(tk_t tk,uint16_t n)
 {
     cairo_translate(tk->cr,tk->x[n],tk->y[n]);
-    tk->draw_f[n](tk->cr,tk->w[n],tk->h[n],tk->value[n]); 
+    tk->draw_f[n](tk->cr,tk->w[n],tk->h[n],tk->ds[n],tk->value[n]); 
     cairo_translate(tk->cr,-tk->x[n],-tk->y[n]);
 }
+
 void tk_redraw(tk_t tk)
 {
-    uint16_t i;
+    uint16_t i,n;
     if( !tk->redraw[0] )
         return;//empty list
     //TODO: if we have to redraw the bg, we probably have to draweverything anyway, no?
     for(i=0; tk->redraw[i]||!i; i++)
     {
-        tk_draw(tk,tk->redraw[i]);
+        n = tk->redraw[i];
+        if(!tk->props[n]&TK_NO_DAMAGE)
+            tk_damage(tk,n);
+        tk_draw(tk,n);
         tk->redraw[i] = 0;
         //TODO: cache everything to avoid redraws?
     }
@@ -415,20 +423,15 @@ void tk_damage(tk_t tk, uint16_t n)
     cairo_clip_preserve(tk->cr);
 
     cairo_set_source_rgba(tk->cr, 0,0,0,1);
-    cairo_fill(tk->cr);
+    cairo_fill(tk->cr);//fill with black in case there's no bg
         
     for(l=1;l<=lmx;l++)
-    {
         for(i=0; tk->cb_f[i]; i++)
-        {
             if( tk->x[i] < x2 && tk->x[i] + tk->w[i] > x &&
                 tk->y[i] < y2 && tk->y[i] + tk->h[i] > y &&
-                i != n && tk->layer[i] == l )
-            {
+                i != n && tk->layer[i] == l
+              )
                 tk_draw(tk,i);
-            }
-        }
-    }
 
     cairo_restore(tk->cr);
 }
@@ -731,8 +734,6 @@ void tk_dialcallback(tk_t tk, const PuglEvent* event, uint16_t n)
         //fprintf(stderr, "%f ",*v);
         tk->callback_f[n](tk,event,n);
         tk_addtolist(tk->redraw,n);
-        if(!tk->props[n]&TK_NO_DAMAGE)
-            tk_damage(tk,n);
         break;
     case PUGL_BUTTON_PRESS:
         tk->drag = n;
@@ -751,8 +752,6 @@ void tk_dialcallback(tk_t tk, const PuglEvent* event, uint16_t n)
         //fprintf(stderr, "%f ",*v);
         tk->callback_f[n](tk,event,n);
         tk_addtolist(tk->redraw,n);
-        if(!tk->props[n]&TK_NO_DAMAGE)
-            tk_damage(tk,n); 
         break;
     default:
         break;
@@ -795,8 +794,6 @@ void tk_buttoncallback(tk_t tk, const PuglEvent* event, uint16_t n)
             *v ^= 0x01;
             tk->callback_f[n](tk,event,n);
             tk_addtolist(tk->redraw,n);
-            if(!tk->props[n]&TK_NO_DAMAGE)
-                tk_damage(tk,n);
         }
         break;
     case PUGL_BUTTON_PRESS:
@@ -806,8 +803,6 @@ void tk_buttoncallback(tk_t tk, const PuglEvent* event, uint16_t n)
             *v ^= 0x01;
             tk->callback_f[n](tk,event,n);
             tk_addtolist(tk->redraw,n);
-            if(!tk->props[n]&TK_NO_DAMAGE)
-                tk_damage(tk,n);
         }
         break;
     case PUGL_BUTTON_RELEASE:
@@ -819,8 +814,6 @@ void tk_buttoncallback(tk_t tk, const PuglEvent* event, uint16_t n)
             *v ^= 0x01;
             tk->callback_f[n](tk,event,n);
             tk_addtolist(tk->redraw,n);
-            if(!tk->props[n]&TK_NO_DAMAGE)
-                tk_damage(tk,n);
         }
         break;
     default:
@@ -1259,10 +1252,6 @@ uint16_t tk_addaTooltip(tk_t tk, tk_font_stuff* font)
     tk->tip[n] = 0;
     free(tk->tkt.str[tk->tkt.nitems-1]);//this just gets pointed to the tooltip str
     tk->tkt.str[tk->tkt.nitems-1] = tk->tip[0];//just a placeholder
-
-    //tk_text_stuff* tkt = (tk_text_stuff*)tk->value[n];
-
-    //tk_addtolist(tk->hold_ratio,n);//?
 
     tk->draw_f[n] = tk_drawtip;
 
