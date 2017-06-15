@@ -197,17 +197,29 @@ void tk_cleanup(tk_t tk)
     for(i=0;tk->cb_f[i];i++)
         if(tk->extras[i])
             free(tk->extras[i]);
+    tk_rmdupptr((void**)(tk->drawstuff));
+    for(i=0;tk->cb_f[i];i++)
+        if(tk->drawstuff[i])
+            free(tk->drawstuff[i]);
     //we let the user free anything in user data 
 
     if(tk->timer) free(tk->timer);
     free(tk->x); free(tk->y); free(tk->w); free(tk->h);
-    free(tk->layer); free(tk->value); free(tk->ds);
+    free(tk->layer); free(tk->value); free(tk->drawstuff);
     free(tk->tip);
     free(tk->props); free(tk->extras); free(tk->user);
     free(tk->hold_ratio); free(tk->draw); free(tk->redraw);
     free(tk->draw_f); free(tk->cb_f); free(tk->callback_f);
     puglDestroy(tk->view);
     free(tk);
+}
+
+void tk_sharedraw(tk_t tk, uint16_t n)
+{
+    uint16_t i;
+    for(i=0;tk->cb_f[i];i++)
+        if(tk->draw_f[i] == tk->draw_f[n])
+            tk->drawstuff[i] == tk->drawstuff[n]; 
 }
 
 void tk_growprimarytable(tk_t tk)
@@ -224,11 +236,11 @@ void tk_growprimarytable(tk_t tk)
 
     tmpt.layer =   (uint8_t*)calloc(sz+1,sizeof(uint8_t)); 
     tmpt.value =     (void**)calloc(sz,sizeof(void*)); 
-    tmpt.ds =(tk_draw_stuff*)calloc(sz,sizeof(tk_draw_stuff)); 
     tmpt.tip =       (char**)calloc(sz,sizeof(char*));
     tmpt.props =  (uint16_t*)calloc(sz,sizeof(uint16_t));
     tmpt.extras =    (void**)calloc(sz,sizeof(void*));
     tmpt.user =      (void**)calloc(sz,sizeof(void*));
+    tmpt.drawstuff = (void**)calloc(sz,sizeof(void*)); 
 
     //init the lists
     //lists always keep an extra 0 at the end so the end can be found even if full
@@ -248,12 +260,12 @@ void tk_growprimarytable(tk_t tk)
         memcpy(tmpt.w,      tk->w,      osz*sizeof(float));
         memcpy(tmpt.h,      tk->h,      osz*sizeof(float));
         memcpy(tmpt.layer,  tk->layer,  osz*sizeof(uint8_t));
-        memcpy(tmpt.ds,     tk->ds,     osz*sizeof(void*));
         memcpy(tmpt.value,  tk->value,  osz*sizeof(void*));
         memcpy(tmpt.tip,    tk->tip,    osz*sizeof(char*));
         memcpy(tmpt.props,  tk->props,  osz*sizeof(uint16_t));
         memcpy(tmpt.extras, tk->extras, osz*sizeof(void*));
         memcpy(tmpt.user,   tk->user,   osz*sizeof(void*));
+        memcpy(tmpt.drawstuff, tk->drawstuff,osz*sizeof(void*));
         
         memcpy(tmpt.hold_ratio,tk->hold_ratio,osz*sizeof(uint16_t)+1);
         memcpy(tmpt.draw,      tk->draw,      osz*sizeof(uint16_t)+1);
@@ -270,11 +282,11 @@ void tk_growprimarytable(tk_t tk)
     tk->h =      tmpt.h;
     tk->layer =  tmpt.layer;
     tk->value =  tmpt.value;
-    tk->ds =     tmpt.ds;
     tk->tip =    tmpt.tip;
     tk->props =  tmpt.props;
     tk->extras = tmpt.extras;
     tk->user =   tmpt.user;
+    tk->drawstuff = tmpt.drawstuff;
 
     tk->hold_ratio = tmpt.hold_ratio;
     tk->draw =       tmpt.draw;
@@ -370,7 +382,7 @@ void tk_resizeeverything(tk_t tk,float w, float h)
 void tk_draw(tk_t tk,uint16_t n)
 {
     cairo_translate(tk->cr,tk->x[n],tk->y[n]);
-    tk->draw_f[n](tk->cr,tk->w[n],tk->h[n],tk->ds[n],tk->value[n]); 
+    tk->draw_f[n](tk->cr,tk->w[n],tk->h[n],tk->drawstuff[n],tk->value[n]); 
     cairo_translate(tk->cr,-tk->x[n],-tk->y[n]);
 }
 
