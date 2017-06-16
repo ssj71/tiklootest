@@ -70,7 +70,7 @@ typedef struct
     char* units;
 }tk_dial_stuff;
 
-typdef struct
+typedef struct
 {
     cairo_t **cr;
     cairo_surface_t **surf; 

@@ -47,6 +47,8 @@ int main()
                     100, //max
                     50); //val
     tk_setstring(&tk->tip[n],"test tip. this rather long tooltip is mostly just to tell you that this dial here does nothing in particular, its really just a testbed to see if any of this stuff works, but hope your day is ok anyway.");
+    //tk->props[n] |= TK_NO_DAMAGE;
+
     n = tk_addaDial(tk,
                   70, //x
                   20, //y
@@ -56,6 +58,7 @@ int main()
                   100, //max
                   50); //val
     tk_setstring(&tk->tip[n],"testy");
+
     n = tk_addaButton(tk,
                         20, //x
                         70, //y
@@ -63,6 +66,7 @@ int main()
                         40, //h
                         0); //val
     tk->callback_f[n] = freeze_item_ratio;
+
     n = tk_addaButton(tk,
                         70, //x
                         70, //y
@@ -77,7 +81,7 @@ int main()
     //                    (const uint8_t*)"/usr/share/fonts/truetype/freefont/FreeSerif.ttf", //font path
     //                    0,   //font binary size (0 for path)
     //                    0,   //font index
-    //                    10); //font height
+    //                    10); //font height 
     n = tk_addaText(tk,
                          5, //x
                          5, //y
@@ -86,11 +90,13 @@ int main()
                          //tkf,//font
                          0, //font (0 uses default)
                          "Don't Panic!"); //msg
+
     n = tk_addaTimer(tk, 5);//seconds
     tk->callback_f[n] = tick;
 
     tk_addaTooltip(tk,0);//font (0 uses default)
 
+    tk_optimizedefaultdraw(tk);
     tk_rollit(tk);
     //here we should free anything we added to user[] but there isn't anything
     return 0;

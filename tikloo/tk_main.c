@@ -214,14 +214,6 @@ void tk_cleanup(tk_t tk)
     free(tk);
 }
 
-void tk_sharedraw(tk_t tk, uint16_t n)
-{
-    uint16_t i;
-    for(i=0;tk->cb_f[i];i++)
-        if(tk->draw_f[i] == tk->draw_f[n])
-            tk->drawstuff[i] == tk->drawstuff[n]; 
-}
-
 void tk_growprimarytable(tk_t tk)
 {
     uint8_t osz,sz = TK_STARTER_SIZE;
@@ -248,7 +240,7 @@ void tk_growprimarytable(tk_t tk)
     tmpt.draw =       (uint16_t*)calloc(sz+1,sizeof(float));
     tmpt.redraw =     (uint16_t*)calloc(sz+1,sizeof(float));
 
-    tmpt.draw_f = (void(**)(cairo_t*,float,float,void*))calloc(sz,sizeof(&tk_drawnothing));
+    tmpt.draw_f = (void(**)(cairo_t*,float,float,void*,void*))calloc(sz,sizeof(&tk_drawnothing));
     tmpt.cb_f = (void(**)(tk_t,const PuglEvent*,uint16_t))calloc(sz,sizeof(&tk_callback));
     tmpt.callback_f = (void(**)(tk_t,const PuglEvent*,uint16_t))calloc(sz,sizeof(&tk_callback));
 
@@ -271,7 +263,7 @@ void tk_growprimarytable(tk_t tk)
         memcpy(tmpt.draw,      tk->draw,      osz*sizeof(uint16_t)+1);
         memcpy(tmpt.redraw,    tk->redraw,    osz*sizeof(uint16_t)+1);
 
-        memcpy(tmpt.draw_f,    tk->draw_f,    osz*sizeof(void(*)(cairo_t*,float,float,void*)));
+        memcpy(tmpt.draw_f,    tk->draw_f,    osz*sizeof(void(*)(cairo_t*,float,float,void*,void*)));
         memcpy(tmpt.cb_f,      tk->cb_f,      osz*sizeof(void(*)(tk_t,PuglEvent*,uint16_t)));
         memcpy(tmpt.callback_f,tk->callback_f,osz*sizeof(void(*)(tk_t,PuglEvent*,uint16_t)));
     }
@@ -434,8 +426,8 @@ void tk_damage(tk_t tk, uint16_t n)
     cairo_close_path(tk->cr);
     cairo_clip_preserve(tk->cr);
 
-    cairo_set_source_rgba(tk->cr, 0,0,0,1);
-    cairo_fill(tk->cr);//fill with black in case there's no bg
+    //cairo_set_source_rgba(tk->cr, 0,0,0,1);
+    //cairo_fill(tk->cr);//fill with black in case there's no bg
         
     for(l=1;l<=lmx;l++)
         for(i=0; tk->cb_f[i]; i++)
@@ -447,6 +439,28 @@ void tk_damage(tk_t tk, uint16_t n)
 
     cairo_restore(tk->cr);
 }
+
+void tk_sharedraw(tk_t tk, uint16_t n)
+{
+    uint16_t i;
+    for(i=0;tk->cb_f[i];i++)
+        if(tk->draw_f[i] == tk->draw_f[n])
+            tk->drawstuff[i] = tk->drawstuff[n]; 
+}
+
+void tk_optimizedefaultdraw(tk_t tk)
+{
+    uint16_t i;
+    for(i=0;tk->cb_f[i];i++)
+        if(tk->draw_f[i] == tk_drawdial ||
+           tk->draw_f[i] == tk_drawbutton)
+        {
+            tk_draw(tk,i);
+            tk_sharedraw(tk,i);
+            tk->props[i] |= TK_NO_DAMAGE;
+        }
+}
+
 
 void tk_checktimers(tk_t tk)
 {
@@ -517,9 +531,12 @@ static void tk_callback (PuglView* view, const PuglEvent* event)
     case PUGL_CONFIGURE:
         if(event->configure.width == (tk->w[0]+2*tk->x[0]) &&
            event->configure.height == (tk->h[0]+2*tk->y[0]) )
-           break;
+           return;
         tk_resizeeverything(tk,event->configure.width,event->configure.height);
+        break;
     case PUGL_EXPOSE:
+        if(event->expose.count)
+            return;
         tk_draweverything(tk);
         break;
     case PUGL_CLOSE:

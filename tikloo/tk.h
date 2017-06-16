@@ -24,14 +24,15 @@ void tk_rollit(tk_t tk);
 void tk_idle(tk_t tk);
 void tk_cleanup(tk_t tk);
 
-
 //various helping functions
+void tk_changelayer(tk_t tk, uint16_t n, uint16_t layer);
+void tk_optimizedefaultdraw(tk_t tk);
+
 void tk_addtogrowlist(uint16_t** list, uint16_t *len, uint16_t n);
 void tk_addtolist(uint16_t* list, uint16_t n);
 void tk_removefromlist(uint16_t* list, uint16_t n);
 void tk_insertinlist(uint16_t* list, uint16_t i, uint16_t n);
 void tk_setstring(char** str, char* msg);
-void tk_changelayer(tk_t tk, uint16_t n, uint16_t layer);
 void tk_settimer(tk_t tk, uint16_t n, float s);
 float tk_dialvalue(tk_t tk, uint16_t n);
 
