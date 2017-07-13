@@ -33,6 +33,7 @@ typedef struct tk_text_table
     ////// main text table
     char** str;//pointer to text
     uint8_t* strchange;
+    uint16_t* memlen;//allocated size of str (if 0 then == streln(str));
     uint16_t* n;//item in main table
     uint16_t* cursor;//cursor location in string
     uint16_t* select;//selection length
@@ -52,6 +53,7 @@ typedef struct tk_text_table
     ////// text global
     float scale;
     uint8_t cursorstate;
+    uint16_t cursortimer;
     uint16_t nitems,tablesize;
     uint16_t dff;//default font
 }tk_text_table;
@@ -96,6 +98,13 @@ typedef enum
     TK_TEXT_WRAP = 0x2,
     
 }TK_PROPERTIES;
+
+// other magic numbers or bitmasks
+typedef enum
+{
+    TK_CURSOR_STATE = 0x1,
+    TK_CURSOR_CHANGED = 0x2
+}
 
 typedef struct tk_table
 {

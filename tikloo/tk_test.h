@@ -15,6 +15,9 @@ uint16_t tk_eventsearch(tk_t tk, const PuglEvent* event);
 static void tk_callback (PuglView* view, const PuglEvent* event);
 void tk_rmdupptr(void** a);
 
+void tk_strinsert(char* dest, char* src, uint16_t i);
+void tk_strcut(char* str, uint16_t i, uint16_t l);
+
 //WIDGET STUFF
 void tk_nocallback(tk_t tk, const PuglEvent* e, uint16_t n);
 void tk_dialcallback(tk_t tk, const PuglEvent* event, uint16_t n);

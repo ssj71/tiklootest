@@ -42,6 +42,7 @@ tk_t tk_gimmeaTiKloo(uint16_t w, uint16_t h, char* title)
     //init the text table to len 0
     tk->tkt.str = 0;
     tk->tkt.strchange = 0;
+    tk->tkt.memlen = 0;
     tk->tkt.n = 0;
     tk->tkt.cursor = 0;
     tk->tkt.select = 0;
@@ -58,6 +59,7 @@ tk_t tk_gimmeaTiKloo(uint16_t w, uint16_t h, char* title)
     tk->tkt.cluster_count = 0;
 
     tk->tkt.cursorstate = 0;
+    tk->tkt.cursortimer = 0;
     tk->tkt.nitems = 0;
     tk->tkt.tablesize = 0;
 
@@ -181,7 +183,7 @@ void tk_cleanup(tk_t tk)
             free(tk->tkt.extents[i]); 
     free(tk->tkt.extents); 
 
-    free(tk->tkt.strchange); free(tk->tkt.n); 
+    free(tk->tkt.strchange); free(tk->tkt.memlen); free(tk->tkt.n); 
     free(tk->tkt.cursor); free(tk->tkt.select);
     free(tk->tkt.ln); free(tk->tkt.col); free(tk->tkt.brklen);
     free(tk->tkt.glyph_count); free(tk->tkt.cluster_count); free(tk->tkt.extents_count); 
@@ -546,6 +548,8 @@ static void tk_callback (PuglView* view, const PuglEvent* event)
         fprintf(stderr, "Key %u (char %u) press (%s)%s\n",
                 event->key.keycode, event->key.character, event->key.utf8,
                 event->key.filter ? " (filtered)" : "");
+        if(tk->focus)
+            tk->cb_f[tk->focus](tk,event,tk->drag);
         break;
     case PUGL_KEY_RELEASE:
         fprintf(stderr, "Key %u (char %u) release (%s)%s\n",
@@ -585,6 +589,7 @@ static void tk_callback (PuglView* view, const PuglEvent* event)
         //no break
     case PUGL_BUTTON_PRESS:
         n = tk_eventsearch(tk,event);
+        tk->focus = 0;
         if(n)
             tk->cb_f[n](tk,event,n);
         break;
@@ -683,6 +688,41 @@ void tk_setstring(char** str, char* msg)
         free(*str);
     *str = (char*)calloc(l+2,sizeof(char));
     strcpy(*str,msg);
+}
+
+void tk_growstring(char** str)
+{
+    //TODO: this doesn't work
+    uint16_t l = 8;
+    char* tmp;
+    if( *str )
+        l = strlen(*str);
+    tmp = (char*)calloc(2*l,sizeof(char));
+    if( *str )
+    {
+        strcpy(tmp,*str);
+        free(*str);
+    }
+    *str = tmp;
+    
+}
+
+void tk_strinsert(char* dest, char* src, uint16_t i)
+{
+    tmp = calloc(strlen(&dest[i]),sizeof(char));
+    strcpy(tmp,&dest[i]);
+    strcpy(&dest[i],src);
+    strcat(&dest,tmp); 
+    free(tmp);
+}
+
+void tk_strcut(char* str, uint16_t i, uint16_t l)
+{
+    tmp = calloc(strlen(&str[i+l]),sizeof(char));
+    strcpy(tmp,&str[i+l]);
+    str[i] = 0;
+    strcat(&str,tmp); 
+    free(tmp);
 }
 
 void tk_changelayer(tk_t tk, uint16_t n, uint16_t layer)
@@ -1086,6 +1126,7 @@ void tk_growtexttable(tk_text_table* tkt)
         sz = 2*tkt->tablesize;
     tmpt.str =         (char**)calloc(sz,sizeof(char*));
     tmpt.strchange = (uint8_t*)calloc(sz,sizeof(uint8_t));
+    tmpt.memlen =   (uint16_t*)calloc(sz,sizeof(uint16_t));
     tmpt.n =        (uint16_t*)calloc(sz,sizeof(uint16_t));
     tmpt.cursor =   (uint16_t*)calloc(sz,sizeof(uint16_t));
     tmpt.select =   (uint16_t*)calloc(sz,sizeof(uint16_t));
@@ -1107,6 +1148,7 @@ void tk_growtexttable(tk_text_table* tkt)
         osz = tkt->tablesize;
         memcpy(tmpt.str,      tkt->str,      osz*sizeof(char*));
         memcpy(tmpt.strchange,tkt->strchange,osz*sizeof(uint8_t));
+        memcpy(tmpt.memlen,   tkt->memlen,   osz*sizeof(uint16_t));
         memcpy(tmpt.n,        tkt->n,        osz*sizeof(uint16_t));
         memcpy(tmpt.cursor,   tkt->cursor,   osz*sizeof(uint16_t));
         memcpy(tmpt.select,   tkt->select,   osz*sizeof(uint16_t));
@@ -1126,6 +1168,7 @@ void tk_growtexttable(tk_text_table* tkt)
 
     tkt->str = tmpt.str;
     tkt->strchange = tmpt.strchange;
+    tkt->memlen = tmpt.memlen;
     tkt->n = tmpt.n;
     tkt->cursor = tmpt.cursor;
     tkt->select = tmpt.select;
@@ -1188,6 +1231,52 @@ uint16_t tk_addaText(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, tk
 
     return n; 
 } 
+
+void tk_textentrycallback(tk_t tk, const PuglEvent* event, uint16_t n)
+{
+    uint8_t s = ((tk_text_stuff*)tk->value[n])->n;
+    tk->focus = n;
+    switch (event->type) {
+    case PUGL_BUTTON_PRESS:
+        tk->drag = n;
+        tk_settimer(tk,tk->tkt.cursortimer,1);
+        tk->tkt.cursorstate |= TK_CURSOR_STATE + TK_CURSOR_CHANGED;
+        tk->tkt.cursor[s] = strlen(tk->tkt.str[s]);
+        //TODO: set cursor position
+        break;
+    case PUGL_BUTTON_RELEASE:
+        break;
+    case PUGL_KEY_PRESS:
+        //TODO: handle arrow keys 
+        if(strlen(tk->tkt.str[s])+strlen(event->key.utf8)+1 < tk->tkt.memlen[s])
+            tk_growstring(tk->tkt.str[s]);
+        tk_strinsert(tk->tkt.str[s],event->key.utf8,tk->tkt.cursor[s]);
+        tk->tkt.strchange[s] = 1; 
+        tk_addtolist(tk->redraw,n);
+    default:
+        break;
+    }
+}
+
+void tk_cursorcallback(tk_t tk, const PuglEvent* event, uint16_t n)
+{
+    tk->tkt.cursorstate ^= TK_CURSOR_STATE;
+    tk->tkt.cursorstate |= TK_CURSOR_CHANGED;
+    tk_addtolist(tk->redraw,tk->focus);
+    tk_settimer(tk,n,1);
+}
+
+uint16_t tk_addaTextentry(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, tk_font_stuff* font, char* str)
+{
+    uint16_t n = tk_addaText(tk, x, y, w, h, font, str);
+    tk->cb_f = tk_textentrycallback;
+
+    if(!tk->tkt.cursortimer)
+    {
+        tk->tkt.cursortimer = tk_addaTimer(tk, 0);
+        tk->callback_f[tk->tkt.cursortimer] = tk_cursorcallback;
+    }
+}
 
 void tk_showtipcallback(tk_t tk, const PuglEvent* e, uint16_t n)
 {
