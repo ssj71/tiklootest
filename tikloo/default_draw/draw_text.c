@@ -120,7 +120,7 @@ void tk_drawtip(cairo_t *cr, float w, float h, void* cache, void* valp)
     cairo_restore( cr ) ; 
 }
 
-void tk_gettextcursor(void* valp, int *x, int *y)
+void tk_gettextcursor(void* valp, int *x, int *y, int w, int h)
 {
 
     tk_text_stuff* tkts = (tk_text_stuff*)valp;
@@ -212,7 +212,7 @@ void tk_drawtextentry(cairo_t *cr, float w, float h, void* cache, void* valp)
     uint16_t n = ((tk_text_stuff*)valp)->n;
     int x,y;
 
-    tk_gettextcursor(valp,&x,&y);
+    tk_gettextcursor(valp,&x,&y,w,h);
     //draw bg/text if necessary
     if(tkt->strchange || !(tkt->cursorstate|TK_CURSOR_CHANGED))
     {

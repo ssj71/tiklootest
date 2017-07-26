@@ -709,19 +709,19 @@ void tk_growstring(char** str)
 
 void tk_strinsert(char* dest, char* src, uint16_t i)
 {
-    tmp = calloc(strlen(&dest[i]),sizeof(char));
+    char* tmp = calloc(strlen(&dest[i]),sizeof(char));
     strcpy(tmp,&dest[i]);
     strcpy(&dest[i],src);
-    strcat(&dest,tmp); 
+    strcat(dest,tmp); 
     free(tmp);
 }
 
 void tk_strcut(char* str, uint16_t i, uint16_t l)
 {
-    tmp = calloc(strlen(&str[i+l]),sizeof(char));
+    char* tmp = calloc(strlen(&str[i+l]),sizeof(char));
     strcpy(tmp,&str[i+l]);
     str[i] = 0;
-    strcat(&str,tmp); 
+    strcat(str,tmp); 
     free(tmp);
 }
 

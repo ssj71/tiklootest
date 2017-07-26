@@ -35,8 +35,8 @@ int main()
     tk_t tk;
     uint16_t n;
 
-    tk = tk_gimmeaTiKloo(128, //w
-                         128, //h
+    tk = tk_gimmeaTiKloo(200, //w
+                         200, //h
                          "this is only a test");//title
     n = tk_addaDial(tk,
                     20, //x
@@ -50,29 +50,29 @@ int main()
     //tk->props[n] |= TK_NO_DAMAGE;
 
     n = tk_addaDial(tk,
-                  70, //x
-                  20, //y
-                  30, //w
-                  30, //h
-                  0,  //min
-                  100, //max
-                  50); //val
+                    70, //x
+                    20, //y
+                    30, //w
+                    30, //h
+                    0,  //min
+                    100, //max
+                    50); //val
     tk_setstring(&tk->tip[n],"testy");
 
     n = tk_addaButton(tk,
-                        20, //x
-                        70, //y
-                        30, //w
-                        40, //h
-                        0); //val
+                      20, //x
+                      70, //y
+                      30, //w
+                      40, //h
+                      0); //val
     tk->callback_f[n] = freeze_item_ratio;
 
     n = tk_addaButton(tk,
-                        70, //x
-                        70, //y
-                        30, //w
-                        40, //h
-                        0); //val
+                      70, //x
+                      70, //y
+                      30, //w
+                      40, //h
+                      0); //val
     tk_addtolist(tk->hold_ratio,n);
     tk->callback_f[n] = freeze_ratio;
     tk_setstring(&tk->tip[n],"testytestytestytestytestytestytestytestytestytestytestytesty");
@@ -83,18 +83,26 @@ int main()
     //                    0,   //font index
     //                    10); //font height 
     n = tk_addaText(tk,
-                         5, //x
-                         5, //y
-                         180, //w
-                         10, //h
-                         //tkf,//font
-                         0, //font (0 uses default)
-                         "Don't Panic!"); //msg
+                    5, //x
+                    5, //y
+                    180, //w
+                    10, //h
+                    //tkf,//font
+                    0, //font (0 uses default)
+                    "Don't Panic!"); //msg
 
     n = tk_addaTimer(tk, 5);//seconds
     tk->callback_f[n] = tick;
 
     tk_addaTooltip(tk,0);//font (0 uses default)
+
+    n = tk_addaTextentry(tk,
+                         5, //x
+                         120, //y
+                         180, //w
+                         12, //h
+                         0, //font
+                         "Type Here"); //text
 
     tk_optimizedefaultdraw(tk);
     tk_rollit(tk);
