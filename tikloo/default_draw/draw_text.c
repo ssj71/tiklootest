@@ -1,5 +1,5 @@
-#include "tk_default_draw.h"
 #include<ctype.h>
+#include "tk_default_draw.h"
 
 // here we assume a single line
 // line and fill must be arrays describing rgba (and a width for line)
@@ -126,7 +126,6 @@ void tk_gettextcursor(void* valp, int *x, int *y, int w, int h)
     tk_text_stuff* tkts = (tk_text_stuff*)valp;
     tk_text_table* tkt = (tk_text_table*)tkts->tkt;
     int n = tkts->n;
-    cairo_glyph_t* glyphs = tkt->glyphs[n];
     cairo_text_cluster_t* clusters = tkt->clusters[n];
     int cluster_count = tkt->cluster_count[n];
     cairo_text_extents_t* extents = tkt->extents[n];
@@ -141,7 +140,6 @@ void tk_gettextcursor(void* valp, int *x, int *y, int w, int h)
     //cairo_translate(cr, 2, tkt->tkf[n]->base);//start at foot of line
 
     // draw each cluster
-    int glyph_index = 0;
     int str_index = 0;
     int ln=0,whitex=0;
     *x=*y=0;
@@ -177,7 +175,6 @@ void tk_gettextcursor(void* valp, int *x, int *y, int w, int h)
             //cairo_glyph_path(cr, &glyphs[glyph_index], clusters[i].num_glyphs);
 
             // advance glyph/str position
-            glyph_index += clusters[i].num_glyphs;
             str_index += clusters[i].num_bytes; 
             if(clusters[i].num_bytes == 1 && isspace(tkt->str[n][str_index]))
                 whitex += extents[i].x_advance; 
@@ -193,7 +190,6 @@ void tk_gettextcursor(void* valp, int *x, int *y, int w, int h)
             for( ; i < cluster_count && str_index < tkt->brk[n][ln]; i++)
             {
                 // advance glyph/str position
-                glyph_index += clusters[i].num_glyphs;
                 str_index += clusters[i].num_bytes; 
                 //TODO: move viewport to contain cursor
             }

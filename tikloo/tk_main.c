@@ -549,7 +549,7 @@ static void tk_callback (PuglView* view, const PuglEvent* event)
                 event->key.keycode, event->key.character, event->key.utf8,
                 event->key.filter ? " (filtered)" : "");
         if(tk->focus)
-            tk->cb_f[tk->focus](tk,event,tk->drag);
+            tk->cb_f[tk->focus](tk,event,tk->focus);
         break;
     case PUGL_KEY_RELEASE:
         fprintf(stderr, "Key %u (char %u) release (%s)%s\n",
@@ -709,7 +709,7 @@ void tk_growstring(char** str)
 
 void tk_strinsert(char* dest, char* src, uint16_t i)
 {
-    char* tmp = calloc(strlen(&dest[i]),sizeof(char));
+    char* tmp = (char*)calloc(strlen(&dest[i])+1,sizeof(char));
     strcpy(tmp,&dest[i]);
     strcpy(&dest[i],src);
     strcat(dest,tmp); 
@@ -1248,9 +1248,9 @@ void tk_textentrycallback(tk_t tk, const PuglEvent* event, uint16_t n)
         break;
     case PUGL_KEY_PRESS:
         //TODO: handle arrow keys 
-        if(strlen(tk->tkt.str[s])+strlen(event->key.utf8)+1 < tk->tkt.memlen[s])
-            tk_growstring(tk->tkt.str[s]);
-        tk_strinsert(tk->tkt.str[s],event->key.utf8,tk->tkt.cursor[s]);
+        if(strlen(tk->tkt.str[s])+strlen((char*)event->key.utf8)+1 < tk->tkt.memlen[s])
+            tk_growstring(&tk->tkt.str[s]);
+        tk_strinsert(tk->tkt.str[s],(char*)event->key.utf8,tk->tkt.cursor[s]);
         tk->tkt.strchange[s] = 1; 
         tk_addtolist(tk->redraw,n);
     default:
@@ -1269,13 +1269,15 @@ void tk_cursorcallback(tk_t tk, const PuglEvent* event, uint16_t n)
 uint16_t tk_addaTextentry(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, tk_font_stuff* font, char* str)
 {
     uint16_t n = tk_addaText(tk, x, y, w, h, font, str);
-    tk->cb_f = tk_textentrycallback;
+    tk->cb_f[n] = tk_textentrycallback;
 
     if(!tk->tkt.cursortimer)
     {
         tk->tkt.cursortimer = tk_addaTimer(tk, 0);
         tk->callback_f[tk->tkt.cursortimer] = tk_cursorcallback;
     }
+    //TODO: stuff
+    return n;
 }
 
 void tk_showtipcallback(tk_t tk, const PuglEvent* e, uint16_t n)

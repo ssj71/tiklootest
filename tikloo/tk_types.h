@@ -16,7 +16,7 @@
 #include "pugl/pugl.h"
 #include "timer.h"
 
-//text stuff
+//text things
 typedef struct
 {
     uint16_t fontsize;
