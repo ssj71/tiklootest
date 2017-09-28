@@ -1248,10 +1248,18 @@ void tk_textentrycallback(tk_t tk, const PuglEvent* event, uint16_t n)
         break;
     case PUGL_KEY_PRESS:
         //TODO: handle arrow keys 
-        if(strlen(tk->tkt.str[s])+strlen((char*)event->key.utf8)+1 < tk->tkt.memlen[s])
-            tk_growstring(&tk->tkt.str[s]);
-        tk_strinsert(tk->tkt.str[s],(char*)event->key.utf8,tk->tkt.cursor[s]);
-        tk->tkt.strchange[s] = 1; 
+        if(event->key.keycode == 113 && tk->tkt.cursor[s])
+            tk->tkt.cursor[s]--; //back arrow
+        if(event->key.keycode == 114 && tk->tkt.cursor[s]<strlen(tk->tkt.str[s])) 
+            tk->tkt.cursor[s]++; //forward arrow
+        else
+        {
+            if(strlen(tk->tkt.str[s])+strlen((char*)event->key.utf8)+1 < tk->tkt.memlen[s])
+                tk_growstring(&tk->tkt.str[s]);
+            tk_strinsert(tk->tkt.str[s],(char*)event->key.utf8,tk->tkt.cursor[s]);
+            tk->tkt.strchange[s] = 1; 
+        }
+        tk->tkt.cursorstate |= TK_CURSOR_STATE + TK_CURSOR_CHANGED;
         tk_addtolist(tk->redraw,n);
     default:
         break;
@@ -1270,6 +1278,7 @@ uint16_t tk_addaTextentry(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t 
 {
     uint16_t n = tk_addaText(tk, x, y, w, h, font, str);
     tk->cb_f[n] = tk_textentrycallback;
+    tk->draw_f[n] = tk_drawtextentry;
 
     if(!tk->tkt.cursortimer)
     {

@@ -200,6 +200,7 @@ void tk_gettextcursor(void* valp, int *x, int *y, int w, int h)
     *x*=tkt->scale;
     *y*=tkt->scale;
 
+    fprintf(stderr, "Get Cursor! %i, xy %i, %i\n", tkt->cursor[n], *x, *y);
 }
 
 void tk_drawtextentry(cairo_t *cr, float w, float h, void* cache, void* valp)
@@ -208,18 +209,21 @@ void tk_drawtextentry(cairo_t *cr, float w, float h, void* cache, void* valp)
     uint16_t n = ((tk_text_stuff*)valp)->n;
     int x,y;
 
+    fprintf(stderr, "curs %i ", tkt->cursorstate&TK_CURSOR_CHANGED);
     tk_gettextcursor(valp,&x,&y,w,h);
     //draw bg/text if necessary
-    if(tkt->strchange || !(tkt->cursorstate|TK_CURSOR_CHANGED))
+    if(tkt->strchange[n] || !(tkt->cursorstate&TK_CURSOR_CHANGED))
     {
         cairo_save( cr );
         tk_drawtip(cr,w,h,cache,valp);
         cairo_restore( cr ) ;
+        tkt->strchange[n] = 0; //TODO: this keeps getting set somehow
+        fprintf(stderr,"string");
     }
-    else if(!tkt->cursorstate|TK_CURSOR_STATE)
+    else if(!(tkt->cursorstate&TK_CURSOR_STATE))
     {//draw a not-cursor
         cairo_save( cr );
-        cairo_set_source_rgba(cr, 1,1,1,1);
+        cairo_set_source_rgba(cr, .2,.2,.22,1);
         cairo_set_line_width(cr, 2);
         cairo_new_path(cr);
         cairo_move_to(cr, x, y);
@@ -228,7 +232,7 @@ void tk_drawtextentry(cairo_t *cr, float w, float h, void* cache, void* valp)
         cairo_stroke(cr);
         cairo_restore( cr ) ;
     }
-    if(tkt->cursorstate|TK_CURSOR_STATE)
+    if(tkt->cursorstate&TK_CURSOR_STATE)
     {//draw cursor
         cairo_save( cr );
         cairo_set_source_rgba(cr, .0,.0,.0,1);
