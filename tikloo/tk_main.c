@@ -119,6 +119,7 @@ void tk_rollit(tk_t tk)
     PuglView* view = tk->view;
 
     puglShowWindow(view);
+    tk_draweverything(tk);
 
     if(tk->timer)
     {
@@ -385,8 +386,8 @@ void tk_redraw(tk_t tk)
     uint16_t i,n;
     if( !tk->redraw[0] )
         return;//empty list
-    //TODO: if we have to redraw the bg, we probably have to draweverything anyway, no?
-    for(i=0; tk->redraw[i]||!i; i++)
+    //for(i=0; tk->redraw[i]||!i; i++) //TODO: do we need to redraw the background ever? just draweverything then
+    for(i=0; tk->redraw[i]; i++)
     {
         n = tk->redraw[i];
         if(!tk->props[n]&TK_NO_DAMAGE)
@@ -406,15 +407,10 @@ void tk_draweverything(tk_t tk)
         //TODO: cache everything to avoid redraws?
     }
 }
-void tk_damage(tk_t tk, uint16_t n)
+void tk_damage2(tk_t tk, uint16_t n, uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t lmx)
 {
-    uint16_t i,l,lmx;
-    uint16_t x,y,w,h,x2,y2;
-    x = tk->x[n];
-    y = tk->y[n];
-    w = tk->w[n];
-    h = tk->h[n];
-    lmx = tk->layer[n];
+    uint16_t i,l;
+    uint16_t x2,y2;
     x2 = x--+w+1;
     y2 = y--+h+1;
 
@@ -427,9 +423,6 @@ void tk_damage(tk_t tk, uint16_t n)
     cairo_line_to(tk->cr, x, y2);
     cairo_close_path(tk->cr);
     cairo_clip_preserve(tk->cr);
-
-    //cairo_set_source_rgba(tk->cr, 0,0,0,1);
-    //cairo_fill(tk->cr);//fill with black in case there's no bg
         
     for(l=1;l<=lmx;l++)
         for(i=0; tk->cb_f[i]; i++)
@@ -440,6 +433,12 @@ void tk_damage(tk_t tk, uint16_t n)
                 tk_draw(tk,i);
 
     cairo_restore(tk->cr);
+}
+void tk_damage(tk_t tk, uint16_t n)
+{
+    //this is a big mess, how do I decide what layer the limit is?
+    //once thats decided we can just draw the whole stack
+    tk_damage2(tk,n,tk->x[n],tk->y[n],tk->w[n],tk->h[n]);
 }
 
 void tk_sharedraw(tk_t tk, uint16_t n)
@@ -539,7 +538,17 @@ static void tk_callback (PuglView* view, const PuglEvent* event)
     case PUGL_EXPOSE:
         if(event->expose.count)
             return;
+        //tk_draweverything(tk);
+        cairo_save(tk->cr);
+        tk_damage2(tk,
+                event->expose.x,
+                event->expose.y,
+                event->expose.width,
+                event->expose.height,
+                0xffff);//layer
         tk_draweverything(tk);
+        cairo_restore(tk->cr);
+        fprintf(stderr,  "Expose! ");
         break;
     case PUGL_CLOSE:
         tk->quit = 1;
@@ -770,7 +779,7 @@ uint16_t tk_addaWidget(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h)
     tk->y[n] = y;
     tk->w[n] = w;
     tk->h[n] = h;
-    tk->layer[n] = 2;//bg is layer 0
+    tk->layer[n] = 2;//bg is layer 1
     tk_addtolist(tk->draw,n);
     tk->draw_f[n] = tk_drawnothing;
     tk->cb_f[n] = tk_nocallback;
@@ -1234,6 +1243,7 @@ uint16_t tk_addaText(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, tk
 
 void tk_textentrycallback(tk_t tk, const PuglEvent* event, uint16_t n)
 {
+    uint16_t tw,th;
     uint8_t s = ((tk_text_stuff*)tk->value[n])->n;
     tk->focus = n;
     switch (event->type) {
@@ -1258,6 +1268,9 @@ void tk_textentrycallback(tk_t tk, const PuglEvent* event, uint16_t n)
                 tk_growstring(&tk->tkt.str[s]);
             tk_strinsert(tk->tkt.str[s],(char*)event->key.utf8,tk->tkt.cursor[s]);
             tk->tkt.strchange[s] = 1; 
+            tw = tk->w[n];
+            th = tk->h[n];
+            tk_textlayout(tk->cr,&tk->tkt,s,&tw,&th,tk->props[n]&TK_TEXT_WRAP); 
         }
         tk->tkt.cursorstate |= TK_CURSOR_STATE + TK_CURSOR_CHANGED;
         tk_addtolist(tk->redraw,n);
