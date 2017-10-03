@@ -84,6 +84,7 @@ tk_t tk_gimmeaTiKloo(uint16_t w, uint16_t h, char* title)
     tk->cb_f[0] = tk_nocallback;
     tk->draw_f[0] = tk_drawbg;
 
+    tk->lmax = 2;//assume BG and widgets are only current layers
     tk->drag = 0;
     tk->nitems = 1;
     tk->tablesize = TK_STARTER_SIZE;
@@ -407,10 +408,12 @@ void tk_draweverything(tk_t tk)
         //TODO: cache everything to avoid redraws?
     }
 }
-void tk_damage2(tk_t tk, uint16_t n, uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t lmx)
+void tk_damage2(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h)
 {
     uint16_t i,l;
     uint16_t x2,y2;
+    if(!x)x++;
+    if(!y)y++;
     x2 = x--+w+1;
     y2 = y--+h+1;
 
@@ -423,22 +426,24 @@ void tk_damage2(tk_t tk, uint16_t n, uint16_t x, uint16_t y, uint16_t w, uint16_
     cairo_line_to(tk->cr, x, y2);
     cairo_close_path(tk->cr);
     cairo_clip_preserve(tk->cr);
+        fprintf(stderr,"damage,%i,%i,%i,%i: ",x,x2,y,y2);
         
-    for(l=1;l<=lmx;l++)
+    for(l=1;l<=tk->lmax;l++)
         for(i=0; tk->cb_f[i]; i++)
-            if( tk->x[i] < x2 && tk->x[i] + tk->w[i] > x &&
-                tk->y[i] < y2 && tk->y[i] + tk->h[i] > y &&
-                i != n && tk->layer[i] == l
+            if( tk->layer[i] == l &&
+                tk->x[i] < x2 && tk->x[i] + tk->w[i] > x &&
+                tk->y[i] < y2 && tk->y[i] + tk->h[i] > y
               )
+              {
+                fprintf(stderr,"%i:%i,",l,i);
                 tk_draw(tk,i);
+                }
 
     cairo_restore(tk->cr);
 }
 void tk_damage(tk_t tk, uint16_t n)
 {
-    //this is a big mess, how do I decide what layer the limit is?
-    //once thats decided we can just draw the whole stack
-    tk_damage2(tk,n,tk->x[n],tk->y[n],tk->w[n],tk->h[n]);
+    tk_damage2(tk,tk->x[n],tk->y[n],tk->w[n],tk->h[n]);
 }
 
 void tk_sharedraw(tk_t tk, uint16_t n)
@@ -536,19 +541,23 @@ static void tk_callback (PuglView* view, const PuglEvent* event)
         tk_resizeeverything(tk,event->configure.width,event->configure.height);
         break;
     case PUGL_EXPOSE:
-        if(event->expose.count)
-            return;
+        //if(event->expose.count)
+        //    return;
         //tk_draweverything(tk);
-        cairo_save(tk->cr);
-        tk_damage2(tk,
+        fprintf(stderr,  "Expose! %f %f %f %f %i\n",
                 event->expose.x,
                 event->expose.y,
                 event->expose.width,
                 event->expose.height,
-                0xffff);//layer
-        tk_draweverything(tk);
-        cairo_restore(tk->cr);
-        fprintf(stderr,  "Expose! ");
+                event->expose.count); 
+        tk_damage2(tk,
+                event->expose.x,
+                event->expose.y,
+                event->expose.width,
+                event->expose.height); 
+
+        fprintf(stderr,  "\n");
+        //tk_draweverything(tk);
         break;
     case PUGL_CLOSE:
         tk->quit = 1;
@@ -739,18 +748,31 @@ void tk_changelayer(tk_t tk, uint16_t n, uint16_t layer)
     uint16_t i;
     if(!layer)
     {
+        if(tk->layer[n] == tk->lmax)
+        {//this could be the only one on this layer
+            for(i=0;tk->draw[i];i++);//find end of list
+            tk->lmax = tk->layer[tk->draw[--i]];
+        }
         tk_removefromlist(tk->draw,n);
         tk_removefromlist(tk->redraw,n);
+        tk->layer[n] = layer;
         tk_damage(tk,n); 
     }
     else
     {
+        if(layer > tk->lmax)
+            tk->lmax = layer;
+        else if(tk->layer[n] == tk->lmax)
+        {//this could be the only one on this layer
+            for(i=0;tk->draw[i];i++);//find end of list
+            tk->lmax = tk->layer[tk->draw[--i]];
+        }
         for(i=0;tk->layer[tk->draw[i]]<layer+1&&tk->draw[i];i++);//find end of others on same layer
         tk_insertinlist(tk->draw,n,i);
         for(i=0;tk->layer[tk->redraw[i]]<layer+1&&tk->redraw[i];i++);//find end of layer
         tk_insertinlist(tk->redraw,n,i);
+        tk->layer[n] = layer;
     }
-    tk->layer[n] = layer;
 }
 
 //this function is to avoid double frees in cleanup
@@ -1396,6 +1418,7 @@ uint16_t tk_addaTooltip(tk_t tk, tk_font_stuff* font)
     tk->tkt.str[tk->tkt.nitems-1] = tk->tip[0];//just a placeholder
 
     tk->draw_f[n] = tk_drawtip;
+    tk->props[n] |= TK_NO_DAMAGE;//only does damage when it leaves, which is handled in tk_changelayer
 
     //need timer
     n = tk_addaTimer(tk, 0);

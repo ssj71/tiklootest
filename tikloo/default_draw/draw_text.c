@@ -200,7 +200,7 @@ void tk_gettextcursor(void* valp, int *x, int *y, int w, int h)
     *x*=tkt->scale;
     *y*=tkt->scale;
 
-    fprintf(stderr, "Get Cursor! %i, xy %i, %i\n", tkt->cursor[n], *x, *y);
+    fprintf(stderr, "Get Cursor! %i, xy %i, %i. \n", tkt->cursor[n], *x, *y);
 }
 
 void tk_drawtextentry(cairo_t *cr, float w, float h, void* cache, void* valp)
@@ -218,7 +218,7 @@ void tk_drawtextentry(cairo_t *cr, float w, float h, void* cache, void* valp)
         tk_drawtip(cr,w,h,cache,valp);
         cairo_restore( cr ) ;
         tkt->strchange[n] = 0; //TODO: this keeps getting set somehow
-        fprintf(stderr,"strchg %i ", tkt->strchange[n]);
+        fprintf(stderr,"strchg %i \n", tkt->strchange[n]);
     }
     else if(!(tkt->cursorstate&TK_CURSOR_STATE))
     {//draw a not-cursor

@@ -143,6 +143,7 @@ typedef struct tk_table
 
     //////global stuff
     float w0,h0;
+    uint8_t lmax;//highest layer
     uint16_t nitems,tablesize;
     uint16_t drag;//index of item being dragged
     uint16_t focus;//index of item last clicked (focused)
