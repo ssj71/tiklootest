@@ -209,16 +209,15 @@ void tk_drawtextentry(cairo_t *cr, float w, float h, void* cache, void* valp)
     uint16_t n = ((tk_text_stuff*)valp)->n;
     int x,y;
 
-    fprintf(stderr, "curs %i ", tkt->cursorstate&TK_CURSOR_CHANGED);
+    fprintf(stderr, "curs %i ", tkt->cursorstate);
     tk_gettextcursor(valp,&x,&y,w,h);
     //draw bg/text if necessary
     if(tkt->strchange[n] || !(tkt->cursorstate&TK_CURSOR_CHANGED))
-    {
+    {//string has changed OR we got resized or something
         cairo_save( cr );
         tk_drawtip(cr,w,h,cache,valp);
         cairo_restore( cr ) ;
-        tkt->strchange[n] = 0; //TODO: this keeps getting set somehow
-        fprintf(stderr,"strchg %i \n", tkt->strchange[n]);
+        tkt->strchange[n] = 0;
     }
     else if(!(tkt->cursorstate&TK_CURSOR_STATE))
     {//draw a not-cursor
@@ -234,6 +233,7 @@ void tk_drawtextentry(cairo_t *cr, float w, float h, void* cache, void* valp)
     }
     if(tkt->cursorstate&TK_CURSOR_STATE)
     {//draw cursor
+        //TODO: maybe cache cursor so we don't have to redraw the whole widget
         cairo_save( cr );
         cairo_set_source_rgba(cr, .0,.0,.0,1);
         cairo_set_line_width(cr, 2);

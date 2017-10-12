@@ -103,7 +103,8 @@ typedef enum
 typedef enum
 {
     TK_CURSOR_STATE = 0x1,
-    TK_CURSOR_CHANGED = 0x2
+    TK_CURSOR_CHANGED = 0x2,
+    TK_CURSOR_MOVED = 0x4
 }TK_BITMASKS;
 
 typedef struct tk_table

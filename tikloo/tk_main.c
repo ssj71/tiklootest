@@ -159,7 +159,7 @@ void tk_cleanup(tk_t tk)
     //free text double arrays 
     n = ((tk_text_stuff*)(tk->value[tk->ttip-1]))->n;
     for(i=0;tk->tkt.glyphs[i];i++)
-        if(tk->tkt.str[i] && !(tk->ttip && i ==n))//must skip tooltip
+        if(tk->tkt.str[i] && !(tk->ttip && i ==n))//must skip tooltip because its pointing to somebody else's string
             free(tk->tkt.str[i]);
     free(tk->tkt.str);
     n = i;
@@ -397,6 +397,7 @@ void tk_redraw(tk_t tk)
         tk->redraw[i] = 0;
         //TODO: cache everything to avoid redraws?
     }
+    tk->tkt.cursorstate &= TK_CURSOR_STATE;//clear changed flags
 } 
 void tk_draweverything(tk_t tk)
 {
@@ -734,9 +735,10 @@ void tk_strinsert(char* dest, char* src, uint16_t i)
     free(tmp);
 }
 
+//remove l characters starting at i
 void tk_strcut(char* str, uint16_t i, uint16_t l)
 {
-    char* tmp = calloc(strlen(&str[i+l]),sizeof(char));
+    char* tmp = (char*)calloc(strlen(&str[i+l]),sizeof(char));
     strcpy(tmp,&str[i+l]);
     str[i] = 0;
     strcat(str,tmp); 
@@ -1272,29 +1274,41 @@ void tk_textentrycallback(tk_t tk, const PuglEvent* event, uint16_t n)
     case PUGL_BUTTON_PRESS:
         tk->drag = n;
         tk_settimer(tk,tk->tkt.cursortimer,1);
-        tk->tkt.cursorstate |= TK_CURSOR_STATE + TK_CURSOR_CHANGED;
+        tk->tkt.cursorstate |= TK_CURSOR_STATE + TK_CURSOR_MOVED;
         tk->tkt.cursor[s] = strlen(tk->tkt.str[s]);
+        tk_addtolist(tk->redraw,n);
         //TODO: set cursor position
         break;
     case PUGL_BUTTON_RELEASE:
         break;
     case PUGL_KEY_PRESS:
-        //TODO: handle arrow keys 
+        //navigation
         if(event->key.keycode == 113 && tk->tkt.cursor[s])
             tk->tkt.cursor[s]--; //back arrow
-        if(event->key.keycode == 114 && tk->tkt.cursor[s]<strlen(tk->tkt.str[s])) 
+        else if(event->key.keycode == 114 && tk->tkt.cursor[s]<strlen(tk->tkt.str[s])) 
             tk->tkt.cursor[s]++; //forward arrow
+        //TODO: home, end, up down
         else
-        {
-            if(strlen(tk->tkt.str[s])+strlen((char*)event->key.utf8)+1 < tk->tkt.memlen[s])
-                tk_growstring(&tk->tkt.str[s]);
-            tk_strinsert(tk->tkt.str[s],(char*)event->key.utf8,tk->tkt.cursor[s]);
+        {//it changes the string
+            fprintf(stderr, "str0 %s -- ",tk->tkt.str[s]);
+            if(event->key.keycode == 119 && tk->tkt.cursor[s]<strlen(tk->tkt.str[s])-1) 
+                tk_strcut(tk->tkt.str[s], --tk->tkt.cursor[s], 1);//delete
+            else if(event->key.keycode == 22 && tk->tkt.cursor[s] )
+        
+                tk_strcut(tk->tkt.str[s], --tk->tkt.cursor[s]-1, 1);//delete
+            else
+            {//regular character keypress
+                if(strlen(tk->tkt.str[s])+strlen((char*)event->key.utf8)+1 < tk->tkt.memlen[s])
+                    tk_growstring(&tk->tkt.str[s]);
+                tk_strinsert(tk->tkt.str[s],(char*)event->key.utf8,tk->tkt.cursor[s]++);
+            }
             tk->tkt.strchange[s] = 1; 
             tw = tk->w[n];
             th = tk->h[n];
             tk_textlayout(tk->cr,&tk->tkt,s,&tw,&th,tk->props[n]&TK_TEXT_WRAP); 
+            fprintf(stderr, "str %s\n ",tk->tkt.str[s]);
         }
-        tk->tkt.cursorstate |= TK_CURSOR_STATE + TK_CURSOR_CHANGED;
+        tk->tkt.cursorstate |= TK_CURSOR_STATE + TK_CURSOR_MOVED;
         tk_addtolist(tk->redraw,n);
     default:
         break;
@@ -1306,7 +1320,10 @@ void tk_cursorcallback(tk_t tk, const PuglEvent* event, uint16_t n)
     tk->tkt.cursorstate ^= TK_CURSOR_STATE;
     tk->tkt.cursorstate |= TK_CURSOR_CHANGED;
     tk_addtolist(tk->redraw,tk->focus);
-    tk_settimer(tk,n,1);
+    if( tk->tkt.cursorstate&TK_CURSOR_STATE )
+        tk_settimer(tk,n,.8);
+    else
+        tk_settimer(tk,n,.4);
 }
 
 uint16_t tk_addaTextentry(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, tk_font_stuff* font, char* str)
@@ -1314,6 +1331,7 @@ uint16_t tk_addaTextentry(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t 
     uint16_t n = tk_addaText(tk, x, y, w, h, font, str);
     tk->cb_f[n] = tk_textentrycallback;
     tk->draw_f[n] = tk_drawtextentry;
+    tk->props[n] |= TK_NO_DAMAGE;
 
     if(!tk->tkt.cursortimer)
     {
