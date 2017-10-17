@@ -79,7 +79,7 @@ tk_t tk_gimmeaTiKloo(uint16_t w, uint16_t h, char* title)
 //    tk->draw[1] = 0;
 //    tk->redraw[0] = 0;
 //    tk->redraw[1] = 0;
-    tk_setstring(&tk->tip[0],title);
+    tk_setstring(&tk->tip[0],title,0);
 
     tk->cb_f[0] = tk_nocallback;
     tk->draw_f[0] = tk_drawbg;
@@ -700,16 +700,18 @@ void tk_insertinlist(uint16_t* list, uint16_t n, uint16_t i)
     list[i] = n;
 }
 
-void tk_setstring(char** str, char* msg)
+//returns length of allocated array
+void tk_setstring(char** str, const char* msg, uint16_t *memlen)
 {
     uint16_t l = strlen(msg);
-    if( *str )
-        free(*str);
+    if( *str ) free(*str);
     *str = (char*)calloc(l+2,sizeof(char));
     strcpy(*str,msg);
+    (*str)[l] = 0;
+    if( memlen ) *memlen = l+2;
 }
 
-void tk_growstring(char** str)
+void tk_growstring(char** str, uint16_t* memlen)
 {
     //TODO: this doesn't work
     uint16_t l = 8;
@@ -722,8 +724,8 @@ void tk_growstring(char** str)
         strcpy(tmp,*str);
         free(*str);
     }
-    *str = tmp;
-    
+    *str = tmp; 
+    *memlen = l;
 }
 
 void tk_strinsert(char* dest, char* src, uint16_t i)
@@ -1071,7 +1073,7 @@ uint8_t tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, 
     {
         l = strlen(tkt->str[n]);
         if(tkt->str[n][l-1] != ' ')
-            tkt->str[n][l++] = ' ';
+            tkt->str[n][l++] = ' ';//keep a space at the end to keep cluster count aligned?
         stat = cairo_scaled_font_text_to_glyphs(scaled_face, 0, 0, 
                                                 tkt->str[n], l,
                                                 &glyphs, &glyph_count, 
@@ -1236,7 +1238,7 @@ uint16_t tk_addaText(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, tk
     if(!tkt->tablesize || s >= tkt->tablesize)
         tk_growtexttable(&tk->tkt);
 
-    tk_setstring(&tkt->str[s],str);
+    tk_setstring(&tkt->str[s],str, &tkt->memlen[s]);
 
     tk_addtogrowlist(&tkt->brk[s],&tkt->brklen[s],0);//alloc list for linebreaks
 
@@ -1283,23 +1285,24 @@ void tk_textentrycallback(tk_t tk, const PuglEvent* event, uint16_t n)
         break;
     case PUGL_KEY_PRESS:
         //navigation
+        tw = strlen(tk->tkt.str[s]);
         if(event->key.keycode == 113 && tk->tkt.cursor[s])
             tk->tkt.cursor[s]--; //back arrow
-        else if(event->key.keycode == 114 && tk->tkt.cursor[s]<strlen(tk->tkt.str[s])) 
+        else if(event->key.keycode == 114 && tk->tkt.cursor[s]<tw) 
             tk->tkt.cursor[s]++; //forward arrow
         //TODO: home, end, up down
         else
         {//it changes the string
             fprintf(stderr, "str0 %s -- ",tk->tkt.str[s]);
-            if(event->key.keycode == 119 && tk->tkt.cursor[s]<strlen(tk->tkt.str[s])-1) 
+            if(event->key.keycode == 119 && tk->tkt.cursor[s]<tw-1) 
                 tk_strcut(tk->tkt.str[s], --tk->tkt.cursor[s], 1);//delete
             else if(event->key.keycode == 22 && tk->tkt.cursor[s] )
         
-                tk_strcut(tk->tkt.str[s], --tk->tkt.cursor[s]-1, 1);//delete
+                tk_strcut(tk->tkt.str[s], --tk->tkt.cursor[s]-1, 1);//backspace
             else
             {//regular character keypress
-                if(strlen(tk->tkt.str[s])+strlen((char*)event->key.utf8)+1 < tk->tkt.memlen[s])
-                    tk_growstring(&tk->tkt.str[s]);
+                if(tw+strlen((char*)event->key.utf8)+1 > tk->tkt.memlen[s])
+                    tk_growstring(&tk->tkt.str[s], &tk->tkt.memlen[s]);
                 tk_strinsert(tk->tkt.str[s],(char*)event->key.utf8,tk->tkt.cursor[s]++);
             }
             tk->tkt.strchange[s] = 1; 

@@ -46,7 +46,7 @@ int main()
                     0,  //min
                     100, //max
                     50); //val
-    tk_setstring(&tk->tip[n],"test tip. this rather long tooltip is mostly just to tell you that this dial here does nothing in particular, its really just a testbed to see if any of this stuff works, but hope your day is ok anyway.");
+    tk_setstring(&tk->tip[n],"test tip. this rather long tooltip is mostly just to tell you that this dial here does nothing in particular, its really just a testbed to see if any of this stuff works, but hope your day is ok anyway.",0);
     //tk->props[n] |= TK_NO_DAMAGE;
 
     n = tk_addaDial(tk,
@@ -57,7 +57,7 @@ int main()
                     0,  //min
                     100, //max
                     50); //val
-    tk_setstring(&tk->tip[n],"testy");
+    tk_setstring(&tk->tip[n],"testy",0);
 
     n = tk_addaButton(tk,
                       20, //x
@@ -75,7 +75,7 @@ int main()
                       0); //val
     tk_addtolist(tk->hold_ratio,n);
     tk->callback_f[n] = freeze_ratio;
-    tk_setstring(&tk->tip[n],"testytestytestytestytestytestytestytestytestytestytestytesty");
+    tk_setstring(&tk->tip[n],"testytestytestytestytestytestytestytestytestytestytestytesty",0);
 
     //tk_font_stuff* tkf = tk_gimmeaFont(tk, 
     //                    (const uint8_t*)"/usr/share/fonts/truetype/freefont/FreeSerif.ttf", //font path
