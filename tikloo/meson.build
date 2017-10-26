@@ -4,6 +4,7 @@
 
 cairodep = dependency('cairo')
 ftdep = dependency('freetype2')
+harfdep = dependency('harfbuzz')
 
 if target_machine.system() == 'linux'
     pugldep = dependency('x11')
@@ -25,15 +26,15 @@ elif target_machine.system() == 'windows'
 
 endif
 
-tk_deps = [cairodep, ftdep]
+tk_deps = [cairodep, ftdep, harfdep]
 tk_deps += pugldep
 
 inc = include_directories( 'pugl' )
 
 bin2c = executable( 'bin2c', 'bin2c.c' )
 
-fontcfiles = [] 
-foreach f : ['fonts/LibraSerifModern-Regular.otf'] #add your font paths here! # TODO: make it glob and convert fonts automagically
+fontcfiles = ['fonts/LibraSerifModern_Regular.h'] 
+foreach f : [] # 'fonts/LibraSerifModern-Regular.otf'] #add your font paths here! # TODO: make it glob and convert fonts automagically
     varname = (((f.split('/')[-1]).split('.')[0]).underscorify())
     fontcfiles += custom_target( 'fonts',
                                  input : f,

@@ -13,6 +13,7 @@
 #include<cairo/cairo-ft.h>
 #include<ft2build.h> 
 #include FT_FREETYPE_H
+#include<hb.h>
 #include "pugl/pugl.h"
 #include "timer.h"
 
@@ -20,10 +21,11 @@
 typedef struct
 {
     uint16_t fontsize;
-    uint16_t base;//distance distance to font baseline
+    uint16_t base;//distance to font baseline
 
     FT_Library library;
     FT_Face face;
+    hb_buffer_t *buf;
     cairo_font_face_t* fontface;
     cairo_scaled_font_t* scaledfont;
 }tk_font_stuff;

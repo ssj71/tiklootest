@@ -4,10 +4,11 @@ cmake_minimum_required(VERSION 2.8)
 find_package(PkgConfig)
 pkg_check_modules(CAIRO cairo REQUIRED)
 pkg_check_modules(FREETYPE freetype2 REQUIRED)
+pkg_check_modules(HARFBUZZ harfbuzz REQUIRED)
 #pkg_check_modules(SND sndfile )
 
-list(APPEND TIKLOO_INCLUDE_DIRS ${CAIRO_INCLUDE_DIRS}  ${FREETYPE_INCLUDE_DIRS} tikloo ) #note this extra reference to tikloo is for the parent dir, not here
-list(APPEND TIKLOO_LDFLAGS ${CAIRO_LDFLAGS} ${FREETYPE_LDFLAGS} -lm)
+list(APPEND TIKLOO_INCLUDE_DIRS ${CAIRO_INCLUDE_DIRS} ${HARFBUZZ_INCLUDE_DIRS} ${FREETYPE_INCLUDE_DIRS} tikloo ) #note this extra reference to tikloo is for the parent dir, not here
+list(APPEND TIKLOO_LDFLAGS ${CAIRO_LDFLAGS} ${HARFBUZZ_LDFLAGS} ${FREETYPE_LDFLAGS} -lm)
 
 #platform specific libs
 pkg_check_modules(X11 x11)
