@@ -990,6 +990,7 @@ tk_font_stuff* tk_gimmeaFont(tk_t tk, const uint8_t* font, uint32_t fsize, uint3
     cairo_font_extents_t extents;
     //harfbuzz stuff
     hb_buffer_t *buf;
+    hb_font_t *font;
 
 
     //now font setup stuff 
@@ -1028,13 +1029,6 @@ tk_font_stuff* tk_gimmeaFont(tk_t tk, const uint8_t* font, uint32_t fsize, uint3
         free(tkf);
         return 0;
     } 
-    //harfbuzz
-    buf = hb_buffer_create();
-    //TODO: at some point it may be necessary to allow these to be specified, but not today
-    hb_buffer_set_direction(buf, HB_DIRECTION_LTR); /* or LTR */
-    hb_buffer_set_script(buf, HB_SCRIPT_LATIN); /* see hb-unicode.h */
-    hb_buffer_set_language(buf, hb_language_from_string("en", 2));
-    //the buffer will be loaded with text and shaped when its time to render
 
     //CAIRO
     // get the scaled font object
@@ -1045,6 +1039,17 @@ tk_font_stuff* tk_gimmeaFont(tk_t tk, const uint8_t* font, uint32_t fsize, uint3
 
     cairo_scaled_font_extents(scaledfont,&extents);
 
+    //harfbuzz
+    buf = hb_buffer_create();
+    //TODO: at some point it may be necessary to allow these to be specified, but not today
+    hb_buffer_set_direction(buf, HB_DIRECTION_LTR); /* or LTR */
+    hb_buffer_set_script(buf, HB_SCRIPT_LATIN); /* see hb-unicode.h */
+    hb_buffer_set_language(buf, hb_language_from_string("en", 2));
+    //convert the fontface to hb_font
+    font = hb_ft_font_create(fontface);
+    //the buffer will be loaded with text and shaped when its time to render
+
+
     tkf->library = library;
     tkf->face = face;
     tkf->fontsize = extents.height;
@@ -1052,6 +1057,7 @@ tk_font_stuff* tk_gimmeaFont(tk_t tk, const uint8_t* font, uint32_t fsize, uint3
     tkf->fontface = fontface;
     tkf->scaledfont = scaledfont;
     tkf->buf = buf;
+    tkf->font = font;
 
     return tkf; 
 }
