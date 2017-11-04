@@ -990,7 +990,8 @@ tk_font_stuff* tk_gimmeaFont(tk_t tk, const uint8_t* font, uint32_t fsize, uint3
     cairo_font_extents_t extents;
     //harfbuzz stuff
     hb_buffer_t *buf;
-    hb_font_t *font;
+    hb_font_t *hbfont;
+    hb_face_t *hbface;
 
 
     //now font setup stuff 
@@ -1046,7 +1047,9 @@ tk_font_stuff* tk_gimmeaFont(tk_t tk, const uint8_t* font, uint32_t fsize, uint3
     hb_buffer_set_script(buf, HB_SCRIPT_LATIN); /* see hb-unicode.h */
     hb_buffer_set_language(buf, hb_language_from_string("en", 2));
     //convert the fontface to hb_font
-    font = hb_ft_font_create(fontface);
+    hbfont = hb_ft_font_create(fontface);
+    hbface = hb_ft_face_create(fontface);
+
     //the buffer will be loaded with text and shaped when its time to render
 
 
@@ -1057,7 +1060,8 @@ tk_font_stuff* tk_gimmeaFont(tk_t tk, const uint8_t* font, uint32_t fsize, uint3
     tkf->fontface = fontface;
     tkf->scaledfont = scaledfont;
     tkf->buf = buf;
-    tkf->font = font;
+    tkf->hbfont = hbfont;
+    tkf->hbface = hbface;
 
     return tkf; 
 }
