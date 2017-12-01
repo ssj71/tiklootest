@@ -55,7 +55,8 @@ tk_t tk_gimmeaTiKloo(uint16_t w, uint16_t h, char* title)
     tk->tkt.tkf = 0;
     tk->tkt.glyphs = 0;
     tk->tkt.glyph_count = 0;
-    tk->tkt.clusters = 0;
+    tk->tkt.glyph_pos = 0;
+    tk->tkt.clusters_map = 0;
     tk->tkt.cluster_count = 0;
 
     tk->tkt.cursorstate = 0;
@@ -1042,7 +1043,8 @@ tk_font_stuff* tk_gimmeaFont(tk_t tk, const uint8_t* font, uint32_t fsize, uint3
 
     //harfbuzz
     buf = hb_buffer_create();
-    //TODO: at some point it may be necessary to allow these to be specified, but not today
+    //TODO: at some point it may be necessary to allow these to be specified, but not today 
+    hb_buffer_set_unicode_funcs(buf, hb_unicode_funcs_get_default());
     hb_buffer_set_direction(buf, HB_DIRECTION_LTR); /* or LTR */
     hb_buffer_set_script(buf, HB_SCRIPT_LATIN); /* see hb-unicode.h */
     hb_buffer_set_language(buf, hb_language_from_string("en", 2));
@@ -1071,20 +1073,25 @@ tk_font_stuff* tk_gimmeaFont(tk_t tk, const uint8_t* font, uint32_t fsize, uint3
 //return  1 if the text fits in the provided size 
 uint8_t tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, uint16_t *h, uint8_t wrap)
 {
-//TODO: this should be changed to batch process all strings?
+//TODO: should this be changed to batch process all strings?
     uint8_t fit;
     uint16_t l,i,size,glyph_index,str_index;
     uint16_t x,y,lastwhite,deltax,xmax;
+    tk_font_stuff* tkf = tkt->tkf[n];
+
+    hb_glyph_info_t *glyph_info;
+    hb_glyph_position_t *glyph_pos;
 
     cairo_scaled_font_t* scaled_face = tkt->tkf[n]->scaledfont;
     cairo_glyph_t* glyphs = tkt->glyphs[n];
     int glyph_count = tkt->glyph_count[n];
-    cairo_text_cluster_t* clusters = tkt->clusters[n]; 
-    int cluster_count = tkt->cluster_count[n];
-    cairo_text_extents_t* extents = tkt->extents[n];
+    //cairo_text_cluster_t* clusters = tkt->clusters[n]; 
+    //int cluster_count = tkt->cluster_count[n];
+    //cairo_text_extents_t* extents = tkt->extents[n];
     int extents_count = tkt->extents_count[n];
     cairo_text_cluster_flags_t clusterflags;
     cairo_status_t stat;
+    uint16_t *cluster_map = tkt->cluster_map[n];
 
     *w /= tkt->scale;
     *h /= tkt->scale;
@@ -1092,6 +1099,8 @@ uint8_t tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, 
     size = tkt->tkf[n]->fontsize;
     if(tkt->strchange[n])
     {
+        /*
+        //old cairo toy way
         l = strlen(tkt->str[n]);
         if(tkt->str[n][l-1] != ' ')
             tkt->str[n][l++] = ' ';//keep a space at the end to keep cluster count aligned?
@@ -1112,9 +1121,74 @@ uint8_t tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, 
             extents = (cairo_text_extents_t*)calloc(cluster_count,sizeof(cairo_text_extents_t)); 
             extents_count = cluster_count;
         }
+        */
+        //new harfbuzz way
+        hb_buffer_clear_contents(tkf->buf);
+        hb_buffer_add_utf8(tkf->buf,tkt->str[n],-1,0,-1);//magic numbers mean use strlen, no offset
+        hb_shape(tkf->hbfont,tkf, NULL, 0);//no features specified
+
+
+        glyph_info = hb_buffer_get_glyph_infos(tkf->buf, &glyph_count);
+        glyph_pos = hb_buffer_get_glyph_positions(tkf->buf, &glyph_count);
+        if(glyph_count > tkt->glyph_count[n])
+        {
+            free(glyphs);
+            free(cluster_map);
+            glyphs = (cairo_glyph_t*)malloc(sizeof(cairo_glyph_t) * glyph_count);
+            cluster_map = (uint16_t*)malloc(sizeof(uint16_t)*glyph_count);
+        }
+
+        for (i=0; i < glyph_count; ++i) 
+        {
+            glyphs[i].index = glyph_info[i].codepoint;
+            cluster_map[i] = glyph_info[i].cluster;
+            glyphs[i].x = x + (glyph_pos[i].x_offset/64);
+            glyphs[i].y = y - (glyph_pos[i].y_offset/64);
+            x += glyph_pos[i].x_advance/64;
+            y -= glyph_pos[i].y_advance/64;
+        }
     }
     tkt->brk[n][0] = 0; //clear list
 
+    x = xmax = deltax = 0;
+    y = size;
+    glyph_index = str_index = 0;
+    for (i = 0; i < glyph_count; i++) 
+    { 
+        str_index = cluster_map[i];
+        deltax += glyph_pos[i].x_advance/64;
+        x += glyph_pos[i].x_advance/64;
+        if(isspace(tkt->str[n][str_index]))
+        { 
+            deltax = 0;
+            lastwhite = str_index;
+            if (tkt->str[n][str_index] == '\n') //newline
+            {
+                tk_addtogrowlist(&tkt->brk[n],&tkt->brklen[n],i+1);
+                y += size;
+                x = 0;
+            }
+        } 
+
+        if(wrap && x > *w)
+        {
+            //go back to last whitespace put the rest on a newline
+            if(deltax == x)
+            {//single word doesn't fit on a line
+                x = 0;
+                lastwhite = str_index-2;
+            }
+            else
+                x = deltax;
+            tk_addtogrowlist(&tkt->brk[n],&tkt->brklen[n],lastwhite+1);
+            y += size;
+        }
+        if(x > xmax)
+            xmax = x;
+        str_index += clusters[i].num_bytes; 
+    }
+    /*
+    //old cairo toy text method
     x = xmax = deltax = 0;
     y = size;
     glyph_index = str_index = 0;
@@ -1155,13 +1229,15 @@ uint8_t tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, 
             xmax = x;
         str_index += clusters[i].num_bytes; 
     }
+    */
 
     tkt->glyphs[n] = glyphs;
-    tkt->clusters[n] = clusters;
-    tkt->extents[n] = extents;
+    //tkt->clusters[n] = clusters;
+    //tkt->extents[n] = extents;
     tkt->glyph_count[n] = glyph_count;
-    tkt->cluster_count[n] = cluster_count;
-    tkt->extents_count[n] = extents_count;
+    //tkt->cluster_count[n] = cluster_count;
+    //tkt->extents_count[n] = extents_count;
+    tkt->cluster_map[n] = cluster_map;
 
     fit = 1;
     if(xmax > *w)
@@ -1196,7 +1272,7 @@ void tk_growtexttable(tk_text_table* tkt)
     tmpt.clusters = (cairo_text_cluster_t**)calloc(sz,sizeof(cairo_text_cluster_t*));
     tmpt.extents = (cairo_text_extents_t**)calloc(sz,sizeof(cairo_text_extents_t*));
     tmpt.glyph_count =  (uint16_t*)calloc(sz,sizeof(uint16_t));
-    tmpt.cluster_count = (uint16_t*)calloc(sz,sizeof(uint16_t));
+    //tmpt.cluster_count = (uint16_t*)calloc(sz,sizeof(uint16_t));
     tmpt.extents_count = (uint16_t*)calloc(sz,sizeof(uint16_t));
 
     if(tkt->tablesize)

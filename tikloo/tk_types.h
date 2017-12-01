@@ -14,8 +14,8 @@
 #include<ft2build.h> 
 #include FT_FREETYPE_H
 #include<hb.h>
-#include "pugl/pugl.h"
-#include "timer.h"
+#include"pugl/pugl.h"
+#include"timer.h"
 
 //text things
 typedef struct
@@ -48,11 +48,13 @@ typedef struct tk_text_table
 
     tk_font_stuff** tkf;
     cairo_glyph_t** glyphs;
-    cairo_text_cluster_t** clusters;
-    cairo_text_extents_t** extents;
+    //these were used only with the old toy text api
+    //cairo_text_cluster_t** clusters;
+    //cairo_text_extents_t** extents;
+    hb_glyph_position_t** glyph_pos;
+    uint16_t** cluster_map;
     uint16_t* glyph_count;
-    uint16_t* cluster_count;
-    uint16_t* extents_count;//length of extents array
+    //uint16_t* extents_count;//length of extents array
 
     ////// text global
     float scale;
