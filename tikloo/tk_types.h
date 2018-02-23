@@ -13,7 +13,7 @@
 #include<cairo/cairo-ft.h>
 #include<ft2build.h> 
 #include FT_FREETYPE_H
-#include<hb.h>
+#include<harfbuzz/hb.h>
 #include"pugl/pugl.h"
 #include"timer.h"
 
@@ -36,18 +36,18 @@ typedef struct tk_text_table
 {
     ////// main text table
     char** str;//pointer to text
-    uint8_t* strchange;
+    uint8_t* strchange;//flag that string has changed
     uint16_t* memlen;//allocated size of str (if 0 then == streln(str));
     uint16_t* n;//item in main table
     uint16_t* cursor;//cursor location in string
     uint16_t* select;//selection length
     uint16_t* ln;//viewport line
     uint16_t* col;//veiwport column
-    uint16_t* brklen;
+    uint16_t* brklen;//length of brk array
     uint16_t** brk;//linebreak/wrap indices
 
-    tk_font_stuff** tkf;
-    cairo_glyph_t** glyphs;
+    tk_font_stuff** tkf;//font for each text element (some may be shared)
+    cairo_glyph_t** glyphs;//glyph array
     //these were used only with the old toy text api
     //cairo_text_cluster_t** clusters;
     //cairo_text_extents_t** extents;
@@ -57,11 +57,11 @@ typedef struct tk_text_table
     //uint16_t* extents_count;//length of extents array
 
     ////// text global
-    float scale;
-    uint8_t cursorstate;
-    uint16_t cursortimer;
-    uint16_t nitems,tablesize;
-    uint16_t dff;//default font
+    float scale;//factor text is scaled
+    uint8_t cursorstate;//
+    uint16_t cursortimer;//index in timer array of cursor timer
+    uint16_t nitems,tablesize;//table stats
+    uint16_t dff;//default font index
 }tk_text_table;
 
 typedef struct

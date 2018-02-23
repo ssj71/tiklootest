@@ -9,6 +9,7 @@
 #include<string.h>
 #include<ctype.h>
 #include<math.h>
+#include<harfbuzz/hb-ft.h>
 #include"tk.h"
 #include"tk_default_draw.h"
 #include"tk_test.h"
@@ -57,7 +58,7 @@ tk_t tk_gimmeaTiKloo(uint16_t w, uint16_t h, char* title)
     tk->tkt.glyph_count = 0;
     tk->tkt.glyph_pos = 0;
     tk->tkt.clusters_map = 0;
-    tk->tkt.cluster_count = 0;
+    //tk->tkt.cluster_count = 0;
 
     tk->tkt.cursorstate = 0;
     tk->tkt.cursortimer = 0;
@@ -177,19 +178,19 @@ void tk_cleanup(tk_t tk)
         if(tk->tkt.glyphs[i])
             cairo_glyph_free(tk->tkt.glyphs[i]);
     free(tk->tkt.glyphs);
-    for(i=0;i<n;i++)
-        if(tk->tkt.clusters[i])
-            cairo_text_cluster_free(tk->tkt.clusters[i]);
-    free(tk->tkt.clusters);
-    for(i=0;i<n;i++)
-        if(tk->tkt.extents[i])
-            free(tk->tkt.extents[i]); 
-    free(tk->tkt.extents); 
+    //for(i=0;i<n;i++)
+    //    if(tk->tkt.clusters[i])
+    //        cairo_text_cluster_free(tk->tkt.clusters[i]);
+    //free(tk->tkt.clusters);
+    //for(i=0;i<n;i++)
+    //    if(tk->tkt.extents[i])
+    //        free(tk->tkt.extents[i]); 
+    //free(tk->tkt.extents); 
 
     free(tk->tkt.strchange); free(tk->tkt.memlen); free(tk->tkt.n); 
     free(tk->tkt.cursor); free(tk->tkt.select);
     free(tk->tkt.ln); free(tk->tkt.col); free(tk->tkt.brklen);
-    free(tk->tkt.glyph_count); free(tk->tkt.cluster_count); free(tk->tkt.extents_count); 
+    free(tk->tkt.glyph_count);// free(tk->tkt.cluster_count); free(tk->tkt.extents_count); 
 
     //now the main table
     //free double arrays
@@ -1075,22 +1076,22 @@ uint8_t tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, 
 {
 //TODO: should this be changed to batch process all strings?
     uint8_t fit;
-    uint16_t l,i,size,glyph_index,str_index;
+    uint16_t i,size,str_index;
     uint16_t x,y,lastwhite,deltax,xmax;
     tk_font_stuff* tkf = tkt->tkf[n];
 
     hb_glyph_info_t *glyph_info;
     hb_glyph_position_t *glyph_pos;
 
-    cairo_scaled_font_t* scaled_face = tkt->tkf[n]->scaledfont;
+    //cairo_scaled_font_t* scaled_face = tkt->tkf[n]->scaledfont;
     cairo_glyph_t* glyphs = tkt->glyphs[n];
-    int glyph_count = tkt->glyph_count[n];
+    unsigned int glyph_count = tkt->glyph_count[n];
     //cairo_text_cluster_t* clusters = tkt->clusters[n]; 
     //int cluster_count = tkt->cluster_count[n];
     //cairo_text_extents_t* extents = tkt->extents[n];
-    int extents_count = tkt->extents_count[n];
-    cairo_text_cluster_flags_t clusterflags;
-    cairo_status_t stat;
+    //int extents_count = tkt->extents_count[n];
+    //cairo_text_cluster_flags_t clusterflags;
+    //cairo_status_t stat;
     uint16_t *cluster_map = tkt->cluster_map[n];
 
     *w /= tkt->scale;
@@ -1152,7 +1153,7 @@ uint8_t tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, 
 
     x = xmax = deltax = 0;
     y = size;
-    glyph_index = str_index = 0;
+    str_index = 0;
     for (i = 0; i < glyph_count; i++) 
     { 
         str_index = cluster_map[i];
@@ -1185,7 +1186,8 @@ uint8_t tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, 
         }
         if(x > xmax)
             xmax = x;
-        str_index += clusters[i].num_bytes; 
+        //TODO: how to increment str_index
+        //str_index += clusters[i].num_bytes; 
     }
     /*
     //old cairo toy text method
@@ -1269,11 +1271,11 @@ void tk_growtexttable(tk_text_table* tkt)
 
     tmpt.tkf =    (tk_font_stuff**)calloc(sz,sizeof(tk_font_stuff*));
     tmpt.glyphs = (cairo_glyph_t**)calloc(sz,sizeof(cairo_glyph_t*));
-    tmpt.clusters = (cairo_text_cluster_t**)calloc(sz,sizeof(cairo_text_cluster_t*));
-    tmpt.extents = (cairo_text_extents_t**)calloc(sz,sizeof(cairo_text_extents_t*));
+    //tmpt.clusters = (cairo_text_cluster_t**)calloc(sz,sizeof(cairo_text_cluster_t*));
+    //tmpt.extents = (cairo_text_extents_t**)calloc(sz,sizeof(cairo_text_extents_t*));
     tmpt.glyph_count =  (uint16_t*)calloc(sz,sizeof(uint16_t));
     //tmpt.cluster_count = (uint16_t*)calloc(sz,sizeof(uint16_t));
-    tmpt.extents_count = (uint16_t*)calloc(sz,sizeof(uint16_t));
+    //tmpt.extents_count = (uint16_t*)calloc(sz,sizeof(uint16_t));
 
     if(tkt->tablesize)
     {
@@ -1291,11 +1293,11 @@ void tk_growtexttable(tk_text_table* tkt)
 
         memcpy(tmpt.tkf,      tkt->tkf,      osz*sizeof(tk_font_stuff*));
         memcpy(tmpt.glyphs,   tkt->glyphs,   osz*sizeof(cairo_glyph_t*));
-        memcpy(tmpt.clusters, tkt->clusters, osz*sizeof(cairo_text_cluster_t*));
-        memcpy(tmpt.extents,  tkt->extents,  osz*sizeof(cairo_text_cluster_t*));
+        //memcpy(tmpt.clusters, tkt->clusters, osz*sizeof(cairo_text_cluster_t*));
+        //memcpy(tmpt.extents,  tkt->extents,  osz*sizeof(cairo_text_cluster_t*));
         memcpy(tmpt.glyph_count,  tkt->glyph_count,  osz*sizeof(uint16_t));
-        memcpy(tmpt.cluster_count,tkt->cluster_count,osz*sizeof(uint16_t));
-        memcpy(tmpt.extents_count,tkt->extents_count,osz*sizeof(uint16_t));
+        //memcpy(tmpt.cluster_count,tkt->cluster_count,osz*sizeof(uint16_t));
+        //memcpy(tmpt.extents_count,tkt->extents_count,osz*sizeof(uint16_t));
     }
 
     tkt->str = tmpt.str;
@@ -1311,11 +1313,11 @@ void tk_growtexttable(tk_text_table* tkt)
 
     tkt->tkf = tmpt.tkf;
     tkt->glyphs = tmpt.glyphs;
-    tkt->clusters = tmpt.clusters;
-    tkt->extents = tmpt.extents;
+    //tkt->clusters = tmpt.clusters;
+    //tkt->extents = tmpt.extents;
     tkt->glyph_count = tmpt.glyph_count;
-    tkt->cluster_count = tmpt.cluster_count;
-    tkt->extents_count = tmpt.extents_count;
+    //tkt->cluster_count = tmpt.cluster_count;
+    //tkt->extents_count = tmpt.extents_count;
 
     tkt->tablesize = sz;
 }
