@@ -57,7 +57,7 @@ tk_t tk_gimmeaTiKloo(uint16_t w, uint16_t h, char* title)
     tk->tkt.glyphs = 0;
     tk->tkt.glyph_count = 0;
     tk->tkt.glyph_pos = 0;
-    tk->tkt.clusters_map = 0;
+    tk->tkt.cluster_map = 0;
     //tk->tkt.cluster_count = 0;
 
     tk->tkt.cursorstate = 0;
@@ -987,7 +987,7 @@ tk_font_stuff* tk_gimmeaFont(tk_t tk, const uint8_t* font, uint32_t fsize, uint3
     FT_Face     face;      /* handle to face object */
     FT_Error    error;
     //cairo stuff
-    cairo_font_face_t* fontface;
+    cairo_font_face_t* crfontface;
     cairo_scaled_font_t* scaledfont; 
     cairo_font_extents_t extents;
     //harfbuzz stuff
@@ -1034,9 +1034,9 @@ tk_font_stuff* tk_gimmeaFont(tk_t tk, const uint8_t* font, uint32_t fsize, uint3
     } 
 
     //CAIRO
-    // get the scaled font object
-    fontface = cairo_font_face_reference(cairo_ft_font_face_create_for_ft_face(face,0));
-    cairo_set_font_face(tk->cr, fontface);
+    // get the scaled font object //TODO: do we need this still?
+    crfontface = cairo_font_face_reference(cairo_ft_font_face_create_for_ft_face(face,0));
+    cairo_set_font_face(tk->cr, crfontface);
     cairo_set_font_size(tk->cr, fontsize);
     scaledfont = cairo_scaled_font_reference(cairo_get_scaled_font(tk->cr));
 
@@ -1049,9 +1049,9 @@ tk_font_stuff* tk_gimmeaFont(tk_t tk, const uint8_t* font, uint32_t fsize, uint3
     hb_buffer_set_direction(buf, HB_DIRECTION_LTR); /* or LTR */
     hb_buffer_set_script(buf, HB_SCRIPT_LATIN); /* see hb-unicode.h */
     hb_buffer_set_language(buf, hb_language_from_string("en", 2));
-    //convert the fontface to hb_font
-    hbfont = hb_ft_font_create(fontface);
-    hbface = hb_ft_face_create(fontface);
+    //convert the ft font face to hb_font
+    hbfont = hb_ft_font_create(face,NULL);
+    hbface = hb_ft_face_create(face,NULL);
 
     //the buffer will be loaded with text and shaped when its time to render
 
@@ -1060,7 +1060,7 @@ tk_font_stuff* tk_gimmeaFont(tk_t tk, const uint8_t* font, uint32_t fsize, uint3
     tkf->face = face;
     tkf->fontsize = extents.height;
     tkf->base = extents.ascent;
-    tkf->fontface = fontface;
+    tkf->fontface = crfontface;
     tkf->scaledfont = scaledfont;
     tkf->buf = buf;
     tkf->hbfont = hbfont;
@@ -1126,7 +1126,8 @@ uint8_t tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, 
         //new harfbuzz way
         hb_buffer_clear_contents(tkf->buf);
         hb_buffer_add_utf8(tkf->buf,tkt->str[n],-1,0,-1);//magic numbers mean use strlen, no offset
-        hb_shape(tkf->hbfont,tkf, NULL, 0);//no features specified
+        hb_buffer_set_direction(tkf->buf,HB_DIRECTION_LTR);
+        hb_shape(tkf->hbfont,tkf->buf, NULL, 0);//no features specified
 
 
         glyph_info = hb_buffer_get_glyph_infos(tkf->buf, &glyph_count);
@@ -1273,6 +1274,7 @@ void tk_growtexttable(tk_text_table* tkt)
     tmpt.glyphs = (cairo_glyph_t**)calloc(sz,sizeof(cairo_glyph_t*));
     //tmpt.clusters = (cairo_text_cluster_t**)calloc(sz,sizeof(cairo_text_cluster_t*));
     //tmpt.extents = (cairo_text_extents_t**)calloc(sz,sizeof(cairo_text_extents_t*));
+    tmpt.cluster_map = (uint16_t**)calloc(sz,sizeof(uint16_t*));
     tmpt.glyph_count =  (uint16_t*)calloc(sz,sizeof(uint16_t));
     //tmpt.cluster_count = (uint16_t*)calloc(sz,sizeof(uint16_t));
     //tmpt.extents_count = (uint16_t*)calloc(sz,sizeof(uint16_t));
@@ -1295,6 +1297,7 @@ void tk_growtexttable(tk_text_table* tkt)
         memcpy(tmpt.glyphs,   tkt->glyphs,   osz*sizeof(cairo_glyph_t*));
         //memcpy(tmpt.clusters, tkt->clusters, osz*sizeof(cairo_text_cluster_t*));
         //memcpy(tmpt.extents,  tkt->extents,  osz*sizeof(cairo_text_cluster_t*));
+        memcpy(tmpt.cluster_map,  tkt->cluster_map,  osz*sizeof(uint16_t));
         memcpy(tmpt.glyph_count,  tkt->glyph_count,  osz*sizeof(uint16_t));
         //memcpy(tmpt.cluster_count,tkt->cluster_count,osz*sizeof(uint16_t));
         //memcpy(tmpt.extents_count,tkt->extents_count,osz*sizeof(uint16_t));
@@ -1316,6 +1319,7 @@ void tk_growtexttable(tk_text_table* tkt)
     //tkt->clusters = tmpt.clusters;
     //tkt->extents = tmpt.extents;
     tkt->glyph_count = tmpt.glyph_count;
+    tkt->cluster_map = tmpt.cluster_map;
     //tkt->cluster_count = tmpt.cluster_count;
     //tkt->extents_count = tmpt.extents_count;
 
