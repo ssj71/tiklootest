@@ -48,13 +48,9 @@ typedef struct tk_text_table
 
     tk_font_stuff** tkf;//font for each text element (some may be shared)
     cairo_glyph_t** glyphs;//glyph array
-    //these were used only with the old toy text api
-    //cairo_text_cluster_t** clusters;
-    //cairo_text_extents_t** extents;
     hb_glyph_position_t** glyph_pos;
     uint16_t** cluster_map;
     uint16_t* glyph_count;
-    //uint16_t* extents_count;//length of extents array
 
     ////// text global
     float scale;//factor text is scaled
