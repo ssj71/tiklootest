@@ -10,9 +10,7 @@ void tk_drawtextcolor(cairo_t *cr, float w, float h, void* valp, float* line, fl
     tk_text_table* tkt = (tk_text_table*)tkts->tkt;
     int n = tkts->n;
     cairo_glyph_t* glyphs = tkt->glyphs[n];
-    //cairo_text_cluster_t* clusters = tkt->clusters[n];
-    unsigned int cluster_map = tkt->cluster_map[n];
-    //cairo_text_extents_t* extents = tkt->extents[n];
+    unsigned int* cluster_map = tkt->cluster_map[n];
     int i;
 
     //TODO: cache drawing?
@@ -28,6 +26,19 @@ void tk_drawtextcolor(cairo_t *cr, float w, float h, void* valp, float* line, fl
     int glyph_index = 0;
     int str_index = 0;
     int ln=0,x=0,y=0,whitex=0;
+
+    //or num glyphs
+    //for(i = 0; tkt->glyphs[n][i]; i++)
+    {
+        cairo_glyph_path(cr, tkt->glyphs[n], tkt->glyph_count[n]);
+        cairo_set_source_rgba(cr, fill[0], fill[1], fill[2], fill[3]);
+        cairo_fill_preserve(cr);
+        cairo_set_source_rgba(cr, line[0], line[1], line[2], line[3]);
+        cairo_set_line_width(cr, line[4]);
+        cairo_stroke(cr);
+    }
+
+#if(0)
 
     //TODO: handle viewport
     //for (i = 0; i < cluster_count; i++) 
@@ -81,6 +92,7 @@ void tk_drawtextcolor(cairo_t *cr, float w, float h, void* valp, float* line, fl
             whitex = 0; 
         }
     }
+#endif //0
 
     cairo_restore( cr );
 } 

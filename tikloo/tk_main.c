@@ -1139,7 +1139,7 @@ uint8_t tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, 
         {
             free(glyphs);
             free(cluster_map);
-            glyphs = (cairo_glyph_t*)malloc(sizeof(cairo_glyph_t) * glyph_count);
+            glyphs = (cairo_glyph_t*)malloc(sizeof(cairo_glyph_t) * (glyph_count+1));
             cluster_map = (uint16_t*)malloc(sizeof(uint16_t)*glyph_count);
         }
 
@@ -1161,8 +1161,8 @@ uint8_t tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, 
     for (i = 0; i < glyph_count; i++) 
     { 
         str_index = cluster_map[i];
-        deltax += glyph_pos[i].x_advance/64;
-        x += glyph_pos[i].x_advance/64;
+        deltax += glyph_pos[i].x_advance/64; //x distance since last whitespace
+        x += glyph_pos[i].x_advance/64; //total x distance
         if(isspace(tkt->str[n][str_index]))
         { 
             deltax = 0;
@@ -1190,8 +1190,6 @@ uint8_t tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, 
         }
         if(x > xmax)
             xmax = x;
-        //TODO: how to increment str_index
-        //str_index += clusters[i].num_bytes; 
     }
     /*
     //old cairo toy text method
@@ -1238,11 +1236,7 @@ uint8_t tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, 
     */
 
     tkt->glyphs[n] = glyphs;
-    //tkt->clusters[n] = clusters;
-    //tkt->extents[n] = extents;
     tkt->glyph_count[n] = glyph_count;
-    //tkt->cluster_count[n] = cluster_count;
-    //tkt->extents_count[n] = extents_count;
     tkt->cluster_map[n] = cluster_map;
 
     fit = 1;
