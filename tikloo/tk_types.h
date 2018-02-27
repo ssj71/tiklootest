@@ -9,6 +9,7 @@
 #ifndef TK_TYPES_H
 #define TK_TYPES_H
 #include<stdint.h>
+#include<stdbool.h>
 #include<cairo/cairo.h>
 #include<cairo/cairo-ft.h>
 #include<ft2build.h> 

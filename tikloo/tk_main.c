@@ -1074,11 +1074,11 @@ tk_font_stuff* tk_gimmeaFont(tk_t tk, const uint8_t* font, uint32_t fsize, uint3
 
 //we assume there is a valid font with set size and a string, we will set line brks 
 //we will pass back the actual dimensions in w and h, and 
-//return  1 if the text fits in the provided size 
-uint8_t tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, uint16_t *h, uint8_t wrap)
+//return  true if the text fits in the provided size 
+bool tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, uint16_t *h, uint8_t wrap)
 {
 //TODO: should this be changed to batch process all strings?
-    uint8_t fit;
+    bool fit;
     uint16_t i,size,str_index;
     uint16_t x,y,lastwhite,deltax,xmax;
     tk_font_stuff* tkf = tkt->tkf[n];
@@ -1103,30 +1103,7 @@ uint8_t tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, 
     size = tkt->tkf[n]->fontsize;
     if(tkt->strchange[n])
     {
-        /*
-        //old cairo toy way
-        l = strlen(tkt->str[n]);
-        if(tkt->str[n][l-1] != ' ')
-            tkt->str[n][l++] = ' ';//keep a space at the end to keep cluster count aligned?
-        stat = cairo_scaled_font_text_to_glyphs(scaled_face, 0, 0, 
-                                                tkt->str[n], l,
-                                                &glyphs, &glyph_count, 
-                                                &clusters, &cluster_count,
-                                                &clusterflags); 
-        if (stat == CAIRO_STATUS_SUCCESS)
-            tkt->strchange[n] = 0;
-        if(glyphs != tkt->glyphs[n])
-            cairo_glyph_free(tkt->glyphs[n]);
-        if(clusters != tkt->clusters[n])
-            cairo_text_cluster_free(tkt->clusters[n]);
-        if(cluster_count > extents_count)
-        {
-            free(tkt->extents[n]);
-            extents = (cairo_text_extents_t*)calloc(cluster_count,sizeof(cairo_text_extents_t)); 
-            extents_count = cluster_count;
-        }
-        */
-        //new harfbuzz way
+        //shape
         hb_buffer_clear_contents(tkf->buf);
         hb_buffer_add_utf8(tkf->buf,tkt->str[n],-1,0,-1);//magic numbers mean use strlen, no offset
         hb_buffer_set_direction(tkf->buf,HB_DIRECTION_LTR);
@@ -1239,11 +1216,11 @@ uint8_t tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, 
     tkt->glyph_count[n] = glyph_count;
     tkt->cluster_map[n] = cluster_map;
 
-    fit = 1;
+    fit = true;
     if(xmax > *w)
-        fit = 0;
+        fit = false;
     if(y > *h)
-        fit = 0; 
+        fit = false; 
 
     *w = xmax*tkt->scale;
     *h = y*tkt->scale;
