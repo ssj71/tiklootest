@@ -42,7 +42,7 @@ tk_t tk_gimmeaTiKloo(uint16_t w, uint16_t h, char* title)
 
     //init the text table to len 0
     tk->tkt.str = 0;
-    tk->tkt.strchange = 0;
+    tk->tkt.strchange = false;
     tk->tkt.memlen = 0;
     tk->tkt.n = 0;
     tk->tkt.cursor = 0;
@@ -55,8 +55,8 @@ tk_t tk_gimmeaTiKloo(uint16_t w, uint16_t h, char* title)
 
     tk->tkt.tkf = 0;
     tk->tkt.glyphs = 0;
-    tk->tkt.glyph_count = 0;
     tk->tkt.glyph_pos = 0;
+    tk->tkt.glyph_count = 0;
     tk->tkt.cluster_map = 0;
 
     tk->tkt.cursorstate = 0;
@@ -164,31 +164,25 @@ void tk_cleanup(tk_t tk)
             free(tk->tkt.str[i]);
     free(tk->tkt.str);
     n = i;
-    for(i=0;i<n;i++)
-        if(tk->tkt.brk[i])
-            free(tk->tkt.brk[i]);
-    free(tk->tkt.brk);
     tk_rmdupptr((void**)(tk->tkt.tkf));
     for(i=0;i<n;i++)
+    {
+        if(tk->tkt.brk[i])
+            free(tk->tkt.brk[i]);
         if(tk->tkt.tkf[i])
             free(tk->tkt.tkf[i]);
-    free(tk->tkt.tkf);
-    for(i=0;i<n;i++)
         if(tk->tkt.glyphs[i])
             cairo_glyph_free(tk->tkt.glyphs[i]);
-    free(tk->tkt.glyphs);
-    for(i=0;i<n;i++)
+        if(tk->tkt.glyph_pos[i])
+            free(tk->tkt.glyph_pos[i]);
         if(tk->tkt.cluster_map[i])
             free(tk->tkt.cluster_map[i]);
+    }
+    free(tk->tkt.brk);
+    free(tk->tkt.tkf);
+    free(tk->tkt.glyph_pos);
     free(tk->tkt.glyphs);
-    //for(i=0;i<n;i++)
-    //    if(tk->tkt.clusters[i])
-    //        cairo_text_cluster_free(tk->tkt.clusters[i]);
-    //free(tk->tkt.clusters);
-    //for(i=0;i<n;i++)
-    //    if(tk->tkt.extents[i])
-    //        free(tk->tkt.extents[i]); 
-    //free(tk->tkt.extents); 
+    free(tk->tkt.cluster_map);
 
     free(tk->tkt.strchange); free(tk->tkt.memlen); free(tk->tkt.n); 
     free(tk->tkt.cursor); free(tk->tkt.select);
@@ -214,7 +208,7 @@ void tk_cleanup(tk_t tk)
 
     if(tk->timer) free(tk->timer);
     free(tk->x); free(tk->y); free(tk->w); free(tk->h);
-    free(tk->layer); free(tk->value); free(tk->drawstuff);
+    free(tk->layer); free(tk->value); free(tk->drawstuff);//TODO: pass drawstuff to draw function with everything else null to free
     free(tk->tip);
     free(tk->props); free(tk->extras); free(tk->user);
     free(tk->hold_ratio); free(tk->draw); free(tk->redraw);
@@ -461,7 +455,7 @@ void tk_sharedraw(tk_t tk, uint16_t n)
 }
 
 void tk_optimizedefaultdraw(tk_t tk)
-{
+{//make any draw functions using default get no damage property
     uint16_t i;
     for(i=0;tk->cb_f[i];i++)
         if(tk->draw_f[i] == tk_drawdial ||
@@ -1080,11 +1074,11 @@ bool tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, uin
 //TODO: should this be changed to batch process all strings?
     bool fit;
     uint16_t i,size,str_index;
-    uint16_t x,y,lastwhite,deltax,xmax;
+    float x,y,lastwhite,deltax,xmax;
     tk_font_stuff* tkf = tkt->tkf[n];
 
     hb_glyph_info_t *glyph_info;
-    hb_glyph_position_t *glyph_pos;
+    hb_glyph_position_t *glyph_pos = tkt->glyph_pos[n];
 
     //cairo_scaled_font_t* scaled_face = tkt->tkf[n]->scaledfont;
     cairo_glyph_t* glyphs = tkt->glyphs[n];
@@ -1101,6 +1095,7 @@ bool tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, uin
     *h /= tkt->scale;
 
     size = tkt->tkf[n]->fontsize;
+    //TODO: there is no strchange when finding tip location or window ratio change
     if(tkt->strchange[n])
     {
         //shape
@@ -1117,6 +1112,9 @@ bool tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, uin
             free(glyphs);
             free(cluster_map);
             glyphs = (cairo_glyph_t*)malloc(sizeof(cairo_glyph_t) * (glyph_count+1));
+            glyphs[glyph_count].index = 0; //add null at end of list
+            glyphs[glyph_count].x = 0;
+            glyphs[glyph_count].y = 0;
             cluster_map = (uint16_t*)malloc(sizeof(uint16_t)*glyph_count);
         }
 
@@ -1124,22 +1122,20 @@ bool tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, uin
         {
             glyphs[i].index = glyph_info[i].codepoint;
             cluster_map[i] = glyph_info[i].cluster;
-            glyphs[i].x = x + (glyph_pos[i].x_offset/64);
-            glyphs[i].y = y - (glyph_pos[i].y_offset/64);
-            x += glyph_pos[i].x_advance/64;
-            y -= glyph_pos[i].y_advance/64;
         }
+        tkt->strchange[n] = false;
     }
     tkt->brk[n][0] = 0; //clear list
 
-    x = xmax = deltax = 0;
-    y = size;
+    x = xmax = deltax = y = 0;
     str_index = 0;
     for (i = 0; i < glyph_count; i++) 
     { 
         str_index = cluster_map[i];
-        deltax += glyph_pos[i].x_advance/64; //x distance since last whitespace
-        x += glyph_pos[i].x_advance/64; //total x distance
+        glyphs[i].x = x + (glyph_pos[i].x_offset/64);
+        glyphs[i].y = y - (glyph_pos[i].y_offset/64);
+        deltax += glyph_pos[i].x_advance/64.0; //x distance since last whitespace
+        x += glyph_pos[i].x_advance/64.0; //total x distance
         if(isspace(tkt->str[n][str_index]))
         { 
             deltax = 0;
@@ -1147,7 +1143,7 @@ bool tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, uin
             if (tkt->str[n][str_index] == '\n') //newline
             {
                 tk_addtogrowlist(&tkt->brk[n],&tkt->brklen[n],i+1);
-                y += size;
+                y -= size;
                 x = 0;
             }
         } 
@@ -1214,7 +1210,10 @@ bool tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, uin
 
     tkt->glyphs[n] = glyphs;
     tkt->glyph_count[n] = glyph_count;
+    tkt->glyph_pos[n] = glyph_pos;
     tkt->cluster_map[n] = cluster_map;
+
+    y += size;
 
     fit = true;
     if(xmax > *w)
@@ -1234,7 +1233,7 @@ void tk_growtexttable(tk_text_table* tkt)
     if(tkt->tablesize)
         sz = 2*tkt->tablesize;
     tmpt.str =         (char**)calloc(sz,sizeof(char*));
-    tmpt.strchange = (uint8_t*)calloc(sz,sizeof(uint8_t));
+    tmpt.strchange = (bool*)calloc(sz,sizeof(bool));
     tmpt.memlen =   (uint16_t*)calloc(sz,sizeof(uint16_t));
     tmpt.n =        (uint16_t*)calloc(sz,sizeof(uint16_t));
     tmpt.cursor =   (uint16_t*)calloc(sz,sizeof(uint16_t));
@@ -1246,6 +1245,7 @@ void tk_growtexttable(tk_text_table* tkt)
 
     tmpt.tkf =    (tk_font_stuff**)calloc(sz,sizeof(tk_font_stuff*));
     tmpt.glyphs = (cairo_glyph_t**)calloc(sz,sizeof(cairo_glyph_t*));
+    tmpt.glyph_pos =  (hb_glyph_position_t**)calloc(sz,sizeof(hb_glyph_position_t*));
     tmpt.cluster_map = (uint16_t**)calloc(sz,sizeof(uint16_t*));
     tmpt.glyph_count =  (uint16_t*)calloc(sz,sizeof(uint16_t));
 
@@ -1253,7 +1253,7 @@ void tk_growtexttable(tk_text_table* tkt)
     {
         osz = tkt->tablesize;
         memcpy(tmpt.str,      tkt->str,      osz*sizeof(char*));
-        memcpy(tmpt.strchange,tkt->strchange,osz*sizeof(uint8_t));
+        memcpy(tmpt.strchange,tkt->strchange,osz*sizeof(bool));
         memcpy(tmpt.memlen,   tkt->memlen,   osz*sizeof(uint16_t));
         memcpy(tmpt.n,        tkt->n,        osz*sizeof(uint16_t));
         memcpy(tmpt.cursor,   tkt->cursor,   osz*sizeof(uint16_t));
@@ -1265,6 +1265,7 @@ void tk_growtexttable(tk_text_table* tkt)
 
         memcpy(tmpt.tkf,      tkt->tkf,      osz*sizeof(tk_font_stuff*));
         memcpy(tmpt.glyphs,   tkt->glyphs,   osz*sizeof(cairo_glyph_t*));
+        memcpy(tmpt.glyph_pos,    tkt->glyph_pos,    osz*sizeof(hb_glyph_position_t*));
         memcpy(tmpt.cluster_map,  tkt->cluster_map,  osz*sizeof(uint16_t));
         memcpy(tmpt.glyph_count,  tkt->glyph_count,  osz*sizeof(uint16_t));
     }
@@ -1282,6 +1283,7 @@ void tk_growtexttable(tk_text_table* tkt)
 
     tkt->tkf = tmpt.tkf;
     tkt->glyphs = tmpt.glyphs;
+    tkt->glyph_pos = tmpt.glyph_pos;
     //tkt->clusters = tmpt.clusters;
     //tkt->extents = tmpt.extents;
     tkt->glyph_count = tmpt.glyph_count;
@@ -1311,7 +1313,6 @@ uint16_t tk_addaText(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, tk
 
     tk_addtogrowlist(&tkt->brk[s],&tkt->brklen[s],0);//alloc list for linebreaks
 
-    // get glyphs for the text
     if(!font)
     {
         if(tkt->tkf[0])//check for default font
@@ -1323,7 +1324,7 @@ uint16_t tk_addaText(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, tk
     }
     tkt->tkf[s] = font;
     tkt->scale = 1;
-    tkt->strchange[s] = 1;
+    tkt->strchange[s] = true;
     tk_textlayout(tk->cr,tkt,s,&w2,&h2,0); 
     //TODO: what if w and h don't fit?
 
@@ -1374,7 +1375,7 @@ void tk_textentrycallback(tk_t tk, const PuglEvent* event, uint16_t n)
                     tk_growstring(&tk->tkt.str[s], &tk->tkt.memlen[s]);
                 tk_strinsert(tk->tkt.str[s],(char*)event->key.utf8,tk->tkt.cursor[s]++);
             }
-            tk->tkt.strchange[s] = 1; 
+            tk->tkt.strchange[s] = true;
             tw = tk->w[n];
             th = tk->h[n];
             tk_textlayout(tk->cr,&tk->tkt,s,&tw,&th,tk->props[n]&TK_TEXT_WRAP); 
@@ -1425,7 +1426,7 @@ void tk_showtipcallback(tk_t tk, const PuglEvent* e, uint16_t n)
     s = tkts->n;
     if(!tk->tover) return;//no tip
     tkts->tkt->str[s] = tk->tip[tk->tover];
-    tkts->tkt->strchange[s] = 1;
+    tkts->tkt->strchange[s] = true;
     tk_settimer(tk,tk->ttip,0);//disable timer
 
     ww = tk->w[0]+2*tk->x[0];

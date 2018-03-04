@@ -69,7 +69,7 @@ void tk_gettextcursor(void* valp, int *x, int *y, int w, int h)
     tk_text_table* tkt = (tk_text_table*)tkts->tkt;
     int n = tkts->n;
     //cairo_text_cluster_t* clusters = tkt->clusters[n];
-    unsigned int cluster_map = tkt->cluster_map[n];
+    //unsigned int* cluster_map = tkt->cluster_map[n];
     //cairo_text_extents_t* extents = tkt->extents[n];
 
     //TODO: cache drawing?

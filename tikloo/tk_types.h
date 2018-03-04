@@ -37,7 +37,7 @@ typedef struct tk_text_table
 {
     ////// main text table
     char** str;//pointer to text
-    uint8_t* strchange;//flag that string has changed
+    bool* strchange;//flag that string has changed
     uint16_t* memlen;//allocated size of str (if 0 then == streln(str));
     uint16_t* n;//item in main table
     uint16_t* cursor;//cursor location in string
