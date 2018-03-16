@@ -1073,12 +1073,13 @@ bool tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, uin
 {
 //TODO: should this be changed to batch process all strings?
     bool fit;
-    uint16_t i,size,str_index;
-    float x,y,lastwhite,deltax,xmax;
+    uint16_t i,size,str_index,lastwhite;
+    float x,y,deltax,xmax,xstart;
     tk_font_stuff* tkf = tkt->tkf[n];
 
     hb_glyph_info_t *glyph_info;
-    hb_glyph_position_t *glyph_pos = tkt->glyph_pos[n];
+    float *glyph_pos = tkt->glyph_pos[n];
+    hb_glyph_position_t *glyph_position;
 
     //cairo_scaled_font_t* scaled_face = tkt->tkf[n]->scaledfont;
     cairo_glyph_t* glyphs = tkt->glyphs[n];
@@ -1106,107 +1107,68 @@ bool tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, uin
 
 
         glyph_info = hb_buffer_get_glyph_infos(tkf->buf, &glyph_count);
-        glyph_pos = hb_buffer_get_glyph_positions(tkf->buf, &glyph_count);
+        glyph_position = hb_buffer_get_glyph_positions(tkf->buf, &glyph_count);
         if(glyph_count > tkt->glyph_count[n])
         {
             free(glyphs);
             free(cluster_map);
+            free(glyph_pos);
             glyphs = (cairo_glyph_t*)malloc(sizeof(cairo_glyph_t) * (glyph_count+1));
             glyphs[glyph_count].index = 0; //add null at end of list
             glyphs[glyph_count].x = 0;
             glyphs[glyph_count].y = 0;
             cluster_map = (uint16_t*)malloc(sizeof(uint16_t)*glyph_count);
+            glyph_pos = (float*)malloc(sizeof(float)*glyph_count);
         }
 
+        x = 0;
         for (i=0; i < glyph_count; ++i) 
         {
             glyphs[i].index = glyph_info[i].codepoint;
             cluster_map[i] = glyph_info[i].cluster;
+            glyph_pos[i] = x + glyph_position[i].x_offset/64.0;
+            x += glyph_position[i].x_advance/64.0;
+
         }
         tkt->strchange[n] = false;
     }
     tkt->brk[n][0] = 0; //clear list
 
-    x = xmax = deltax = y = 0;
+    xstart = xmax = deltax = y = 0;
     str_index = 0;
     for (i = 0; i < glyph_count; i++) 
     { 
         str_index = cluster_map[i];
-        glyphs[i].x = x + (glyph_pos[i].x_offset/64);
-        glyphs[i].y = y - (glyph_pos[i].y_offset/64);
-        deltax += glyph_pos[i].x_advance/64.0; //x distance since last whitespace
-        x += glyph_pos[i].x_advance/64.0; //total x distance
+        x = glyph_pos[i] - xstart;
+        glyphs[i].x = x;
+        glyphs[i].y = y;
         if(isspace(tkt->str[n][str_index]))
         { 
-            deltax = 0;
-            lastwhite = str_index;
+            lastwhite = i;
             if (tkt->str[n][str_index] == '\n') //newline
             {
                 tk_addtogrowlist(&tkt->brk[n],&tkt->brklen[n],i+1);
-                y -= size;
-                x = 0;
-            }
-        } 
-
-        if(wrap && x > *w)
-        {
-            //go back to last whitespace put the rest on a newline
-            if(deltax == x)
-            {//single word doesn't fit on a line
-                x = 0;
-                lastwhite = str_index-2;
-            }
-            else
-                x = deltax;
-            tk_addtogrowlist(&tkt->brk[n],&tkt->brklen[n],lastwhite+1);
-            y += size;
-        }
-        if(x > xmax)
-            xmax = x;
-    }
-    /*
-    //old cairo toy text method
-    x = xmax = deltax = 0;
-    y = size;
-    glyph_index = str_index = 0;
-    for (i = 0; i < cluster_count; i++) 
-    { 
-        // get extents for the glyphs in the cluster
-        cairo_scaled_font_glyph_extents(scaled_face, &glyphs[glyph_index], clusters[i].num_glyphs, &extents[i]);
-        glyph_index += clusters[i].num_glyphs;
-
-        deltax += extents[i].x_advance;
-        x += extents[i].x_advance;
-        if(clusters[i].num_bytes == 1 && isspace(tkt->str[n][str_index]))
-        { 
-            deltax = 0;
-            lastwhite = str_index;
-            if (tkt->str[n][str_index] == '\n') //newline
-            {
-                tk_addtogrowlist(&tkt->brk[n],&tkt->brklen[n],str_index+1);
                 y += size;
-                x = 0;
+                xstart = glyph_pos[i+1]; //TODO: what if last char!?
             }
         } 
 
         if(wrap && x > *w)
         {
             //go back to last whitespace put the rest on a newline
-            if(deltax == x)
+            if((glyph_pos[lastwhite]-xstart) <= x) //TODO: lastwhite should probably reset on each newline
             {//single word doesn't fit on a line
-                x = 0;
-                lastwhite = str_index-2;
+                xstart = glyph_pos[i+1];
+                lastwhite = i-1;
             }
             else
-                x = deltax;
+                xstart = glyph_pos[lastwhite+1];
             tk_addtogrowlist(&tkt->brk[n],&tkt->brklen[n],lastwhite+1);
             y += size;
         }
         if(x > xmax)
             xmax = x;
-        str_index += clusters[i].num_bytes; 
     }
-    */
 
     tkt->glyphs[n] = glyphs;
     tkt->glyph_count[n] = glyph_count;
@@ -1220,6 +1182,7 @@ bool tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, uin
         fit = false;
     if(y > *h)
         fit = false; 
+    //TODO: show what you can at least
 
     *w = xmax*tkt->scale;
     *h = y*tkt->scale;
@@ -1245,7 +1208,7 @@ void tk_growtexttable(tk_text_table* tkt)
 
     tmpt.tkf =    (tk_font_stuff**)calloc(sz,sizeof(tk_font_stuff*));
     tmpt.glyphs = (cairo_glyph_t**)calloc(sz,sizeof(cairo_glyph_t*));
-    tmpt.glyph_pos =  (hb_glyph_position_t**)calloc(sz,sizeof(hb_glyph_position_t*));
+    tmpt.glyph_pos =  (float**)calloc(sz,sizeof(float*));
     tmpt.cluster_map = (uint16_t**)calloc(sz,sizeof(uint16_t*));
     tmpt.glyph_count =  (uint16_t*)calloc(sz,sizeof(uint16_t));
 
@@ -1265,7 +1228,7 @@ void tk_growtexttable(tk_text_table* tkt)
 
         memcpy(tmpt.tkf,      tkt->tkf,      osz*sizeof(tk_font_stuff*));
         memcpy(tmpt.glyphs,   tkt->glyphs,   osz*sizeof(cairo_glyph_t*));
-        memcpy(tmpt.glyph_pos,    tkt->glyph_pos,    osz*sizeof(hb_glyph_position_t*));
+        memcpy(tmpt.glyph_pos,    tkt->glyph_pos,    osz*sizeof(float*));
         memcpy(tmpt.cluster_map,  tkt->cluster_map,  osz*sizeof(uint16_t));
         memcpy(tmpt.glyph_count,  tkt->glyph_count,  osz*sizeof(uint16_t));
     }

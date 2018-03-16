@@ -19,7 +19,7 @@
 #include"timer.h"
 
 //text things
-typedef struct
+typedef struct tk_font_stuff
 {
     uint16_t fontsize;
     uint16_t base;//distance to font baseline
@@ -49,7 +49,7 @@ typedef struct tk_text_table
 
     tk_font_stuff** tkf;//font for each text element (some may be shared)
     cairo_glyph_t** glyphs;//glyph array
-    hb_glyph_position_t** glyph_pos;
+    float** glyph_pos;//array of x positions of glyphs
     uint16_t** cluster_map;
     uint16_t* glyph_count;
 
@@ -64,7 +64,7 @@ typedef struct tk_text_table
 typedef struct
 {
     tk_text_table* tkt;
-    uint16_t n;//index
+    uint16_t n;//index in text table
 }tk_text_stuff;
 
 // dial
