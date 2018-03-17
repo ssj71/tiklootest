@@ -699,7 +699,7 @@ void tk_insertinlist(uint16_t* list, uint16_t n, uint16_t i)
     list[i] = n;
 }
 
-//returns length of allocated array
+//memlen is optional, returns length allocated
 void tk_setstring(char** str, const char* msg, uint16_t *memlen)
 {
     uint16_t l = strlen(msg);
@@ -1100,11 +1100,10 @@ bool tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, uin
     if(tkt->strchange[n])
     {
         //shape
-        hb_buffer_clear_contents(tkf->buf);
+        hb_buffer_reset(tkf->buf);
         hb_buffer_add_utf8(tkf->buf,tkt->str[n],-1,0,-1);//magic numbers mean use strlen, no offset
         hb_buffer_set_direction(tkf->buf,HB_DIRECTION_LTR);
         hb_shape(tkf->hbfont,tkf->buf, NULL, 0);//no features specified
-
 
         glyph_info = hb_buffer_get_glyph_infos(tkf->buf, &glyph_count);
         glyph_position = hb_buffer_get_glyph_positions(tkf->buf, &glyph_count);
@@ -1118,7 +1117,7 @@ bool tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, uin
             glyphs[glyph_count].x = 0;
             glyphs[glyph_count].y = 0;
             cluster_map = (uint16_t*)malloc(sizeof(uint16_t)*glyph_count);
-            glyph_pos = (float*)malloc(sizeof(float)*glyph_count);
+            glyph_pos = (float*)malloc(sizeof(float)*(glyph_count+1));
         }
 
         x = 0;
@@ -1128,8 +1127,8 @@ bool tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, uin
             cluster_map[i] = glyph_info[i].cluster;
             glyph_pos[i] = x + glyph_position[i].x_offset/64.0;
             x += glyph_position[i].x_advance/64.0;
-
         }
+        glyph_pos[i] = x + glyph_position[i].x_offset/64.0; //get end of string
         tkt->strchange[n] = false;
     }
     tkt->brk[n][0] = 0; //clear list
@@ -1187,6 +1186,21 @@ bool tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, uin
     *w = xmax*tkt->scale;
     *h = y*tkt->scale;
     return fit;
+}
+
+//set the text of a text widget
+void tk_settext(tk_t tk, uint16_t n, char* str)
+{
+    uint16_t tw,th,s;
+    tk_text_stuff* tkts;
+    tw = tk->w[n];
+    th = tk->h[n];
+    tkts = tk->value[n];
+    s = tkts->n;
+    tk_setstring(&tk->tkt.str[s],"World!",0);
+    tk->tkt.strchange[s] = true;
+    tk_textlayout(tk->cr,&tk->tkt,s,&tw,&th,tk->props[n]&TK_TEXT_WRAP);
+    tk_addtolist(tk->redraw,1);
 }
 
 void tk_growtexttable(tk_text_table* tkt)

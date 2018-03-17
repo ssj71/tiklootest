@@ -8,6 +8,12 @@ executable( 'test_ui',
             dependencies : tk_deps
             )
 
+executable( 'strtest',
+            'strtest.c',
+            link_with : tikloo,
+            dependencies : tk_deps
+            )
+
 executable( 'unittest',
             'unittest.c',
             link_with : tikloo,

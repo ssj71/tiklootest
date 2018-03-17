@@ -36,5 +36,6 @@ void tk_insertinlist(uint16_t* list, uint16_t i, uint16_t n);
 void tk_setstring(char** str, const char* msg, uint16_t *memlen);
 void tk_settimer(tk_t tk, uint16_t n, float s);
 float tk_dialvalue(tk_t tk, uint16_t n);
+void tk_settext(tk_t tk, uint16_t n, char* str);
 
 #endif
