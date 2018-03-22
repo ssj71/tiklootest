@@ -1041,7 +1041,7 @@ tk_font_stuff* tk_gimmeaFont(tk_t tk, const uint8_t* font, uint32_t fsize, uint3
 
     //harfbuzz
     buf = hb_buffer_create();
-    //TODO: at some point it may be necessary to allow these to be specified, but not today 
+    //TODO: at some point it may be necessary to allow these to be specified, but not today
     hb_buffer_set_unicode_funcs(buf, hb_unicode_funcs_get_default());
     hb_buffer_set_direction(buf, HB_DIRECTION_LTR); /* or LTR */
     hb_buffer_set_script(buf, HB_SCRIPT_LATIN); /* see hb-unicode.h */
@@ -1125,10 +1125,10 @@ bool tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, uin
         {
             glyphs[i].index = glyph_info[i].codepoint;
             cluster_map[i] = glyph_info[i].cluster;
-            glyph_pos[i] = x + glyph_position[i].x_offset/64.0;
+            glyph_pos[i] = (x + glyph_position[i].x_offset/64.0)/tkt->scale;
             x += glyph_position[i].x_advance/64.0;
         }
-        glyph_pos[i] = x + glyph_position[i].x_offset/64.0; //get end of string
+        glyph_pos[i] = (x + glyph_position[i].x_offset/64.0)/tkt->scale; //get end of string
         tkt->strchange[n] = false;
     }
     tkt->brk[n][0] = 0; //clear list
@@ -1197,10 +1197,10 @@ void tk_settext(tk_t tk, uint16_t n, char* str)
     th = tk->h[n];
     tkts = tk->value[n];
     s = tkts->n;
-    tk_setstring(&tk->tkt.str[s],"World!",0);
+    tk_setstring(&tk->tkt.str[s],str,0);
     tk->tkt.strchange[s] = true;
     tk_textlayout(tk->cr,&tk->tkt,s,&tw,&th,tk->props[n]&TK_TEXT_WRAP);
-    tk_addtolist(tk->redraw,1);
+    tk_addtolist(tk->redraw,n);
 }
 
 void tk_growtexttable(tk_text_table* tkt)

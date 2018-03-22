@@ -91,7 +91,7 @@ int main()
                     0, //font (0 uses default)
                     "Don't Panic!"); //msg
 
-    n = tk_addaTimer(tk, 5);//seconds
+    n = tk_addaTimer(tk, 5.0);//seconds
     tk->callback_f[n] = tick;
 
     tk_addaTooltip(tk,0);//font (0 uses default)

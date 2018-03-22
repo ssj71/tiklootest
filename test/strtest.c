@@ -44,7 +44,7 @@ int main()
                 "well"); //msg
 
 
-    n = tk_addaTimer(tk, 5);//seconds
+    n = tk_addaTimer(tk, 2);//seconds
     tk->callback_f[n] = tick;
 
     n = tk_addaTextentry(tk,
