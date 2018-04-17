@@ -1073,7 +1073,7 @@ bool tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, uin
 {
 //TODO: should this be changed to batch process all strings?
     bool fit;
-    uint16_t i,size,str_index,lastwhite;
+    uint16_t i,j,size,str_index,lastwhite;
     float x,y,deltax,xmax,xstart;
     tk_font_stuff* tkf = tkt->tkf[n];
 
@@ -1081,15 +1081,8 @@ bool tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, uin
     float *glyph_pos = tkt->glyph_pos[n];
     hb_glyph_position_t *glyph_position;
 
-    //cairo_scaled_font_t* scaled_face = tkt->tkf[n]->scaledfont;
     cairo_glyph_t* glyphs = tkt->glyphs[n];
     unsigned int glyph_count = tkt->glyph_count[n];
-    //cairo_text_cluster_t* clusters = tkt->clusters[n]; 
-    //int cluster_count = tkt->cluster_count[n];
-    //cairo_text_extents_t* extents = tkt->extents[n];
-    //int extents_count = tkt->extents_count[n];
-    //cairo_text_cluster_flags_t clusterflags;
-    //cairo_status_t stat;
     uint16_t *cluster_map = tkt->cluster_map[n];
 
     *w /= tkt->scale;
@@ -1129,44 +1122,52 @@ bool tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, uin
             x += glyph_position[i].x_advance/64.0;
         }
         glyph_pos[i] = (x + glyph_position[i].x_offset/64.0)/tkt->scale; //get end of string
-        tkt->strchange[n] = false;
+        tkt->strchange[n] = false; //TODO: cursor redraws should know if strnochange
     }
     tkt->brk[n][0] = 0; //clear list
 
-    xstart = xmax = deltax = y = 0;
+    //TODO: do we need brk list? 
+
+    xstart = xmax = deltax = y = lastwhite = 0;
     str_index = 0;
     for (i = 0; i < glyph_count; i++) 
-    { 
+    {
         str_index = cluster_map[i];
         x = glyph_pos[i] - xstart;
         glyphs[i].x = x;
         glyphs[i].y = y;
+        deltax = glyph_pos[i+1]-glyph_pos[i]; //width of glyph
         if(isspace(tkt->str[n][str_index]))
-        { 
+        {//keep track of most recent whitespace so we can break there
             lastwhite = i;
             if (tkt->str[n][str_index] == '\n') //newline
-            {
+            {//newline breaks anyway
                 tk_addtogrowlist(&tkt->brk[n],&tkt->brklen[n],i+1);
                 y += size;
-                xstart = glyph_pos[i+1]; //TODO: what if last char!?
+                xstart = glyph_pos[i+1];
             }
         } 
 
-        if(wrap && x > *w)
-        {
-            //go back to last whitespace put the rest on a newline
-            if((glyph_pos[lastwhite]-xstart) <= x) //TODO: lastwhite should probably reset on each newline
+        if(wrap && glyph_pos[i+1]-xstart > *w)
+        {//go back to last whitespace put the rest on a newline
+            if(!lastwhite || glyph_pos[lastwhite+1] == xstart)
             {//single word doesn't fit on a line
-                xstart = glyph_pos[i+1];
-                lastwhite = i-1;
+                xstart = glyph_pos[i];
+                lastwhite = i-1; //TODO: should lastwhite mark the glyph or the str_index?
             }
             else
                 xstart = glyph_pos[lastwhite+1];
             tk_addtogrowlist(&tkt->brk[n],&tkt->brklen[n],lastwhite+1);
             y += size;
+            for(j=lastwhite+1;j<=i;j++)
+            {//move previous glyphs
+                x = glyph_pos[j] - xstart;
+                glyphs[j].x = x;
+                glyphs[j].y = y;
+            }
         }
-        if(x > xmax)
-            xmax = x;
+        if(glyph_pos[i+1]-xstart > xmax)
+            xmax = glyph_pos[i+1]-xstart;
     }
 
     tkt->glyphs[n] = glyphs;
