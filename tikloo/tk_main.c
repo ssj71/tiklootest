@@ -1121,7 +1121,7 @@ bool tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, uin
             glyph_pos[i] = (x + glyph_position[i].x_offset/64.0)/tkt->scale;
             x += glyph_position[i].x_advance/64.0;
         }
-        glyph_pos[i] = (x + glyph_position[i].x_offset/64.0)/tkt->scale; //get end of string
+        glyph_pos[i] = x/tkt->scale; //get end of string
         tkt->strchange[n] = false; //TODO: cursor redraws should know if strnochange
     }
     tkt->brk[n][0] = 0; //clear list
@@ -1153,19 +1153,20 @@ bool tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, uin
             if(!lastwhite || glyph_pos[lastwhite+1] == xstart)
             {//single word doesn't fit on a line
                 xstart = glyph_pos[i];
-                lastwhite = i-1; //TODO: should lastwhite mark the glyph or the str_index?
+                lastwhite = i-1;
             }
             else
                 xstart = glyph_pos[lastwhite+1];
             tk_addtogrowlist(&tkt->brk[n],&tkt->brklen[n],lastwhite+1);
             y += size;
             for(j=lastwhite+1;j<=i;j++)
-            {//move previous glyphs
+            {//move previous glyphs to new line
                 x = glyph_pos[j] - xstart;
                 glyphs[j].x = x;
                 glyphs[j].y = y;
             }
         }
+        //TODO: this counts width that later gets moved to newline
         if(glyph_pos[i+1]-xstart > xmax)
             xmax = glyph_pos[i+1]-xstart;
     }
