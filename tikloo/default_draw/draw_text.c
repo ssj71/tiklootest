@@ -1,5 +1,6 @@
 #include<ctype.h>
 #include "tk_default_draw.h"
+#include "tk.h"
 
 // here we assume a single line
 // line and fill must be arrays describing rgba (and a width for line)
@@ -63,78 +64,6 @@ void tk_drawtip(cairo_t *cr, float w, float h, void* cache, void* valp)
     cairo_restore( cr ) ; 
 }
 
-void tk_gettextcursor(void* valp, int *x, int *y, int w, int h)
-{
-
-    tk_text_stuff* tkts = (tk_text_stuff*)valp;
-    tk_text_table* tkt = (tk_text_table*)tkts->tkt;
-    int n = tkts->n;
-    //cairo_text_cluster_t* clusters = tkt->clusters[n];
-    //unsigned int* cluster_map = tkt->cluster_map[n];
-    //cairo_text_extents_t* extents = tkt->extents[n];
-
-    //TODO: cache drawing?
-    w /= tkt->scale;
-    h /= tkt->scale;
-    if(!w || !h)
-        return;
-    //cairo_scale(cr,tkt->scale,tkt->scale);
-    //cairo_translate(cr, 2, tkt->tkf[n]->base);//start at foot of line
-
-    // draw each cluster
-    int str_index = 0;
-    int ln=0,whitex=0;
-    *x=*y=0;
-
-    //TODO: handle viewport
-    //for (i = 0; i < cluster_count && str_index < tkt->cursor[n]; i++) 
-    { 
-        if(tkt->brk[n][ln] && str_index == tkt->brk[n][ln])
-        {
-            ln++;
-            //cairo_translate(cr, -x, tkt->tkf[n]->fontsize);
-            *x = 0;//tkt->col[n];
-            whitex = 0;
-            *y += tkt->tkf[n]->fontsize;
-            if(*y > h)
-            {//can't fit more
-                //cairo_restore( cr );
-                //TODO: move viewport to contain cursor
-                x = 0, y = 0;
-                return;
-            }
-        }
-        //TODO: whitespace doesn't seem to actually move the pen, so somehow we need to look for that and skip on a line break
-        if(*x + whitex <= w)
-        { 
-            // advance glyph/str position
-            //str_index += clusters[i].num_bytes; 
-            //if(clusters[i].num_bytes == 1 && isspace(tkt->str[n][str_index]))
-            //    whitex += extents[i].x_advance; 
-            //else
-            //{
-            //    *x += extents[i].x_advance + whitex;
-            //    whitex = 0;
-            //}
-        }
-        else
-        {
-            //finish the line
-            //for( ; i < cluster_count && str_index < tkt->brk[n][ln]; i++)
-            {
-                // advance glyph/str position
-                //str_index += clusters[i].num_bytes; 
-                //TODO: move viewport to contain cursor
-            }
-            *x += whitex;
-            whitex = 0; 
-        }
-    }
-    *x*=tkt->scale;
-    *y*=tkt->scale;
-
-    fprintf(stderr, "Get Cursor! %i, xy %i, %i. \n", tkt->cursor[n], *x, *y);
-}
 
 void tk_drawtextentry(cairo_t *cr, float w, float h, void* cache, void* valp)
 {

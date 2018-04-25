@@ -12,7 +12,7 @@ void tk_damage(tk_t tk, uint16_t n);//redraw anything underneath item
 
 void tk_checktimers(tk_t tk);
 uint16_t tk_eventsearch(tk_t tk, const PuglEvent* event);
-static void tk_callback (PuglView* view, const PuglEvent* event);
+void tk_callback (PuglView* view, const PuglEvent* event);
 void tk_rmdupptr(void** a);
 
 void tk_strinsert(char* dest, char* src, uint16_t i);

@@ -527,7 +527,7 @@ uint16_t tk_eventsearch(tk_t tk, const PuglEvent* event)
 }
 
 //primary callback for all events, sorts to appropriate widget
-static void tk_callback (PuglView* view, const PuglEvent* event)
+void tk_callback (PuglView* view, const PuglEvent* event)
 { 
     uint16_t n;
     tk_t tk = (tk_t)puglGetHandle(view);
@@ -1092,7 +1092,6 @@ bool tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, uin
     //TODO: there is no strchange when finding tip location or window ratio change
     if(tkt->strchange[n])
     {
-        //tkt->strchange[n] = false;
         //shape
         hb_buffer_reset(tkf->buf);
         hb_buffer_add_utf8(tkf->buf,tkt->str[n],-1,0,-1);//magic numbers mean use strlen, no offset
@@ -1368,6 +1367,26 @@ void tk_textentrycallback(tk_t tk, const PuglEvent* event, uint16_t n)
     }
 }
 
+//this helper is mostly used by draw functions
+void tk_gettextcursor(void* valp, int *x, int *y, int w, int h)
+{
+
+    tk_text_stuff* tkts = (tk_text_stuff*)valp;
+    tk_text_table* tkt = (tk_text_table*)tkts->tkt;
+    int i,n = tkts->n;
+    
+    w /= tkt->scale;
+    h /= tkt->scale;
+    if(!w || !h)
+        return;
+    for(i=0;tkt->cluster_map[n][i]<tkt->cursor[n];i++);//get the cursor glyph
+    *x = tkt->glyphs[n][i].x-2;
+    *y = tkt->glyphs[n][i].y;
+    *x *= tkt->scale;
+    *y *= tkt->scale;
+
+    fprintf(stderr, "Get Cursor! %i, xy %i, %i. \n", tkt->cursor[n], *x, *y);
+}
 void tk_cursorcallback(tk_t tk, const PuglEvent* event, uint16_t n)
 {
     tk->tkt.cursorstate ^= TK_CURSOR_STATE;
