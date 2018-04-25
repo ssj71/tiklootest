@@ -15,6 +15,7 @@ void tk_drawtextcolor(cairo_t *cr, float w, float h, void* valp, float* line, fl
     h /= tkt->scale;
     if(!w || !h)
         return;
+    tkt->strchange[n] = false;
     cairo_save( cr );
     cairo_scale(cr,tkt->scale,tkt->scale);
     cairo_translate(cr, 2, tkt->tkf[n]->base);//start at foot of line
@@ -149,7 +150,6 @@ void tk_drawtextentry(cairo_t *cr, float w, float h, void* cache, void* valp)
         cairo_save( cr );
         tk_drawtip(cr,w,h,cache,valp);
         cairo_restore( cr ) ;
-        tkt->strchange[n] = 0;
     }
     else if(!(tkt->cursorstate&TK_CURSOR_STATE))
     {//draw a not-cursor

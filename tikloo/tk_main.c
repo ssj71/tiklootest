@@ -1074,7 +1074,7 @@ bool tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, uin
 //TODO: should this be changed to batch process all strings?
     bool fit;
     uint16_t i,j,size,str_index,lastwhite;
-    float x,y,deltax,xmax,xstart;
+    float x,y,xmax,xstart,ostart;
     tk_font_stuff* tkf = tkt->tkf[n];
 
     hb_glyph_info_t *glyph_info;
@@ -1092,6 +1092,7 @@ bool tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, uin
     //TODO: there is no strchange when finding tip location or window ratio change
     if(tkt->strchange[n])
     {
+        //tkt->strchange[n] = false;
         //shape
         hb_buffer_reset(tkf->buf);
         hb_buffer_add_utf8(tkf->buf,tkt->str[n],-1,0,-1);//magic numbers mean use strlen, no offset
@@ -1122,13 +1123,12 @@ bool tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, uin
             x += glyph_position[i].x_advance/64.0;
         }
         glyph_pos[i] = x/tkt->scale; //get end of string
-        tkt->strchange[n] = false; //TODO: cursor redraws should know if strnochange
     }
     tkt->brk[n][0] = 0; //clear list
 
     //TODO: do we need brk list? 
 
-    xstart = xmax = deltax = y = lastwhite = 0;
+    xstart = xmax = y = lastwhite = 0;
     str_index = 0;
     for (i = 0; i < glyph_count; i++) 
     {
@@ -1136,7 +1136,6 @@ bool tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, uin
         x = glyph_pos[i] - xstart;
         glyphs[i].x = x;
         glyphs[i].y = y;
-        deltax = glyph_pos[i+1]-glyph_pos[i]; //width of glyph
         if(isspace(tkt->str[n][str_index]))
         {//keep track of most recent whitespace so we can break there
             lastwhite = i;
@@ -1150,6 +1149,7 @@ bool tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, uin
 
         if(wrap && glyph_pos[i+1]-xstart > *w)
         {//go back to last whitespace put the rest on a newline
+            ostart = xstart;//store old start
             if(!lastwhite || glyph_pos[lastwhite+1] == xstart)
             {//single word doesn't fit on a line
                 xstart = glyph_pos[i];
@@ -1157,6 +1157,8 @@ bool tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, uin
             }
             else
                 xstart = glyph_pos[lastwhite+1];
+            if(glyph_pos[lastwhite]-ostart > xmax) //check length of line
+                xmax = glyph_pos[lastwhite]-ostart;
             tk_addtogrowlist(&tkt->brk[n],&tkt->brklen[n],lastwhite+1);
             y += size;
             for(j=lastwhite+1;j<=i;j++)
@@ -1166,10 +1168,9 @@ bool tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, uin
                 glyphs[j].y = y;
             }
         }
-        //TODO: this counts width that later gets moved to newline
-        if(glyph_pos[i+1]-xstart > xmax)
-            xmax = glyph_pos[i+1]-xstart;
     }
+    if(glyph_pos[i]-xstart > xmax) //check last line
+        xmax = glyph_pos[i]-xstart;
 
     tkt->glyphs[n] = glyphs;
     tkt->glyph_count[n] = glyph_count;
@@ -1305,7 +1306,7 @@ uint16_t tk_addaText(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, tk
     tkt->scale = 1;
     tkt->strchange[s] = true;
     tk_textlayout(tk->cr,tkt,s,&w2,&h2,0); 
-    //TODO: what if w and h don't fit?
+    //TODO: what if w and h don't fit right out the gate?
 
     tk->draw_f[n] = tk_drawtext;
     tkts->tkt = tkt;
@@ -1347,7 +1348,7 @@ void tk_textentrycallback(tk_t tk, const PuglEvent* event, uint16_t n)
                 tk_strcut(tk->tkt.str[s], --tk->tkt.cursor[s], 1);//delete
             else if(event->key.keycode == 22 && tk->tkt.cursor[s] )
         
-                tk_strcut(tk->tkt.str[s], --tk->tkt.cursor[s]-1, 1);//backspace
+                tk_strcut(tk->tkt.str[s], --tk->tkt.cursor[s], 1);//backspace
             else
             {//regular character keypress
                 if(tw+strlen((char*)event->key.utf8)+1 > tk->tkt.memlen[s])
@@ -1408,9 +1409,9 @@ void tk_showtipcallback(tk_t tk, const PuglEvent* e, uint16_t n)
     tkts->tkt->strchange[s] = true;
     tk_settimer(tk,tk->ttip,0);//disable timer
 
-    ww = tk->w[0]+2*tk->x[0];
-    wh = tk->h[0]+2*tk->y[0];
-    tk->x[n] = tk->x[tk->tover];
+    ww = tk->w[0]+2*tk->x[0];//window w
+    wh = tk->h[0]+2*tk->y[0];//window h
+    tk->x[n] = tk->x[tk->tover]; //move tip
     tk->y[n] = tk->y[tk->tover];
 
     //find best place to put the tip
@@ -1466,7 +1467,7 @@ void tk_showtipcallback(tk_t tk, const PuglEvent* e, uint16_t n)
             }//below
         }//above
     }//left
-    tk->w[n] = w+b;
+    tk->w[n] = w+b2;
     tk->h[n] = h+b;
     if(tk->x[n]+w+b > ww)
         tk->x[n] = ww-w-b2;
