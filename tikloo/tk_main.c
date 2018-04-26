@@ -1374,19 +1374,20 @@ void tk_gettextcursor(void* valp, int *x, int *y, int w, int h)
     tk_text_stuff* tkts = (tk_text_stuff*)valp;
     tk_text_table* tkt = (tk_text_table*)tkts->tkt;
     int i,n = tkts->n;
+    float deltax=0;
     
-    w /= tkt->scale;
-    h /= tkt->scale;
-    if(!w || !h)
-        return;
-    for(i=0;tkt->cluster_map[n][i]<tkt->cursor[n];i++);//get the cursor glyph
-    *x = tkt->glyphs[n][i].x-2;
-    *y = tkt->glyphs[n][i].y;
-    *x *= tkt->scale;
-    *y *= tkt->scale;
+    for(i=0;i<tkt->glyph_count[n] && tkt->cluster_map[n][i]<tkt->cursor[n];i++);//get the cursor glyph
+    if(i==tkt->glyph_count[n])
+    {
+        deltax = tkt->glyph_pos[n][i] - tkt->glyph_pos[n][i-1];
+        i--;
+    }
+    *x = (tkt->glyphs[n][i].x+deltax)*tkt->scale;
+    *y = (tkt->glyphs[n][i].y)*tkt->scale;
 
-    fprintf(stderr, "Get Cursor! %i, xy %i, %i. \n", tkt->cursor[n], *x, *y);
+    fprintf(stderr, "Get Cursor! %i/%i, %c xy %i, %i. \n", tkt->cursor[n],i,tkt->str[n][i], *x, *y);
 }
+
 void tk_cursorcallback(tk_t tk, const PuglEvent* event, uint16_t n)
 {
     tk->tkt.cursorstate ^= TK_CURSOR_STATE;
