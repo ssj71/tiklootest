@@ -73,6 +73,7 @@ void tk_drawtextentry(cairo_t *cr, float w, float h, void* cache, void* valp)
 
     fprintf(stderr, "curs %i ", tkt->cursorstate);
     tk_gettextcursor(valp,&x,&y,w,h);
+    x += 2*tkt->scale; //offset for margin
     //draw bg/text if necessary
     if(tkt->strchange[n] || !(tkt->cursorstate&TK_CURSOR_CHANGED))
     {//string has changed OR we got resized or something
