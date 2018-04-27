@@ -1402,10 +1402,7 @@ void tk_cursorcallback(tk_t tk, const PuglEvent* event, uint16_t n)
     tk->tkt.cursorstate ^= TK_CURSOR_STATE;
     tk->tkt.cursorstate |= TK_CURSOR_CHANGED;
     tk_addtolist(tk->redraw,tk->focus);
-    if( tk->tkt.cursorstate&TK_CURSOR_STATE )
-        tk_settimer(tk,n,.8);
-    else
-        tk_settimer(tk,n,.4);
+    tk_settimer(tk,n,.4);
 }
 
 uint16_t tk_addaTextentry(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, tk_font_stuff* font, char* str)
