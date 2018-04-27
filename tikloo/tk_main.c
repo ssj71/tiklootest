@@ -1337,17 +1337,28 @@ void tk_textentrycallback(tk_t tk, const PuglEvent* event, uint16_t n)
         tw = strlen(tk->tkt.str[s]);
         if(event->key.keycode == 113 && tk->tkt.cursor[s])
             tk->tkt.cursor[s]--; //back arrow
-        else if(event->key.keycode == 114 && tk->tkt.cursor[s]<tw) 
+        else if(event->key.keycode == 114 && tk->tkt.cursor[s]<tw)
             tk->tkt.cursor[s]++; //forward arrow
-        //TODO: home, end, up down
-        else
+        else if(event->key.keycode == 110)
+            tk->tkt.cursor[s] = 0; //home
+        else if(event->key.keycode == 115)
+            tk->tkt.cursor[s] = tw; //end
+        //TODO: up down
+        else if(strlen((char*)event->key.utf8))
         {//it changes the string
             fprintf(stderr, "str0 %s -- ",tk->tkt.str[s]);
-            if(event->key.keycode == 119 && tk->tkt.cursor[s]<tw-1) 
-                tk_strcut(tk->tkt.str[s], --tk->tkt.cursor[s], 1);//delete
-            else if(event->key.keycode == 22 && tk->tkt.cursor[s] )
-        
-                tk_strcut(tk->tkt.str[s], --tk->tkt.cursor[s], 1);//backspace
+            if(event->key.keycode == 119)
+            {
+                if(tk->tkt.cursor[s]<tw) 
+                    tk_strcut(tk->tkt.str[s], tk->tkt.cursor[s], 1);//delete
+                else return;//no change, no redraw
+            }
+            else if(event->key.keycode == 22)
+            {
+                if(tk->tkt.cursor[s]) 
+                    tk_strcut(tk->tkt.str[s], --tk->tkt.cursor[s], 1);//backspace
+                else return;//no change, no redraw
+            }
             else
             {//regular character keypress
                 if(tw+strlen((char*)event->key.utf8)+1 > tk->tkt.memlen[s])
@@ -1383,9 +1394,7 @@ void tk_gettextcursor(void* valp, int *x, int *y, int w, int h)
         i--;
     }
     *x = (tkt->glyphs[n][i].x+deltax)*tkt->scale;
-    *y = (tkt->glyphs[n][i].y)*tkt->scale;
-
-    fprintf(stderr, "Get Cursor! %i/%i, %c xy %i, %i. \n", tkt->cursor[n],i,tkt->str[n][i], *x, *y);
+    *y = (tkt->glyphs[n][i].y)*tkt->scale; 
 }
 
 void tk_cursorcallback(tk_t tk, const PuglEvent* event, uint16_t n)

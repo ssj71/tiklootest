@@ -71,7 +71,6 @@ void tk_drawtextentry(cairo_t *cr, float w, float h, void* cache, void* valp)
     uint16_t n = ((tk_text_stuff*)valp)->n;
     int x,y;
 
-    fprintf(stderr, "curs %i ", tkt->cursorstate);
     tk_gettextcursor(valp,&x,&y,w,h);
     x += 2*tkt->scale; //offset for margin
     //draw bg/text if necessary
