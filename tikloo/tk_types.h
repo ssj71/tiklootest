@@ -51,7 +51,8 @@ typedef struct tk_text_table
     cairo_glyph_t** glyphs;//glyph array
     float** glyph_pos;//array of x positions of glyphs
     uint16_t** cluster_map;
-    uint16_t* glyph_count;
+    uint16_t* glyph_count;//number of glyphs in string
+    uint16_t* glyph_end;//number of glyphs to draw
 
     ////// text global
     float scale;//factor text is scaled

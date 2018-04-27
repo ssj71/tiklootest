@@ -21,7 +21,7 @@ void tk_drawtextcolor(cairo_t *cr, float w, float h, void* valp, float* line, fl
     cairo_scale(cr,tkt->scale,tkt->scale);
     cairo_translate(cr, 2, tkt->tkf[n]->base);//start at foot of line
 
-    cairo_glyph_path(cr, tkt->glyphs[n], tkt->glyph_count[n]);
+    cairo_glyph_path(cr, tkt->glyphs[n], tkt->glyph_end[n]);
     cairo_set_source_rgba(cr, fill[0], fill[1], fill[2], fill[3]);
     cairo_fill_preserve(cr);
     cairo_set_source_rgba(cr, line[0], line[1], line[2], line[3]);

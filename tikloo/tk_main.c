@@ -188,6 +188,7 @@ void tk_cleanup(tk_t tk)
     free(tk->tkt.cursor); free(tk->tkt.select);
     free(tk->tkt.ln); free(tk->tkt.col); free(tk->tkt.brklen);
     free(tk->tkt.glyph_count);
+    free(tk->tkt.glyph_end);
 
     //now the main table
     //free double arrays
@@ -1100,6 +1101,7 @@ bool tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, uin
 
         glyph_info = hb_buffer_get_glyph_infos(tkf->buf, &glyph_count);
         glyph_position = hb_buffer_get_glyph_positions(tkf->buf, &glyph_count);
+        tkt->glyph_end[n] = glyph_count;
         if(glyph_count > tkt->glyph_count[n])
         {
             free(glyphs);
@@ -1146,25 +1148,32 @@ bool tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, uin
             }
         } 
 
-        if(wrap && glyph_pos[i+1]-xstart > *w)
-        {//go back to last whitespace put the rest on a newline
-            ostart = xstart;//store old start
-            if(!lastwhite || glyph_pos[lastwhite+1] == xstart)
-            {//single word doesn't fit on a line
-                xstart = glyph_pos[i];
-                lastwhite = i-1;
+        if(glyph_pos[i+1]-xstart > *w)
+        {
+            if(wrap)
+            {//go back to last whitespace put the rest on a newline
+                ostart = xstart;//store old start
+                if(!lastwhite || glyph_pos[lastwhite+1] == xstart)
+                {//single word doesn't fit on a line
+                    xstart = glyph_pos[i];
+                    lastwhite = i-1;
+                }
+                else
+                    xstart = glyph_pos[lastwhite+1];
+                if(glyph_pos[lastwhite]-ostart > xmax) //check length of line
+                    xmax = glyph_pos[lastwhite]-ostart;
+                tk_addtogrowlist(&tkt->brk[n],&tkt->brklen[n],lastwhite+1);
+                y += size;
+                for(j=lastwhite+1;j<=i;j++)
+                {//move previous glyphs to new line
+                    x = glyph_pos[j] - xstart;
+                    glyphs[j].x = x;
+                    glyphs[j].y = y;
+                }
             }
-            else
-                xstart = glyph_pos[lastwhite+1];
-            if(glyph_pos[lastwhite]-ostart > xmax) //check length of line
-                xmax = glyph_pos[lastwhite]-ostart;
-            tk_addtogrowlist(&tkt->brk[n],&tkt->brklen[n],lastwhite+1);
-            y += size;
-            for(j=lastwhite+1;j<=i;j++)
-            {//move previous glyphs to new line
-                x = glyph_pos[j] - xstart;
-                glyphs[j].x = x;
-                glyphs[j].y = y;
+            else if(tkt->glyph_end[n] > i)
+            {
+                tkt->glyph_end[n] = i;
             }
         }
     }
@@ -1227,6 +1236,7 @@ void tk_growtexttable(tk_text_table* tkt)
     tmpt.glyph_pos =  (float**)calloc(sz,sizeof(float*));
     tmpt.cluster_map = (uint16_t**)calloc(sz,sizeof(uint16_t*));
     tmpt.glyph_count =  (uint16_t*)calloc(sz,sizeof(uint16_t));
+    tmpt.glyph_end   =  (uint16_t*)calloc(sz,sizeof(uint16_t));
 
     if(tkt->tablesize)
     {
@@ -1244,9 +1254,10 @@ void tk_growtexttable(tk_text_table* tkt)
 
         memcpy(tmpt.tkf,      tkt->tkf,      osz*sizeof(tk_font_stuff*));
         memcpy(tmpt.glyphs,   tkt->glyphs,   osz*sizeof(cairo_glyph_t*));
-        memcpy(tmpt.glyph_pos,    tkt->glyph_pos,    osz*sizeof(float*));
-        memcpy(tmpt.cluster_map,  tkt->cluster_map,  osz*sizeof(uint16_t));
-        memcpy(tmpt.glyph_count,  tkt->glyph_count,  osz*sizeof(uint16_t));
+        memcpy(tmpt.glyph_pos,   tkt->glyph_pos,   osz*sizeof(float*));
+        memcpy(tmpt.cluster_map, tkt->cluster_map, osz*sizeof(uint16_t));
+        memcpy(tmpt.glyph_count, tkt->glyph_count, osz*sizeof(uint16_t));
+        memcpy(tmpt.glyph_end,   tkt->glyph_end,   osz*sizeof(uint16_t));
     }
 
     tkt->str = tmpt.str;
@@ -1266,6 +1277,7 @@ void tk_growtexttable(tk_text_table* tkt)
     //tkt->clusters = tmpt.clusters;
     //tkt->extents = tmpt.extents;
     tkt->glyph_count = tmpt.glyph_count;
+    tkt->glyph_end = tmpt.glyph_end;
     tkt->cluster_map = tmpt.cluster_map;
     //tkt->cluster_count = tmpt.cluster_count;
     //tkt->extents_count = tmpt.extents_count;
