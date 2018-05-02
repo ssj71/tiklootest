@@ -608,7 +608,8 @@ void tk_callback (PuglView* view, const PuglEvent* event)
         //no break
     case PUGL_BUTTON_PRESS:
         n = tk_eventsearch(tk,event);
-        tk->focus = 0;
+        if(tk->focus != n)
+            tk->focus = 0;
         if(n)
             tk->cb_f[n](tk,event,n);
         break;
@@ -835,7 +836,6 @@ void tk_dialcallback(tk_t tk, const PuglEvent* event, uint16_t n)
              (tkd->y0 - event->motion.y)/(3.f*s);
         if(*v > 1) *v = 1;
         if(*v < 0) *v = 0;
-        //fprintf(stderr, "%f ",*v);
         tk->callback_f[n](tk,event,n);
         tk_addtolist(tk->redraw,n);
         break;
@@ -853,7 +853,6 @@ void tk_dialcallback(tk_t tk, const PuglEvent* event, uint16_t n)
         *v += event->scroll.dx/(30.f*s)+ event->scroll.dy/(3.f*s);
         if(*v > 1) *v = 1;
         if(*v < 0) *v = 0;
-        //fprintf(stderr, "%f ",*v);
         tk->callback_f[n](tk,event,n);
         tk_addtolist(tk->redraw,n);
         break;
@@ -1316,6 +1315,7 @@ uint16_t tk_addaText(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, tk
     tkt->tkf[s] = font;
     tkt->scale = 1;
     tkt->strchange[s] = true;
+    tkt->ln = 0;
     tk_textlayout(tk->cr,tkt,s,&w2,&h2,0); 
     //TODO: what if w and h don't fit right out the gate?
 
@@ -1330,27 +1330,40 @@ uint16_t tk_addaText(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, tk
 
 void tk_textentrycallback(tk_t tk, const PuglEvent* event, uint16_t n)
 {
-    uint16_t tw,th;
+    uint16_t tw,th,del;
     uint8_t s = ((tk_text_stuff*)tk->value[n])->n;
-    tk->focus = n;
     switch (event->type) {
     case PUGL_BUTTON_PRESS:
+        if(tk->focus == n)
+        {
+            //2nd click
+            //TODO: set cursor position
+            tk->tkt.cursor[s] = strlen(tk->tkt.str[s]);
+            tk->tkt.select[s] = 0;
+            tk_settimer(tk,tk->tkt.cursortimer,.4);
+            tk->tkt.cursorstate |= TK_CURSOR_STATE + TK_CURSOR_MOVED;
+            tk_addtolist(tk->redraw,n);
+        }
+        else
+        {
+            tk->focus = n;
+            tk->tkt.cursor[s] = 0;
+            tk->tkt.select[s] = strlen(tk->tkt.str[s]);
+            tk_addtolist(tk->redraw,n);
+            //TODO: selection isn't working, ideally first click selects all for easy replacement
+        }
         tk->drag = n;
-        tk_settimer(tk,tk->tkt.cursortimer,1);
-        tk->tkt.cursorstate |= TK_CURSOR_STATE + TK_CURSOR_MOVED;
-        tk->tkt.cursor[s] = strlen(tk->tkt.str[s]);
-        tk_addtolist(tk->redraw,n);
-        //TODO: set cursor position
         break;
     case PUGL_BUTTON_RELEASE:
+        //TODO: set select
         break;
     case PUGL_KEY_PRESS:
         //navigation
         tw = strlen(tk->tkt.str[s]);
         if(event->key.keycode == 113 && tk->tkt.cursor[s])
             tk->tkt.cursor[s]--; //back arrow
-        else if(event->key.keycode == 114 && tk->tkt.cursor[s]<tw)
-            tk->tkt.cursor[s]++; //forward arrow
+        else if(event->key.keycode == 114 && (tk->tkt.cursor[s]+tk->tkt.select[s])<tw)
+            tk->tkt.cursor[s] = tk->tkt.cursor[s]+tk->tkt.select[s]+1; //forward arrow
         else if(event->key.keycode == 110)
             tk->tkt.cursor[s] = 0; //home
         else if(event->key.keycode == 115)
@@ -1359,22 +1372,27 @@ void tk_textentrycallback(tk_t tk, const PuglEvent* event, uint16_t n)
         else if(strlen((char*)event->key.utf8))
         {//it changes the string
             fprintf(stderr, "str0 %s -- ",tk->tkt.str[s]);
+            del = tk->tkt.select[s];
+            if(!del)del++;
             if(event->key.keycode == 119)
-            {
+            {//delete
                 if(tk->tkt.cursor[s]<tw) 
-                    tk_strcut(tk->tkt.str[s], tk->tkt.cursor[s], 1);//delete
+                    tk_strcut(tk->tkt.str[s], tk->tkt.cursor[s], del);
                 else return;//no change, no redraw
             }
             else if(event->key.keycode == 22)
-            {
-                if(tk->tkt.cursor[s]) 
-                    tk_strcut(tk->tkt.str[s], --tk->tkt.cursor[s], 1);//backspace
+            {//backspace
+                if(tk->tkt.select[s])
+                    tk_strcut(tk->tkt.str[s], tk->tkt.cursor[s], del);
+                else if(tk->tkt.cursor[s])
+                    tk_strcut(tk->tkt.str[s], --tk->tkt.cursor[s], del);
                 else return;//no change, no redraw
             }
             else
             {//regular character keypress
                 if(tw+strlen((char*)event->key.utf8)+1 > tk->tkt.memlen[s])
                     tk_growstring(&tk->tkt.str[s], &tk->tkt.memlen[s]);
+                tk_strcut(tk->tkt.str[s],tk->tkt.cursor[s],tk->tkt.select[s]);//remove (replace) selection
                 tk_strinsert(tk->tkt.str[s],(char*)event->key.utf8,tk->tkt.cursor[s]++);
             }
             tk->tkt.strchange[s] = true;
@@ -1383,6 +1401,7 @@ void tk_textentrycallback(tk_t tk, const PuglEvent* event, uint16_t n)
             tk_textlayout(tk->cr,&tk->tkt,s,&tw,&th,tk->props[n]&TK_TEXT_WRAP); 
             fprintf(stderr, "str %s\n ",tk->tkt.str[s]);
         }
+        tk->tkt.select[s] = 0;
         tk->tkt.cursorstate |= TK_CURSOR_STATE + TK_CURSOR_MOVED;
         tk_addtolist(tk->redraw,n);
     default:
@@ -1391,30 +1410,47 @@ void tk_textentrycallback(tk_t tk, const PuglEvent* event, uint16_t n)
 }
 
 //this helper is mostly used by draw functions
-void tk_gettextcursor(void* valp, int *x, int *y, int w, int h)
+void tk_gettextcursor(void* valp, int *x, int *y, int *w, int *h)
 {
 
     tk_text_stuff* tkts = (tk_text_stuff*)valp;
     tk_text_table* tkt = (tk_text_table*)tkts->tkt;
-    int i,n = tkts->n;
+    int i,j,n = tkts->n;
     float deltax=0;
     
     for(i=0;i<tkt->glyph_count[n] && tkt->cluster_map[n][i]<tkt->cursor[n];i++);//get the cursor glyph
     if(i==tkt->glyph_count[n])
-    {
+    {//cursor is at the end
         deltax = tkt->glyph_pos[n][i] - tkt->glyph_pos[n][i-1];
         i--;
     }
+    else if(tkt->select[n])
+    {
+        for(j=i;j<tkt->glyph_count[n] && tkt->cluster_map[n][j]<tkt->cursor[n]+tkt->select[n];j++);
+        if(j==tkt->glyph_count[n])
+        {//cursor is at the end
+            deltax = tkt->glyph_pos[n][j] - tkt->glyph_pos[n][j-1];
+            j--;
+        }
+        *w = (tkt->glyphs[n][j].x+deltax)*tkt->scale;
+        *h = tkt->glyphs[n][j].y*tkt->scale;
+        deltax = 0;
+    }
+    else *w = *h  = 0;
     *x = (tkt->glyphs[n][i].x+deltax)*tkt->scale;
     *y = (tkt->glyphs[n][i].y)*tkt->scale; 
 }
 
 void tk_cursorcallback(tk_t tk, const PuglEvent* event, uint16_t n)
 {
-    tk->tkt.cursorstate ^= TK_CURSOR_STATE;
-    tk->tkt.cursorstate |= TK_CURSOR_CHANGED;
-    tk_addtolist(tk->redraw,tk->focus);
-    tk_settimer(tk,n,.4);
+    if(tk->focus)
+    {
+        tk->tkt.cursorstate ^= TK_CURSOR_STATE;
+        tk->tkt.cursorstate |= TK_CURSOR_CHANGED;
+        tk_addtolist(tk->redraw,tk->focus);
+    }
+    else
+        tk_settimer(tk,n,0);
 }
 
 uint16_t tk_addaTextentry(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, tk_font_stuff* font, char* str)
