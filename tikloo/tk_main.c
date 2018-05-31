@@ -1328,6 +1328,23 @@ uint16_t tk_addaText(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, tk
     return n; 
 } 
 
+//gets character index of clicked pos in text
+uint16_t tk_gettextchar(tk_text_table* tkt, uint16_t n, uint16_t x, uint16_t y)
+{
+    uint16_t i,j;
+    x /= tkt->scale;
+    y /= tkt->scale;
+    for(j=0;tkt->brk[n][j];j++);//find end of break list
+
+    //j = 0;
+    i=tkt->brk[n][j];
+    //scale x,y?
+    for(;i&&y>tkt->glyphs[n][i].y;i=tkt->brk[n][++j]);//find row
+    if(j)j--;
+    for(i=j;x>tkt->glyphs[n][i].x;i++);//find col
+    return i--;
+}
+
 void tk_textentrycallback(tk_t tk, const PuglEvent* event, uint16_t n)
 {
     uint16_t tw,th,del;
@@ -1338,11 +1355,15 @@ void tk_textentrycallback(tk_t tk, const PuglEvent* event, uint16_t n)
         {
             //2nd click
             //TODO: set cursor position
-            tk->tkt.cursor[s] = strlen(tk->tkt.str[s]);
+            tk->tkt.cursor[s] = tk_gettextchar(&tk->tkt,s,event->button.x,event->button.y);
+            fprintf(stderr, "char: %i\n", tk->tkt.cursor[s]);
+            //strlen(tk->tkt.str[s]);
             tk->tkt.select[s] = 0;
             tk_settimer(tk,tk->tkt.cursortimer,.4);
             tk->tkt.cursorstate |= TK_CURSOR_STATE + TK_CURSOR_MOVED;
             tk_addtolist(tk->redraw,n);
+            //TODO: set drag
+            tk->drag = n;
         }
         else
         {
