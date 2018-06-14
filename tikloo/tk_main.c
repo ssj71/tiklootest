@@ -1334,6 +1334,8 @@ uint16_t tk_gettextchar(tk_text_table* tkt, uint16_t n, uint16_t x, uint16_t y)
     uint16_t i,j;
     x /= tkt->scale;
     y /= tkt->scale;
+    x -= 2;
+    y -= 2;
     for(j=0;tkt->brk[n][j];j++);//find end of break list
 
     //j = 0;
@@ -1341,8 +1343,9 @@ uint16_t tk_gettextchar(tk_text_table* tkt, uint16_t n, uint16_t x, uint16_t y)
     //scale x,y?
     for(;i&&y>tkt->glyphs[n][i].y;i=tkt->brk[n][++j]);//find row
     if(j)j--;
-    for(i=j;x>tkt->glyphs[n][i].x;i++);//find col
-    return i--;
+    for(i=j;x>tkt->glyphs[n][i].x&&i<tkt->brk[n][j];i++);//find col
+    //TODO: does brk show last char or first?
+    return --i;
 }
 
 void tk_textentrycallback(tk_t tk, const PuglEvent* event, uint16_t n)
