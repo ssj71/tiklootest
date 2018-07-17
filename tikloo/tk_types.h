@@ -45,7 +45,7 @@ typedef struct tk_text_table
     uint16_t* ln;//viewport line
     uint16_t* col;//veiwport column
     uint16_t* brklen;//length of brk array
-    uint16_t** brk;//linebreak/wrap indices
+    uint16_t** brk;//linebreak/wrap indices shows first glyph in new line
 
     tk_font_stuff** tkf;//font for each text element (some may be shared)
     cairo_glyph_t** glyphs;//glyph array

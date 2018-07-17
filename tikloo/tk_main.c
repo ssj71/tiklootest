@@ -1100,6 +1100,8 @@ bool tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, uin
 
         glyph_info = hb_buffer_get_glyph_infos(tkf->buf, &glyph_count);
         glyph_position = hb_buffer_get_glyph_positions(tkf->buf, &glyph_count);
+        //TODO: why separate _end and _count?
+        //TODO: why glyph_pos and glyphs (which has x & y)
         tkt->glyph_end[n] = glyph_count;
         if(glyph_count > tkt->glyph_count[n])
         {
@@ -1110,7 +1112,7 @@ bool tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, uin
             glyphs[glyph_count].index = 0; //add null at end of list
             glyphs[glyph_count].x = 0;
             glyphs[glyph_count].y = 0;
-            cluster_map = (uint16_t*)malloc(sizeof(uint16_t)*glyph_count);
+            cluster_map = (uint16_t*)malloc(sizeof(uint16_t)*glyph_count+1);
             glyph_pos = (float*)malloc(sizeof(float)*(glyph_count+1));
         }
 
@@ -1123,10 +1125,9 @@ bool tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, uin
             x += glyph_position[i].x_advance/64.0;
         }
         glyph_pos[i] = x/tkt->scale; //get end of string
+        cluster_map[i] = strlen(tkt->str[n]);
     }
     tkt->brk[n][0] = 0; //clear list
-
-    //TODO: do we need brk list? 
 
     xstart = xmax = y = lastwhite = 0;
     str_index = 0;
@@ -1141,7 +1142,7 @@ bool tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, uin
             lastwhite = i;
             if (tkt->str[n][str_index] == '\n') //newline
             {//newline breaks anyway
-                tk_addtogrowlist(&tkt->brk[n],&tkt->brklen[n],i+1);
+                tk_addtogrowlist(&tkt->brk[n], &tkt->brklen[n], i+1);
                 y += size;
                 xstart = glyph_pos[i+1];
             }
@@ -1161,7 +1162,7 @@ bool tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, uin
                     xstart = glyph_pos[lastwhite+1];
                 if(glyph_pos[lastwhite]-ostart > xmax) //check length of line
                     xmax = glyph_pos[lastwhite]-ostart;
-                tk_addtogrowlist(&tkt->brk[n],&tkt->brklen[n],lastwhite+1);
+                tk_addtogrowlist(&tkt->brk[n], &tkt->brklen[n], lastwhite+1);
                 y += size;
                 for(j=lastwhite+1;j<=i;j++)
                 {//move previous glyphs to new line
@@ -1176,6 +1177,10 @@ bool tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, uin
             }
         }
     }
+    //populate extra glyph to know where line ends
+    x = glyph_pos[i] - xstart;
+    glyphs[i].x = x;
+    glyphs[i].y = y;
     if(glyph_pos[i]-xstart > xmax) //check last line
         xmax = glyph_pos[i]-xstart;
 
@@ -1301,7 +1306,7 @@ uint16_t tk_addaText(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, tk
 
     tk_setstring(&tkt->str[s],str, &tkt->memlen[s]);
 
-    tk_addtogrowlist(&tkt->brk[s],&tkt->brklen[s],0);//alloc list for linebreaks
+    tk_addtogrowlist(&tkt->brk[s], &tkt->brklen[s], 0);//alloc list for linebreaks
 
     if(!font)
     {
@@ -1331,21 +1336,22 @@ uint16_t tk_addaText(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, tk
 //gets character index of clicked pos in text
 uint16_t tk_gettextchar(tk_text_table* tkt, uint16_t n, uint16_t x, uint16_t y)
 {
-    uint16_t i,j;
+    uint16_t i,j,end;
     x /= tkt->scale;
     y /= tkt->scale;
-    x -= 2;
-    y -= 2;
-    for(j=0;tkt->brk[n][j];j++);//find end of break list
-
-    //j = 0;
-    i=tkt->brk[n][j];
-    //scale x,y?
-    for(;i&&y>tkt->glyphs[n][i].y;i=tkt->brk[n][++j]);//find row
-    if(j)j--;
-    for(i=j;x>tkt->glyphs[n][i].x&&i<tkt->brk[n][j];i++);//find col
-    //TODO: does brk show last char or first?
-    return --i;
+    if(x>2) x -= 2;
+    else x = 0;
+    if(y>2) y -= 2;
+    else y = 0;
+    j=0;
+    for(i=tkt->brk[n][0];i&&y>tkt->glyphs[n][i].y;i=tkt->brk[n][++j]);//find row
+    end = tkt->brk[n][j];
+    if(j)j--; //line no.
+    if(!end)end = tkt->glyph_count[n]; //end of line glyph
+    for(i=tkt->brk[n][j];(x-tkt->glyphs[n][i].x)>(tkt->glyphs[n][i+1].x-x)&&i<end;i++); //find col
+    j = tkt->cluster_map[n][i];
+    fprintf(stderr, "char: %i %i %f, %i\n", j, x, tkt->glyphs[n][i].x,end);
+    return j;
 }
 
 void tk_textentrycallback(tk_t tk, const PuglEvent* event, uint16_t n)
@@ -1357,9 +1363,8 @@ void tk_textentrycallback(tk_t tk, const PuglEvent* event, uint16_t n)
         if(tk->focus == n)
         {
             //2nd click
-            //TODO: set cursor position
-            tk->tkt.cursor[s] = tk_gettextchar(&tk->tkt,s,event->button.x,event->button.y);
-            fprintf(stderr, "char: %i\n", tk->tkt.cursor[s]);
+            tk->tkt.cursor[s] = tk_gettextchar(&tk->tkt,s,event->button.x-tk->x[n],event->button.y-tk->y[n]);
+            //fprintf(stderr, "char: %i\n", tk->tkt.cursor[s]);
             //strlen(tk->tkt.str[s]);
             tk->tkt.select[s] = 0;
             tk_settimer(tk,tk->tkt.cursortimer,.4);
@@ -1436,7 +1441,7 @@ void tk_textentrycallback(tk_t tk, const PuglEvent* event, uint16_t n)
 //this helper is mostly used by draw functions
 void tk_gettextcursor(void* valp, int *x, int *y, int *w, int *h)
 {
-
+    //TODO: can we get rid of glyphpos and just use glyph.x?
     tk_text_stuff* tkts = (tk_text_stuff*)valp;
     tk_text_table* tkt = (tk_text_table*)tkts->tkt;
     int i,j,n = tkts->n;
