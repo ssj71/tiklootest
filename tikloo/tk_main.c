@@ -1157,11 +1157,15 @@ bool tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, uin
                 {//single word doesn't fit on a line
                     xstart = glyph_pos[i];
                     lastwhite = i-1;
+                    if(glyph_pos[lastwhite+1]-ostart > xmax) //check length of line
+                        xmax = glyph_pos[lastwhite+1]-ostart;
                 }
                 else
+                {
                     xstart = glyph_pos[lastwhite+1];
-                if(glyph_pos[lastwhite]-ostart > xmax) //check length of line
-                    xmax = glyph_pos[lastwhite]-ostart;
+                    if(glyph_pos[lastwhite]-ostart > xmax) //check length of line
+                        xmax = glyph_pos[lastwhite]-ostart;
+                }
                 tk_addtogrowlist(&tkt->brk[n], &tkt->brklen[n], lastwhite+1);
                 y += size;
                 for(j=lastwhite+1;j<=i;j++)
