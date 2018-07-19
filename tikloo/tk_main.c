@@ -741,11 +741,7 @@ void tk_strinsert(char* dest, char* src, uint16_t i)
 //remove l characters starting at i
 void tk_strcut(char* str, uint16_t i, uint16_t l)
 {
-    char* tmp = (char*)calloc(strlen(&str[i+l]),sizeof(char));
-    strcpy(tmp,&str[i+l]);
-    str[i] = 0;
-    strcat(str,tmp); 
-    free(tmp);
+    memmove(&str[i], &str[i+l], strlen(str)-l+1);
 }
 
 void tk_changelayer(tk_t tk, uint16_t n, uint16_t layer)
