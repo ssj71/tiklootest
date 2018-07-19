@@ -1370,21 +1370,18 @@ void tk_textentrycallback(tk_t tk, const PuglEvent* event, uint16_t n)
             tk_settimer(tk,tk->tkt.cursortimer,.4);
             tk->tkt.cursorstate |= TK_CURSOR_STATE + TK_CURSOR_MOVED;
             tk_addtolist(tk->redraw,n);
-            //TODO: set drag
-            tk->drag = n;
         }
         else
         {
             tk->focus = n;
-            tk->tkt.cursor[s] = 0;
-            tk->tkt.select[s] = strlen(tk->tkt.str[s]);
             tk_addtolist(tk->redraw,n);
-            //TODO: selection isn't working, ideally first click selects all for easy replacement
         }
         tk->drag = n;
         break;
-    case PUGL_BUTTON_RELEASE:
-        //TODO: set select
+    case PUGL_MOTION_NOTIFY:
+        //TODO: select is blinking and should dissappear if not focused
+        if(tk->focus == n)
+            tk->tkt.select[s] = tk_gettextchar(&tk->tkt,s,event->button.x-tk->x[n],event->button.y-tk->y[n])- tk->tkt.cursor[s];
         break;
     case PUGL_KEY_PRESS:
         //navigation
@@ -1485,9 +1482,12 @@ void tk_cursorcallback(tk_t tk, const PuglEvent* event, uint16_t n)
 uint16_t tk_addaTextentry(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, tk_font_stuff* font, char* str)
 {
     uint16_t n = tk_addaText(tk, x, y, w, h, font, str);
+    uint16_t s = ((tk_text_stuff*)tk->value[n])->n;
     tk->cb_f[n] = tk_textentrycallback;
     tk->draw_f[n] = tk_drawtextentry;
     tk->props[n] |= TK_NO_DAMAGE;
+    tk->tkt.cursor[s] = 0;
+    tk->tkt.select[s] = strlen(tk->tkt.str[s]);
 
     if(!tk->tkt.cursortimer)
     {
