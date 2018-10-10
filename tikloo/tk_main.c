@@ -1374,14 +1374,33 @@ void tk_textentrycallback(tk_t tk, const PuglEvent* event, uint16_t n)
         else
         {
             tk->focus = n;
+            tk->tkt.cursorstate |= TK_CURSOR_MOVED;
             tk_addtolist(tk->redraw,n);
         }
         tk->drag = n;
         break;
     case PUGL_MOTION_NOTIFY:
-        //TODO: select is blinking and should dissappear if not focused
         if(tk->focus == n)
-            tk->tkt.select[s] = tk_gettextchar(&tk->tkt,s,event->button.x-tk->x[n],event->button.y-tk->y[n])- tk->tkt.cursor[s];
+        {
+            tw = tk_gettextchar(&tk->tkt,s,event->button.x-tk->x[n],event->button.y-tk->y[n]); //just using tw for calulating selection size
+            //TODO: is cursor in character index or glyphs?
+            if(tw > tk->tkt.cursor[s])
+                tw -= tk->tkt.cursor[s];
+            else
+            {
+                th = tk->tkt.cursor[s]+tk->tkt.select[s] - tw;
+                tk->tkt.cursor[s] = tw; //move cursor back
+                tw = th;
+            }
+            if(tw != tk->tkt.select[s])
+            {
+                fprintf(stderr,"curs %i select %i\n",tk->tkt.cursor[s],tw);
+                tk->tkt.select[s] = tw;
+                tk->tkt.cursorstate |= TK_CURSOR_MOVED;
+                //tk->tkt.cursorstate |= TK_CURSOR_CHANGED + TK_CURSOR_MOVED;
+                tk_addtolist(tk->redraw,n);
+            }
+        }
         break;
     case PUGL_KEY_PRESS:
         //navigation
@@ -1436,7 +1455,7 @@ void tk_textentrycallback(tk_t tk, const PuglEvent* event, uint16_t n)
 }
 
 //this helper is mostly used by draw functions
-void tk_gettextcursor(void* valp, int *x, int *y, int *w, int *h)
+void tk_gettextcursor(void* valp, int *x, int *y, int *sx, int *sy)
 {
     //TODO: can we get rid of glyphpos and just use glyph.x?
     tk_text_stuff* tkts = (tk_text_stuff*)valp;
@@ -1452,17 +1471,19 @@ void tk_gettextcursor(void* valp, int *x, int *y, int *w, int *h)
     }
     else if(tkt->select[n])
     {
-        for(j=i;j<tkt->glyph_count[n] && tkt->cluster_map[n][j]<tkt->cursor[n]+tkt->select[n];j++);
+        //TODO: here cursor is compared to clusters is that consistent?
+        for(j=i;j<tkt->glyph_count[n] && tkt->cluster_map[n][j]<(tkt->cursor[n]+tkt->select[n]);j++);
         if(j==tkt->glyph_count[n])
-        {//cursor is at the end
+        {//selection goes to end
             deltax = tkt->glyph_pos[n][j] - tkt->glyph_pos[n][j-1];
             j--;
         }
-        *w = (tkt->glyphs[n][j].x+deltax)*tkt->scale;
-        *h = tkt->glyphs[n][j].y*tkt->scale;
+        //TODO: selection box isn't drawn properly!!!!!!!!!
+        *sx = (tkt->glyphs[n][j].x+deltax)*tkt->scale;
+        *sy = tkt->glyphs[n][j].y*tkt->scale;
         deltax = 0;
     }
-    else *w = *h  = 0;
+    else *sx = *sy = 0; //TODO: i'd rather these go to x,y
     *x = (tkt->glyphs[n][i].x+deltax)*tkt->scale;
     *y = (tkt->glyphs[n][i].y)*tkt->scale; 
 }

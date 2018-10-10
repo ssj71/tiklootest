@@ -69,9 +69,9 @@ void tk_drawtextentry(cairo_t *cr, float w, float h, void* cache, void* valp)
 {
     tk_text_table* tkt = ((tk_text_stuff*)valp)->tkt;
     uint16_t n = ((tk_text_stuff*)valp)->n;
-    int x,y,sw,sh;
+    int x,y,sx,sy;
 
-    tk_gettextcursor(valp,&x,&y,&sw,&sh);
+    tk_gettextcursor(valp,&x,&y,&sx,&sy);
     x += 2*tkt->scale; //offset for margin
     //draw bg/text if necessary
     if(tkt->strchange[n] || !(tkt->cursorstate&TK_CURSOR_CHANGED))
@@ -92,16 +92,16 @@ void tk_drawtextentry(cairo_t *cr, float w, float h, void* cache, void* valp)
         cairo_stroke(cr);
         cairo_restore( cr ) ;
     }
-    if(tkt->select[n])
-    {//draw selection box
+    if(tkt->select[n] && tkt->cursorstate&TK_CURSOR_MOVED)
+    {//draw selection box if it changed
         cairo_save( cr );
         cairo_set_source_rgba(cr, .0,.0,.0,.5);
         cairo_set_line_width(cr, 1);
         cairo_new_path(cr);
         cairo_move_to(cr, x, y);
-        cairo_line_to(cr, x, y+tkt->tkf[n]->fontsize*tkt->scale);
-        cairo_line_to(cr, x+sw, y+tkt->tkf[n]->fontsize*tkt->scale);
-        cairo_line_to(cr, x+sw, y); //TODO: handle multiple lines (y,h)
+        cairo_line_to(cr, sx, y);//sy+tkt->tkf[n]->fontsize*tkt->scale);
+        cairo_line_to(cr, sx, sy+tkt->tkf[n]->fontsize*tkt->scale);
+        cairo_line_to(cr, x, sy+tkt->tkf[n]->fontsize*tkt->scale); //TODO: handle multiple lines (y,h)
         cairo_close_path(cr);
         cairo_set_tolerance(cr, 0.1);
         cairo_fill(cr);
