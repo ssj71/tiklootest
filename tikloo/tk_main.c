@@ -1097,8 +1097,6 @@ bool tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, uin
         glyph_info = hb_buffer_get_glyph_infos(tkf->buf, &glyph_count);
         glyph_position = hb_buffer_get_glyph_positions(tkf->buf, &glyph_count);
         //TODO: why separate _end and _count?
-        //TODO: why glyph_pos and glyphs (which has x & y)
-        //for now glyph_pos is linear (monotonic) and glyph.x wraps, so you loose spacing info at line ends
         tkt->glyph_end[n] = glyph_count;
         if(glyph_count > tkt->glyph_count[n])
         {
@@ -1351,7 +1349,6 @@ uint16_t tk_gettextchar(tk_text_table* tkt, uint16_t n, uint16_t x, uint16_t y)
     if(!end)end = tkt->glyph_count[n]; //end of line glyph
     for(i=tkt->brk[n][j];(x-tkt->glyphs[n][i].x)>(tkt->glyphs[n][i+1].x-x)&&i<end;i++); //find col
     j = tkt->cluster_map[n][i];
-    fprintf(stderr, "char: %i %i %f, %i\n", j, x*tkt->scale, tkt->glyphs[n][i].x*tkt->scale,end);
     return j;
 }
 
@@ -1365,8 +1362,6 @@ void tk_textentrycallback(tk_t tk, const PuglEvent* event, uint16_t n)
         {
             //2nd click
             tk->tkt.cursor[s] = tk_gettextchar(&tk->tkt,s,event->button.x-tk->x[n],event->button.y-tk->y[n]);
-            //fprintf(stderr, "char: %i\n", tk->tkt.cursor[s]);
-            //strlen(tk->tkt.str[s]);
             tk->tkt.select[s] = 0;
             tk_settimer(tk,tk->tkt.cursortimer,.4);
             tk->tkt.cursorstate |= TK_CURSOR_STATE + TK_CURSOR_MOVED;
@@ -1395,7 +1390,6 @@ void tk_textentrycallback(tk_t tk, const PuglEvent* event, uint16_t n)
             }
             if(tw != tk->tkt.select[s])
             {
-                fprintf(stderr,"curs %i select %i\n",tk->tkt.cursor[s],tw);
                 tk->tkt.select[s] = tw;
                 tk->tkt.cursorstate |= TK_CURSOR_MOVED;
                 //tk->tkt.cursorstate |= TK_CURSOR_CHANGED + TK_CURSOR_MOVED;
@@ -1458,7 +1452,6 @@ void tk_textentrycallback(tk_t tk, const PuglEvent* event, uint16_t n)
 //this helper is mostly used by draw functions
 void tk_gettextcursor(void* valp, int *x, int *y, int *sx, int *sy)
 {
-    //TODO: can we get rid of glyphpos and just use glyph.x?
     tk_text_stuff* tkts = (tk_text_stuff*)valp;
     tk_text_table* tkt = (tk_text_table*)tkts->tkt;
     int i,j,n = tkts->n;
@@ -1474,8 +1467,7 @@ void tk_gettextcursor(void* valp, int *x, int *y, int *sx, int *sy)
     {
         //TODO: here cursor is compared to clusters is that consistent?
         for(j=i;j<tkt->glyph_count[n] && tkt->cluster_map[n][j]<(tkt->cursor[n]+tkt->select[n]);j++);
-        //selection always goes to end of character
-        deltax = tkt->glyph_pos[n][j] - tkt->glyph_pos[n][j-1];
+        deltax = tkt->glyph_pos[n][j] - tkt->glyph_pos[n][j-1]; //selection always goes to end of character
         j--;
         *sx = (tkt->glyphs[n][j].x+deltax+2)*tkt->scale;
         *sy = (tkt->glyphs[n][j].y+2)*tkt->scale;
