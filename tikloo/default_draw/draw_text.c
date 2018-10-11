@@ -106,6 +106,7 @@ void tk_drawtextentry(cairo_t *cr, float w, float h, void* cache, void* valp)
         cairo_set_tolerance(cr, 0.1);
         cairo_fill(cr);
         cairo_restore( cr ) ;
+        fprintf(stderr,"sel %i %i\n",x,sx);
     }
     else if(tkt->cursorstate&TK_CURSOR_STATE)
     {//draw cursor

@@ -1098,6 +1098,7 @@ bool tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, uin
         glyph_position = hb_buffer_get_glyph_positions(tkf->buf, &glyph_count);
         //TODO: why separate _end and _count?
         //TODO: why glyph_pos and glyphs (which has x & y)
+        //for now glyph_pos is linear (monotonic) and glyph.x wraps, so you loose spacing info at line ends
         tkt->glyph_end[n] = glyph_count;
         if(glyph_count > tkt->glyph_count[n])
         {
@@ -1350,7 +1351,7 @@ uint16_t tk_gettextchar(tk_text_table* tkt, uint16_t n, uint16_t x, uint16_t y)
     if(!end)end = tkt->glyph_count[n]; //end of line glyph
     for(i=tkt->brk[n][j];(x-tkt->glyphs[n][i].x)>(tkt->glyphs[n][i+1].x-x)&&i<end;i++); //find col
     j = tkt->cluster_map[n][i];
-    fprintf(stderr, "char: %i %i %f, %i\n", j, x, tkt->glyphs[n][i].x,end);
+    fprintf(stderr, "char: %i %i %f, %i\n", j, x*tkt->scale, tkt->glyphs[n][i].x*tkt->scale,end);
     return j;
 }
 
@@ -1473,14 +1474,11 @@ void tk_gettextcursor(void* valp, int *x, int *y, int *sx, int *sy)
     {
         //TODO: here cursor is compared to clusters is that consistent?
         for(j=i;j<tkt->glyph_count[n] && tkt->cluster_map[n][j]<(tkt->cursor[n]+tkt->select[n]);j++);
-        if(j==tkt->glyph_count[n])
-        {//selection goes to end
-            deltax = tkt->glyph_pos[n][j] - tkt->glyph_pos[n][j-1];
-            j--;
-        }
-        //TODO: selection box isn't drawn properly!!!!!!!!!
-        *sx = (tkt->glyphs[n][j].x+deltax)*tkt->scale;
-        *sy = tkt->glyphs[n][j].y*tkt->scale;
+        //selection always goes to end of character
+        deltax = tkt->glyph_pos[n][j] - tkt->glyph_pos[n][j-1];
+        j--;
+        *sx = (tkt->glyphs[n][j].x+deltax+2)*tkt->scale;
+        *sy = (tkt->glyphs[n][j].y+2)*tkt->scale;
         deltax = 0;
     }
     else *sx = *sy = 0; //TODO: i'd rather these go to x,y
