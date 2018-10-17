@@ -104,6 +104,14 @@ int main()
                          0, //font
                          "Type Here"); //text
 
+    tk_addaTextButton(tk,
+                      10, //x
+                      140, //y
+                      50, //w
+                      12, //h
+                      "Dig"); //text
+
+
     tk_optimizedefaultdraw(tk);
     tk_rollit(tk);
     //here we should free anything we added to user[] but there isn't anything

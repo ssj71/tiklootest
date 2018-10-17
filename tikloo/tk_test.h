@@ -22,6 +22,6 @@ void tk_strcut(char* str, uint16_t i, uint16_t l);
 void tk_nocallback(tk_t tk, const PuglEvent* e, uint16_t n);
 void tk_dialcallback(tk_t tk, const PuglEvent* event, uint16_t n);
 void tk_buttoncallback(tk_t tk, const PuglEvent* event, uint16_t n);
-bool tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, uint16_t *h, uint8_t wrap);
+bool tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, uint16_t *h, uint16_t props);
 void tk_growtexttable(tk_text_table* tkt);
 void tk_showtipcallback(tk_t tk, const PuglEvent* e, uint16_t n);

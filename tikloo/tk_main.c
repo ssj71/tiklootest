@@ -371,7 +371,7 @@ void tk_resizeeverything(tk_t tk,float w, float h)
         th = tk->h[n];
         //TODO: unless they've changed ratio they don't actually need a re-layout
         //TODO: do anything if it doesn't fit?
-        tk_textlayout(tk->cr,&tk->tkt,i,&tw,&th,tk->props[n]&TK_TEXT_WRAP); 
+        tk_textlayout(tk->cr,&tk->tkt,i,&tw,&th,tk->props[n]);
     }
 }
 
@@ -1065,7 +1065,7 @@ tk_font_stuff* tk_gimmeaFont(tk_t tk, const uint8_t* font, uint32_t fsize, uint3
 //we assume there is a valid font with set size and a string, we will set line brks 
 //we will pass back the actual dimensions in w and h, and 
 //return  true if the text fits in the provided size 
-bool tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, uint16_t *h, uint8_t wrap)
+bool tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, uint16_t *h, uint16_t props)
 {
 //TODO: should this be changed to batch process all strings?
     bool fit;
@@ -1145,7 +1145,7 @@ bool tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, uin
 
         if(glyph_pos[i+1]-xstart > *w)
         {
-            if(wrap)
+            if(props&TK_TEXT_WRAP)
             {//go back to last whitespace put the rest on a newline
                 ostart = xstart;//store old start
                 if(!lastwhite || glyph_pos[lastwhite+1] == xstart)
@@ -1197,6 +1197,17 @@ bool tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, uin
         fit = false; 
     //TODO: show what you can at least
 
+    if(fit && props&TK_TEXT_CENTER)
+    {//center
+        x = (*w-xmax)/2.0;
+        y = (*h-y)/2.0;
+        for (i = 0; i <= glyph_count; i++)
+        {
+                    glyphs[i].x += x;
+                    glyphs[i].y += y;
+        }
+    }
+
     *w = xmax*tkt->scale;
     *h = y*tkt->scale;
     return fit;
@@ -1213,7 +1224,7 @@ void tk_settext(tk_t tk, uint16_t n, char* str)
     s = tkts->n;
     tk_setstring(&tk->tkt.str[s],str,0);
     tk->tkt.strchange[s] = true;
-    tk_textlayout(tk->cr,&tk->tkt,s,&tw,&th,tk->props[n]&TK_TEXT_WRAP);
+    tk_textlayout(tk->cr,&tk->tkt,s,&tw,&th,tk->props[n]);
     tk_addtolist(tk->redraw,n);
 }
 
@@ -1320,7 +1331,7 @@ uint16_t tk_addaText(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, tk
     tkt->scale = 1;
     tkt->strchange[s] = true;
     tkt->ln = 0;
-    tk_textlayout(tk->cr,tkt,s,&w2,&h2,0); 
+    tk_textlayout(tk->cr,tkt,s,&w2,&h2,0);
     //TODO: what if w and h don't fit right out the gate?
 
     tk->draw_f[n] = tk_drawtext;
@@ -1438,7 +1449,7 @@ void tk_textentrycallback(tk_t tk, const PuglEvent* event, uint16_t n)
             tk->tkt.strchange[s] = true;
             tw = tk->w[n];
             th = tk->h[n];
-            tk_textlayout(tk->cr,&tk->tkt,s,&tw,&th,tk->props[n]&TK_TEXT_WRAP); 
+            tk_textlayout(tk->cr,&tk->tkt,s,&tw,&th,tk->props[n]);
             fprintf(stderr, "str %s\n ",tk->tkt.str[s]);
         }
         tk->tkt.select[s] = 0;
@@ -1534,7 +1545,7 @@ void tk_showtipcallback(tk_t tk, const PuglEvent* e, uint16_t n)
     h = wh;
     if(w>b2) w-=b2;
     if(h>b2) h-=b2;
-    if(tk_textlayout(tk->cr,tkts->tkt,s,&w,&h,1))
+    if(tk_textlayout(tk->cr,tkts->tkt,s,&w,&h,TK_TEXT_WRAP))
     {//it fits
         tk->x[n] += tk->w[tk->tover]+b;
     } 
@@ -1544,7 +1555,7 @@ void tk_showtipcallback(tk_t tk, const PuglEvent* e, uint16_t n)
         h = wh;
         if(w>b2) w-=b2;
         if(h>b2) h-=b2;
-        if(tk_textlayout(tk->cr,tkts->tkt,s,&w,&h,1))
+        if(tk_textlayout(tk->cr,tkts->tkt,s,&w,&h,TK_TEXT_WRAP))
         {//it fits
             tk->x[n] -= w+b;
         }
@@ -1554,7 +1565,7 @@ void tk_showtipcallback(tk_t tk, const PuglEvent* e, uint16_t n)
             h = tk->y[tk->tover];
             if(w>b2) w-=b2;
             if(h>b2) h-=b2;
-            if(tk_textlayout(tk->cr,tkts->tkt,s,&w,&h,1))
+            if(tk_textlayout(tk->cr,tkts->tkt,s,&w,&h,TK_TEXT_WRAP))
             {//it fits
                 tk->y[n] -= h+b;
             }
@@ -1565,7 +1576,7 @@ void tk_showtipcallback(tk_t tk, const PuglEvent* e, uint16_t n)
                 if(w>b2) w-=b2;
                 if(h>b2) h-=b2;
 
-                if(tk_textlayout(tk->cr,tkts->tkt,s,&w,&h,1))
+                if(tk_textlayout(tk->cr,tkts->tkt,s,&w,&h,TK_TEXT_WRAP))
                 {//it fits
                     tk->y[n] += tk->h[tk->tover]+h+b;
                 }
@@ -1613,3 +1624,43 @@ uint16_t tk_addaTooltip(tk_t tk, tk_font_stuff* font)
     return n;
 }
 
+void tk_textbuttoncallback(tk_t tk, const PuglEvent* event, uint16_t n)
+{
+    uint8_t v = *(uint8_t*)tk->value[n];
+    tk_buttoncallback(tk, event, n);
+    if(v != *(uint8_t*)tk->value[n])
+        tk_addtolist(tk->redraw,n+1);
+}
+
+uint16_t tk_addaTextButton(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, char* str)
+{
+    uint16_t n;
+    n = tk_addaButton(tk,x,y,w,h,0);
+    tk->cb_f[n] = tk_textbuttoncallback;
+    n = tk_addaText(tk, x, y, w, h, 0,str);
+    tk->props[n] |= TK_TEXT_CENTER;
+    return n;
+}
+
+#if 0
+tk_showInputDialog(tk_t tk, uint16_t n, char* prompt_str, char* def_input, tk_callback_f cb_f)
+{
+    //set strings, cb, show the parts,
+}
+
+uint16_t tk_addaInputDialog(tk_t tk, tk_font_stuff* font)
+{
+    //add bg, prompt, input, ok, cancel buttons, all hidden
+    uint16_t n;
+
+    n = tk_addaWidget(tk, tk->x[0], tk->y[0], tk->w[0], tk->h[0]);
+    tk->draw_f[n] = tk_drawbg;
+    tk_changelayer(tk,n,0);//hide
+    tk_addaText(tk, tk->x[0], tk->y[0], tk->w[0], tk->h[0], 0, "Input");
+    tk_changelayer(tk,n+1,0);//hide
+    tk_addaTextentry(tk, tk->x[0], tk->y[0], tk->w[0], tk->h[0], 0, "Default");
+    tk_changelayer(tk,n+2,0);//hide
+
+
+}
+#endif

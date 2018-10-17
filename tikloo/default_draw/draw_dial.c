@@ -11,7 +11,7 @@ typedef struct
     float scale;
 }mycache;
 
-void tk_drawdial(cairo_t *cr, float w, float h, void* cache, void* valp)
+void tk_drawbasicdial(cairo_t *cr, float w, float h, void* cache, void* valp)
 {
     float scale, shft, val = *(float*)valp;
     cairo_pattern_t *pattern; 
