@@ -5,6 +5,18 @@
 #include<cairo/cairo.h>
 #include"tk_types.h"
 
+#ifndef TK_COLOR_MAIN
+#define TK_COLOR_MAIN 1.0,0.25,0.0
+#endif //TK_COLOR_MAIN
+
+#ifndef TK_COLOR_LIGHT
+#define TK_COLOR_LIGHT 1.0,0.5,0.25
+#endif //TK_COLOR_LIGHT
+
+#ifndef TK_COLOR_DARK
+#define TK_COLOR_DARK 0.75,0.2,0.0
+#endif //TK_COLOR_DARK
+
 //these are all defined in their respective files
 void tk_drawdial(cairo_t *cr, float w, float h, void* cache, void* valp);
 void tk_drawbutton(cairo_t *cr, float w, float h, void* cache, void* val);
