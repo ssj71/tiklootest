@@ -6,15 +6,15 @@
 #include"tk_types.h"
 
 #ifndef TK_COLOR_MAIN
-#define TK_COLOR_MAIN 0.25,0.15,0.05
+#define TK_COLOR_MAIN 0.17,0.20,0.18
 #endif //TK_COLOR_MAIN
 
 #ifndef TK_COLOR_LIGHT
-#define TK_COLOR_LIGHT 0.6,0.5,0.4
+#define TK_COLOR_LIGHT 0.4,0.5,0.45
 #endif //TK_COLOR_LIGHT
 
 #ifndef TK_COLOR_DARK
-#define TK_COLOR_DARK 0.15,0.1,0.05
+#define TK_COLOR_DARK 0.1,0.15,0.11
 #endif //TK_COLOR_DARK
 
 //these are all defined in their respective files
