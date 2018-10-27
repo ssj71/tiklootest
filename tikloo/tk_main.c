@@ -1201,12 +1201,12 @@ bool tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, uin
 
     if(fit && props&TK_TEXT_CENTER)
     {//center
-        x = (*w-xmax)/2.0;
+        x = (*w-xmax-2)/2.0;
         y = (*h-y)/2.0;
         for (i = 0; i <= glyph_count; i++)
         {
-                    glyphs[i].x += x;
-                    glyphs[i].y += y;
+            glyphs[i].x += x;
+            glyphs[i].y += y;
         }
     }
 
