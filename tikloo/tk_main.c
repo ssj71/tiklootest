@@ -1639,7 +1639,7 @@ uint16_t tk_addaTextButton(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t
     tk->cb_f[n] = tk_textbuttoncallback;
     n = tk_addaText(tk, x, y, w, h, 0,str);
     tk->props[n] |= TK_TEXT_CENTER;
-    return n;
+    return n-1; //return the button pointer
 }
 
 #if 0

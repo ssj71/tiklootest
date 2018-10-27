@@ -19,6 +19,7 @@ uint16_t tk_addaTimer(tk_t tk, float s);
 uint16_t tk_addaText(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, tk_font_stuff* font, char* str);
 uint16_t tk_addaTextentry(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, tk_font_stuff* font, char* str);
 uint16_t tk_addaTooltip(tk_t tk, tk_font_stuff* font);
+uint16_t tk_addaTextButton(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, char* str);
 
 //core functions
 void tk_rollit(tk_t tk);

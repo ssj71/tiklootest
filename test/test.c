@@ -104,13 +104,15 @@ int main()
                          0, //font
                          "Type Here"); //text
 
-    tk_addaTextButton(tk,
-                      10, //x
-                      140, //y
-                      50, //w
-                      12, //h
-                      "Dig"); //text
+    n = tk_addaTextButton(tk,
+                          10, //x
+                          140, //y
+                          50, //w
+                          12, //h
+                          "Dig"); //text
 
+    tk->props[n] |= TK_BUTTON_MOMENTARY;
+    tk_setstring(&tk->tip[n],"This does nothing too!",0);
 
     tk_optimizedefaultdraw(tk);
     tk_rollit(tk);
