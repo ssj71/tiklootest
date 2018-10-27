@@ -610,6 +610,8 @@ void tk_callback (PuglView* view, const PuglEvent* event)
         n = tk_eventsearch(tk,event);
         if(tk->focus != n)
             tk->focus = 0;
+        if(tk->ttip)
+            tk_settimer(tk,tk->ttip,0);
         if(n)
             tk->cb_f[n](tk,event,n);
         break;
