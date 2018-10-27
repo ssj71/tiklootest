@@ -1113,7 +1113,7 @@ bool tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, uin
             glyph_pos = (float*)malloc(sizeof(float)*(glyph_count+1));
         }
 
-        x = 0;
+        x = 2; //add small buffer to LHS
         for (i=0; i < glyph_count; ++i) 
         {
             glyphs[i].index = glyph_info[i].codepoint;
@@ -1351,8 +1351,6 @@ uint16_t tk_gettextchar(tk_text_table* tkt, uint16_t n, uint16_t x, uint16_t y)
     uint16_t i,j,end;
     x /= tkt->scale;
     y /= tkt->scale;
-    if(x>2) x -= 2;
-    else x = 0;
     if(y>2) y -= 2;
     else y = 0;
     j=0;
@@ -1482,12 +1480,12 @@ void tk_gettextcursor(void* valp, int *x, int *y, int *sx, int *sy)
         for(j=i;j<tkt->glyph_count[n] && tkt->cluster_map[n][j]<(tkt->cursor[n]+tkt->select[n]);j++);
         deltax = tkt->glyph_pos[n][j] - tkt->glyph_pos[n][j-1]; //selection always goes to end of character
         j--;
-        *sx = (tkt->glyphs[n][j].x+deltax+2)*tkt->scale;
+        *sx = (tkt->glyphs[n][j].x+deltax+0)*tkt->scale;
         *sy = (tkt->glyphs[n][j].y+2)*tkt->scale;
         deltax = 0;
     }
     else *sx = *sy = 0; //TODO: i'd rather these go to x,y
-    *x = (tkt->glyphs[n][i].x+deltax)*tkt->scale;
+    *x = (tkt->glyphs[n][i].x+deltax-2)*tkt->scale;
     *y = (tkt->glyphs[n][i].y)*tkt->scale; 
 }
 
