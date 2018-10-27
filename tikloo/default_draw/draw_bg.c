@@ -171,10 +171,10 @@ void tk_drawdial(cairo_t *cr, float w, float h, void* cache, void* valp)
     cairo_set_source(cr, pattern);
     cairo_pattern_destroy(pattern);
     cairo_new_path(cr);
-    cairo_move_to(cr, unit-3*width, .2*unit);
-    cairo_line_to(cr, unit+3*width, .2*unit);
-    cairo_line_to(cr, unit+3*width, .5*unit);
-    cairo_line_to(cr, unit-3*width, .5*unit);
+    cairo_move_to(cr, .9*unit, .2*unit);
+    cairo_line_to(cr, 1.1*unit, .2*unit);
+    cairo_line_to(cr, 1.1*unit, .65*unit);
+    cairo_line_to(cr, .9*unit, .65*unit);
     cairo_close_path(cr);
     cairo_set_tolerance(cr, width);
     cairo_set_antialias(cr, CAIRO_ANTIALIAS_DEFAULT);
