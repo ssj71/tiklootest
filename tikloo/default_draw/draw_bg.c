@@ -40,10 +40,10 @@ void tk_drawbg(cairo_t *cr, float w, float h, void* cache, void* valp)
 
         cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
         pattern = cairo_pattern_create_linear(.3*w, 0, .8*w, h);
-        cairo_pattern_add_color_stop_rgba(pattern, 0,.4,.4,.4,1);
-        cairo_pattern_add_color_stop_rgba(pattern, 0.517951,.7,.7,.7,1);
-        cairo_pattern_add_color_stop_rgba(pattern, 0.67006,.7,.7,.7,1);
-        cairo_pattern_add_color_stop_rgba(pattern, 1,.4,.4,.4,1);
+        cairo_pattern_add_color_stop_rgba(pattern, 0,TK_COLOR_DARK,1);
+        cairo_pattern_add_color_stop_rgba(pattern, 0.617951,TK_COLOR_LIGHT,1);
+        cairo_pattern_add_color_stop_rgba(pattern, 0.67006,TK_COLOR_LIGHT,1);
+        cairo_pattern_add_color_stop_rgba(pattern, 1,TK_COLOR_DARK,1);
         cairo_set_source(cr, pattern);
         cairo_pattern_destroy(pattern);
         cairo_new_path(cr);
@@ -76,12 +76,14 @@ void tk_drawbutton(cairo_t *cr, float w, float h, void* cache, void* valp)
     cairo_pattern_t *pattern;
     const float curve = 4.5;
     const float width = 1.0;
-    const float bg = val*.2 + .4;
 
     cairo_save( cr );
 
     cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
-    pattern = cairo_pattern_create_rgba(bg,bg,bg,1);
+    if(val)
+        pattern = cairo_pattern_create_rgba(TK_COLOR_LIGHT,1);
+    else
+        pattern = cairo_pattern_create_rgba(TK_COLOR_MAIN,1);
     cairo_set_source(cr, pattern);
     cairo_pattern_destroy(pattern);
     cairo_new_path(cr);
@@ -135,7 +137,7 @@ void tk_drawdial(cairo_t *cr, float w, float h, void* cache, void* valp)
         cairo_translate(cr,(h-w)/2.0,0);
     }
     cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
-    pattern = cairo_pattern_create_rgba(0.4,0.4,0.4,1);
+    pattern = cairo_pattern_create_rgba(TK_COLOR_MAIN,1);
     cairo_set_source(cr, pattern);
     cairo_pattern_destroy(pattern);
     cairo_new_path(cr);
@@ -165,7 +167,7 @@ void tk_drawdial(cairo_t *cr, float w, float h, void* cache, void* valp)
 
     /********************/
     cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
-    pattern = cairo_pattern_create_rgba(0.8,0.8,0.8,1);
+    pattern = cairo_pattern_create_rgba(TK_COLOR_LIGHT,1);
     cairo_set_source(cr, pattern);
     cairo_pattern_destroy(pattern);
     cairo_new_path(cr);

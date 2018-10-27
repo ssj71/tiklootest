@@ -47,7 +47,7 @@ void tk_drawtip(cairo_t *cr, float w, float h, void* cache, void* valp)
 
     //draw a background square 
     cairo_save( cr );
-    cairo_set_source_rgba(cr, .2,.2,.22,1);
+    cairo_set_source_rgba(cr, TK_COLOR_DARK, 1);
     cairo_new_path(cr);
     cairo_move_to(cr, 0, 0);
     cairo_line_to(cr, 0, h);
@@ -83,7 +83,7 @@ void tk_drawtextentry(cairo_t *cr, float w, float h, void* cache, void* valp)
     else if(!(tkt->cursorstate&TK_CURSOR_STATE))
     {//draw a not-cursor
         cairo_save( cr );
-        cairo_set_source_rgba(cr, .2,.2,.22,1);//same color as the box
+        cairo_set_source_rgba(cr, TK_COLOR_DARK, 1);//same color as the box
         cairo_set_line_width(cr, 2);
         cairo_new_path(cr);
         cairo_move_to(cr, x, y);
