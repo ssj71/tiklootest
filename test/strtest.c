@@ -47,7 +47,7 @@ int main()
     n = tk_addaTimer(tk, 2);//seconds
     tk->callback_f[n] = tick;
 
-    n = tk_addaTextentry(tk,
+    n = tk_addaTextEntry(tk,
                          5, //x
                          120, //y
                          180, //w

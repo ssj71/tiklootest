@@ -14,12 +14,12 @@ tk_font_stuff* tk_gimmeaFont(tk_t tk, const uint8_t* font, uint32_t fsize, uint3
 //functions that add widgets to the table
 uint16_t tk_addaWidget(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h); 
 uint16_t tk_addaDial(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, float min, float max, float val);
-uint16_t tk_addaButton(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint8_t val);
+uint16_t tk_addaButton(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, bool val);
 uint16_t tk_addaTimer(tk_t tk, float s);
-uint16_t tk_addaText(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, tk_font_stuff* font, char* str);
-uint16_t tk_addaTextentry(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, tk_font_stuff* font, char* str);
+uint16_t tk_addaText(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, tk_font_stuff* font, const char* str);
+uint16_t tk_addaTextEntry(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, tk_font_stuff* font, char* str);
 uint16_t tk_addaTooltip(tk_t tk, tk_font_stuff* font);
-uint16_t tk_addaTextButton(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, char* str);
+uint16_t tk_addaTextButton(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, bool val, const char* str);
 
 //core functions
 void tk_rollit(tk_t tk);
@@ -37,7 +37,7 @@ void tk_insertinlist(uint16_t* list, uint16_t i, uint16_t n);
 void tk_setstring(char** str, const char* msg, uint16_t *memlen);
 void tk_settimer(tk_t tk, uint16_t n, float s);
 float tk_dialvalue(tk_t tk, uint16_t n);
-void tk_settext(tk_t tk, uint16_t n, char* str);
+void tk_settext(tk_t tk, uint16_t n, const char* str);
 void tk_gettextcursor(void* valp, int *x, int *y, int *w, int *h);
 
 #endif

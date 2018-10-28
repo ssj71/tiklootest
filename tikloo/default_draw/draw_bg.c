@@ -72,7 +72,7 @@ void tk_drawbg(cairo_t *cr, float w, float h, void* cache, void* valp)
 
 void tk_drawbutton(cairo_t *cr, float w, float h, void* cache, void* valp)
 {
-    uint8_t val = *(uint8_t*)valp;
+    bool val = *(bool*)valp;
     cairo_pattern_t *pattern;
     const float curve = 4.5;
     const float width = 1.0;

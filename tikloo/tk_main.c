@@ -882,7 +882,7 @@ uint16_t tk_addaDial(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, fl
 
 void tk_buttoncallback(tk_t tk, const PuglEvent* event, uint16_t n)
 {
-    uint8_t *v = (uint8_t*)tk->value[n];
+    bool *v = (bool*)tk->value[n];
     switch (event->type) {
     case PUGL_MOTION_NOTIFY:
         if( tk->props[n]&TK_BUTTON_MOMENTARY &&
@@ -892,7 +892,7 @@ void tk_buttoncallback(tk_t tk, const PuglEvent* event, uint16_t n)
         {
             //click has left the widget
             tk->drag = 0;
-            *v ^= 0x01;
+            *v = !*v;
             tk->callback_f[n](tk,event,n);
             tk_addtolist(tk->redraw,n);
         }
@@ -901,7 +901,7 @@ void tk_buttoncallback(tk_t tk, const PuglEvent* event, uint16_t n)
         tk->drag = n;
         if(tk->props[n]&TK_BUTTON_MOMENTARY)
         {
-            *v ^= 0x01;
+            *v = !*v;
             tk->callback_f[n](tk,event,n);
             tk_addtolist(tk->redraw,n);
         }
@@ -912,7 +912,7 @@ void tk_buttoncallback(tk_t tk, const PuglEvent* event, uint16_t n)
             event->button.y >= tk->y[n] && event->button.y <= tk->y[n] + tk->h[n])
           )
         {
-            *v ^= 0x01;
+            *v = !*v;
             tk->callback_f[n](tk,event,n);
             tk_addtolist(tk->redraw,n);
         }
@@ -922,13 +922,13 @@ void tk_buttoncallback(tk_t tk, const PuglEvent* event, uint16_t n)
     }
 }
 
-uint16_t tk_addaButton(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint8_t val)
+uint16_t tk_addaButton(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, bool val)
 {
     uint16_t n = tk->nitems;
 
     tk_addaWidget(tk,x,y,w,h);
-    tk->value[n] = (void*)malloc(sizeof(uint8_t));
-    *(uint8_t*)tk->value[n] = val&0x1;
+    tk->value[n] = (void*)malloc(sizeof(bool));
+    *(bool*)tk->value[n] = val;
 
     tk->draw_f[n] = tk_drawbutton;//default
 
@@ -1216,7 +1216,7 @@ bool tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, uin
 }
 
 //set the text of a text widget
-void tk_settext(tk_t tk, uint16_t n, char* str)
+void tk_settext(tk_t tk, uint16_t n, const char* str)
 {
     uint16_t tw,th,s;
     tk_text_stuff* tkts;
@@ -1301,7 +1301,7 @@ void tk_growtexttable(tk_text_table* tkt)
     tkt->tablesize = sz;
 }
 
-uint16_t tk_addaText(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, tk_font_stuff* font, char* str)
+uint16_t tk_addaText(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, tk_font_stuff* font, const char* str)
 {
     uint16_t n = tk->nitems; 
     uint16_t s = tk->tkt.nitems++;
@@ -1501,7 +1501,7 @@ void tk_cursorcallback(tk_t tk, const PuglEvent* event, uint16_t n)
         tk_settimer(tk,n,0);
 }
 
-uint16_t tk_addaTextentry(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, tk_font_stuff* font, char* str)
+uint16_t tk_addaTextEntry(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, tk_font_stuff* font, char* str)
 {
     uint16_t n = tk_addaText(tk, x, y, w, h, font, str);
     uint16_t s = ((tk_text_stuff*)tk->value[n])->n;
@@ -1632,35 +1632,42 @@ void tk_textbuttoncallback(tk_t tk, const PuglEvent* event, uint16_t n)
         tk_addtolist(tk->redraw,n+1);
 }
 
-uint16_t tk_addaTextButton(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, char* str)
+uint16_t tk_addaTextButton(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, bool val, const char* str)
 {
     uint16_t n;
-    n = tk_addaButton(tk,x,y,w,h,0);
+    n = tk_addaButton(tk,x,y,w,h,val);
     tk->cb_f[n] = tk_textbuttoncallback;
     n = tk_addaText(tk, x, y, w, h, 0,str);
     tk->props[n] |= TK_TEXT_CENTER;
     return n-1; //return the button pointer
 }
 
-#if 0
-tk_showInputDialog(tk_t tk, uint16_t n, char* prompt_str, char* def_input, tk_callback_f cb_f)
+
+//void tk_inputok(tk_t tk, uint16_t n, const char* prompt_str, const char* def_input, void (*cb_f)(char* str, void* data), void* data)
+
+void tk_showinputdialog(tk_t tk, uint16_t n, const char* prompt_str, const char* def_input, void (*cb_f)(char* str, void* data), void* data)
 {
-    //set strings, cb, show the parts,
+    //set strings, figure out size, cb, show the parts,
+    uint16_t nd = n+7;
+    uint8_t lmx = tk->lmax;
+    tk_settext(tk, n+1, prompt_str);
+    tk_settext(tk, n+2, def_input);
+    for(;n<=nd;n++) tk_changelayer(tk,n,lmx);//hide all
 }
+
 
 uint16_t tk_addaInputDialog(tk_t tk, tk_font_stuff* font)
 {
-    //add bg, prompt, input, ok, cancel buttons, all hidden
-    uint16_t n;
-
-    n = tk_addaWidget(tk, tk->x[0], tk->y[0], tk->w[0], tk->h[0]);
-    tk->draw_f[n] = tk_drawbg;
-    tk_changelayer(tk,n,0);//hide
-    tk_addaText(tk, tk->x[0], tk->y[0], tk->w[0], tk->h[0], 0, "Input");
-    tk_changelayer(tk,n+1,0);//hide
-    tk_addaTextentry(tk, tk->x[0], tk->y[0], tk->w[0], tk->h[0], 0, "Default");
-    tk_changelayer(tk,n+2,0);//hide
-
+    uint16_t n,nd;
+    n = tk_addaButton(tk, tk->x[0], tk->y[0], tk->w[0], tk->h[0],0); //this button is just the box around the dialog
+    tk->cb_f[n] = tk_nocallback;
+    tk_addaText(tk, tk->x[0], tk->y[0], tk->w[0], tk->h[0], 0, "Input a value:");//prompt
+    tk_addaTextEntry(tk, tk->x[0], tk->y[0], tk->w[0], tk->h[0], 0, "Default");//input
+    nd = tk_addaTextButton(tk, tk->x[0], tk->y[0], tk->w[0], tk->h[0], 0, "Cancel");
+    nd = tk_addaTextButton(tk, tk->x[0], tk->y[0], tk->w[0], tk->h[0], 0, "OK");
+    //tk->callback_f[nd] = tk_inputok;
+    for(;n<=nd;n++) tk_changelayer(tk,n,0);//hide all
+    return n-7;
 
 }
-#endif
+

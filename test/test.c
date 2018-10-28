@@ -8,25 +8,30 @@
 void freeze_ratio(tk_t tk, const PuglEvent* event, uint16_t n)
 {
     fprintf(stderr, "freezing ratio");
-    if(*(uint8_t*)tk->value[n])
+    if(*(bool*)tk->value[n])
         tk->props[0] |= TK_HOLD_RATIO;
     else
         tk->props[0] &= ~TK_HOLD_RATIO;
 }
 void freeze_item_ratio(tk_t tk, const PuglEvent* event, uint16_t n)
 {
-    fprintf(stderr, "freezing this button's ratio");
-    if(*(uint8_t*)tk->value[n])
+    if(*(bool*)tk->value[n])
+    {
+        fprintf(stderr, "freezing this button's ratio");
         tk_addtolist(tk->hold_ratio,n);
+    }
     else
+    {
+        fprintf(stderr, "unfreezing this button's ratio");
         tk_removefromlist(tk->hold_ratio,n);
+    }
 }
 void tick(tk_t tk, const PuglEvent* event, uint16_t n)
 { 
-    if(*(uint8_t*)tk->value[3])
-        *(uint8_t*)tk->value[3] = 0;
+    if(*(bool*)tk->value[3])
+        *(bool*)tk->value[3] = false;
     else
-        *(uint8_t*)tk->value[3] = 1;
+        *(bool*)tk->value[3] = true;
     tk_addtolist(tk->redraw,3);
 }
 
@@ -64,7 +69,7 @@ int main()
                       70, //y
                       30, //w
                       40, //h
-                      0); //val
+                      false); //val
     tk->callback_f[n] = freeze_item_ratio;
 
     n = tk_addaButton(tk,
@@ -72,7 +77,7 @@ int main()
                       70, //y
                       30, //w
                       40, //h
-                      0); //val
+                      false); //val
     tk_addtolist(tk->hold_ratio,n);
     tk->callback_f[n] = freeze_ratio;
     tk_setstring(&tk->tip[n],"testytestytestytestytestytestytestytestytestytestytestytesty",0);
@@ -96,7 +101,7 @@ int main()
 
     tk_addaTooltip(tk,0);//font (0 uses default)
 
-    n = tk_addaTextentry(tk,
+    n = tk_addaTextEntry(tk,
                          5, //x
                          120, //y
                          180, //w
@@ -109,6 +114,7 @@ int main()
                           140, //y
                           50, //w
                           12, //h
+                          false, //val
                           "Dig"); //text
 
     tk->props[n] |= TK_BUTTON_MOMENTARY;
