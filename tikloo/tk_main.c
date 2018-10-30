@@ -1639,22 +1639,51 @@ uint16_t tk_addaTextButton(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t
     tk->cb_f[n] = tk_textbuttoncallback;
     n = tk_addaText(tk, x, y, w, h, 0,str);
     tk->props[n] |= TK_TEXT_CENTER;
-    return n-1; //return the button pointer
+    return n-1; //return the button index 
 }
 
 
-//void tk_inputok(tk_t tk, uint16_t n, const char* prompt_str, const char* def_input, void (*cb_f)(char* str, void* data), void* data)
+void tk_hideinputdialog(tk_t tk, uint16_t n)
+{
+    uint16_t nd;
+    for(nd=n+7;n<nd;n++) tk_changelayer(tk,n,0);//hide all
+}
 
 void tk_showinputdialog(tk_t tk, uint16_t n, const char* prompt_str, const char* def_input, void (*cb_f)(char* str, void* data), void* data)
 {
     //set strings, figure out size, cb, show the parts,
-    uint16_t nd = n+7;
+    uint16_t nd;
     uint8_t lmx = tk->lmax;
     tk_settext(tk, n+1, prompt_str);
     tk_settext(tk, n+2, def_input);
-    for(;n<=nd;n++) tk_changelayer(tk,n,lmx);//hide all
+    for(nd=n+7;n<nd;n++) tk_changelayer(tk,n,lmx);//show all
+    tk->user[n] = (void*)cb_f;
+    tk->user[n+1] = data;
 }
 
+void tk_inputcancel(tk_t tk, const PuglEvent* e, uint16_t n)
+{
+    if((bool)tk->value[n])
+    {
+        tk_hideinputdialog(tk,n-3);
+    }
+}
+
+void tk_inputok(tk_t tk, const PuglEvent* e, uint16_t n)
+{
+    tk_text_stuff* tkts;
+    uint16_t s;
+    void (*cb_f)(char* str, void* data);
+    if((bool)tk->value[n])
+    {
+        tkts = (tk_text_stuff*)tk->value[n-2];
+        s = tkts->n;
+        //cb_f = (void (*cb_f)(char* str, void* data))tk->user[n];
+        cb_f = tk->user[n];
+        cb_f(tk->tkt.str[s],tk->user[n+1]);
+        tk_hideinputdialog(tk,n-5);
+    }
+}
 
 uint16_t tk_addaInputDialog(tk_t tk, tk_font_stuff* font)
 {
@@ -1664,10 +1693,11 @@ uint16_t tk_addaInputDialog(tk_t tk, tk_font_stuff* font)
     tk_addaText(tk, tk->x[0], tk->y[0], tk->w[0], tk->h[0], 0, "Input a value:");//prompt
     tk_addaTextEntry(tk, tk->x[0], tk->y[0], tk->w[0], tk->h[0], 0, "Default");//input
     nd = tk_addaTextButton(tk, tk->x[0], tk->y[0], tk->w[0], tk->h[0], 0, "Cancel");
+    tk->callback_f[nd] = tk_inputok;
     nd = tk_addaTextButton(tk, tk->x[0], tk->y[0], tk->w[0], tk->h[0], 0, "OK");
-    //tk->callback_f[nd] = tk_inputok;
-    for(;n<=nd;n++) tk_changelayer(tk,n,0);//hide all
-    return n-7;
+    tk->callback_f[nd] = tk_inputok;
+    tk_hideinputdialog(tk,n);
+    return n;
 
 }
 
