@@ -1050,7 +1050,6 @@ tk_font_stuff* tk_gimmeaFont(tk_t tk, const uint8_t* font, uint32_t fsize, uint3
 
     //the buffer will be loaded with text and shaped when its time to render
 
-
     tkf->library = library;
     tkf->face = face;
     tkf->fontsize = extents.height;
@@ -1072,6 +1071,7 @@ bool tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, uin
 //TODO: should this be changed to batch process all strings?
     bool fit;
     uint16_t i,j,size,str_index,lastwhite;
+    const int margin = 2;
     float x,y,xmax,xstart,ostart;
     tk_font_stuff* tkf = tkt->tkf[n];
 
@@ -1084,6 +1084,7 @@ bool tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, uin
     uint16_t *cluster_map = tkt->cluster_map[n];
 
     *w /= tkt->scale;
+    *w -= margin;//leave space for RHS margin
     *h /= tkt->scale;
 
     size = tkt->tkf[n]->fontsize;
@@ -1113,7 +1114,6 @@ bool tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, uin
             glyph_pos = (float*)malloc(sizeof(float)*(glyph_count+1));
         }
 
-        x = 2; //add small buffer to LHS
         for (i=0; i < glyph_count; ++i) 
         {
             glyphs[i].index = glyph_info[i].codepoint;
@@ -1131,7 +1131,7 @@ bool tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, uin
     for (i = 0; i < glyph_count; i++) 
     {
         str_index = cluster_map[i];
-        x = glyph_pos[i] - xstart;
+        x = glyph_pos[i] - xstart + margin;
         glyphs[i].x = x;
         glyphs[i].y = y;
         if(isspace(tkt->str[n][str_index]))
@@ -1145,7 +1145,7 @@ bool tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, uin
             }
         } 
 
-        if(glyph_pos[i+1]-xstart > *w)
+        if(glyph_pos[i+1]-xstart+margin > *w)
         {
             if(props&TK_TEXT_WRAP)
             {//go back to last whitespace put the rest on a newline
@@ -1167,7 +1167,7 @@ bool tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, uin
                 y += size;
                 for(j=lastwhite+1;j<=i;j++)
                 {//move previous glyphs to new line
-                    x = glyph_pos[j] - xstart;
+                    x = glyph_pos[j] - xstart + margin;
                     glyphs[j].x = x;
                     glyphs[j].y = y;
                 }
@@ -1179,7 +1179,7 @@ bool tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, uin
         }
     }
     //populate extra glyph to know where line ends
-    x = glyph_pos[i] - xstart;
+    x = glyph_pos[i] - xstart + margin;
     glyphs[i].x = x;
     glyphs[i].y = y;
     if(glyph_pos[i]-xstart > xmax) //check last line
@@ -1201,7 +1201,7 @@ bool tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, uin
 
     if(fit && props&TK_TEXT_CENTER)
     {//center
-        x = (*w-xmax-2)/2.0;
+        x = (*w-xmax-margin)/2.0;
         y = (*h-y)/2.0;
         for (i = 0; i <= glyph_count; i++)
         {
@@ -1210,7 +1210,7 @@ bool tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, uin
         }
     }
 
-    *w = xmax*tkt->scale;
+    *w = (xmax+margin)*tkt->scale;
     *h = y*tkt->scale;
     return fit;
 }
