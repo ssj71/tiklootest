@@ -35,6 +35,24 @@ void tick(tk_t tk, const PuglEvent* event, uint16_t n)
     tk_addtolist(tk->redraw,3);
 }
 
+void valueentered(char* entry, void* data)
+{
+    fprintf(stderr,"printed %s\n",entry);
+}
+
+void input(tk_t tk, const PuglEvent* event, uint16_t n)
+{
+    if(*(bool*)tk->value[n])
+    {
+        tk_showinputdialog(tk, 
+                           n+2, //input dialog index
+                           "Input something please", //prompt string
+                           "0.00", //initial input value
+                           valueentered,//callback
+                           0);//
+    }
+}
+
 int main()
 {
     tk_t tk;
@@ -119,6 +137,10 @@ int main()
 
     tk->props[n] |= TK_BUTTON_MOMENTARY;
     tk_setstring(&tk->tip[n],"This does nothing too!",0);
+    tk->callback_f[n] = input;
+
+    tk_addaInputDialog(tk,
+                       0);//font
 
     tk_optimizedefaultdraw(tk);
     tk_rollit(tk);

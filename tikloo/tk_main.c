@@ -1656,6 +1656,7 @@ void tk_showinputdialog(tk_t tk, uint16_t n, const char* prompt_str, const char*
     uint8_t lmx = tk->lmax;
     tk_settext(tk, n+1, prompt_str);
     tk_settext(tk, n+2, def_input);
+    //need to layout the dialog based on the string sizes
     for(nd=n+7;n<nd;n++) tk_changelayer(tk,n,lmx);//show all
     tk->user[n] = (void*)cb_f;
     tk->user[n+1] = data;

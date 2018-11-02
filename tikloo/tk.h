@@ -20,6 +20,7 @@ uint16_t tk_addaText(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, tk
 uint16_t tk_addaTextEntry(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, tk_font_stuff* font, char* str);
 uint16_t tk_addaTooltip(tk_t tk, tk_font_stuff* font);
 uint16_t tk_addaTextButton(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, bool val, const char* str);
+uint16_t tk_addaInputDialog(tk_t tk, tk_font_stuff* font);
 
 //core functions
 void tk_rollit(tk_t tk);
@@ -40,4 +41,5 @@ float tk_dialvalue(tk_t tk, uint16_t n);
 void tk_settext(tk_t tk, uint16_t n, const char* str);
 void tk_gettextcursor(void* valp, int *x, int *y, int *w, int *h);
 
+void tk_showinputdialog(tk_t tk, uint16_t n, const char* prompt_str, const char* def_input, void (*cb_f)(char* str, void* data), void* data);
 #endif
