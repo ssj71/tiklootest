@@ -32,7 +32,21 @@
 //static void tk_callback (PuglView* view, const PuglEvent* event);
 //void tk_nocallback(tk_t tk, const PuglEvent* e, uint16_t n);
 
+////// Table of Contents:
+// Core_Functions
+// Sundry_Helper_Functions
+// General_Widget_Stuff
+// Dial_Stuff
+// Button_Stuff
+// Timer_Stuff
+// General_Text_Stuff
+// Text_Entry_Stuff
+// Tooltip_Stuff
+// Text_Button_Stuff
+// Input_Dialog_Stuff
 
+
+// Core_Functions
 tk_t tk_gimmeaTiKloo(uint16_t w, uint16_t h, char* title)
 {
     tk_t tk = (tk_t)malloc(sizeof(tk_table));
@@ -295,20 +309,20 @@ void tk_growprimarytable(tk_t tk)
 void tk_resizeeverything(tk_t tk,float w, float h)
 {
     uint16_t i,n,tw,th;
-    float sx,sy,sx0,sy0,sx1,sy1,smx,smy,sm0,sm1,dx,dy,x0,y0;
+    float sx,sy, dx,dy;
 
-    x0 = tk->x[0];
-    y0 = tk->y[0];
+    const float x0 = tk->x[0];
+    const float y0 = tk->y[0];
     sx = w/(tk->w[0]);//scale change (relative)
     sy = h/(tk->h[0]);
-    sx0 = (tk->w[0]+2*x0)/tk->w0;//old scaling (absolute)
-    sy0 = (tk->h[0]+2*y0)/tk->h0;
-    sx1 = w/tk->w0;//new scaling (absolute)
-    sy1 = h/tk->h0;
-    sm0 = sx0<sy0?sx0:sy0;//old small dim
-    sm1 = sx1<sy1?sx1:sy1;//new small dim
-    smx = (sm1/sm0)/sx;//min scale factor div. scale x
-    smy = (sm1/sm0)/sy;
+    const float sx0 = (tk->w[0]+2*x0)/tk->w0;//old scaling (absolute)
+    const float sy0 = (tk->h[0]+2*y0)/tk->h0;
+    const float sx1 = w/tk->w0;//new scaling (absolute)
+    const float sy1 = h/tk->h0;
+    const float sm0 = sx0<sy0?sx0:sy0;//old small dim
+    const float sm1 = sx1<sy1?sx1:sy1;//new small dim
+    const float smx = (sm1/sm0)/sx;//min scale factor div. scale x
+    const float smy = (sm1/sm0)/sy;
 
     if(tk->props[0]&TK_HOLD_RATIO)
     {
@@ -387,12 +401,13 @@ void tk_redraw(tk_t tk)
     uint16_t i,n;
     if( !tk->redraw[0] )
         return;//empty list
-    //for(i=0; tk->redraw[i]||!i; i++) //TODO: do we need to redraw the background ever? just draweverything then
+    //for(i=0; tk->redraw[i]||!i; i++) //TODO: do we need to redraw the background ever? just draweverything then, well if something got removed from the background then yes, we just need to redraw that portion
     for(i=0; tk->redraw[i]; i++)
     {
         n = tk->redraw[i];
-        if(!tk->props[n]&TK_NO_DAMAGE)
+        if(!tk->props[n]&TK_NO_DAMAGE || tk->layer[n]<tk->lmax)
             tk_damage(tk,n);
+        //TODO: if not on top, don't draw
         tk_draw(tk,n);
         tk->redraw[i] = 0;
         //TODO: cache everything to avoid redraws?
@@ -409,7 +424,7 @@ void tk_draweverything(tk_t tk)
         //TODO: cache everything to avoid redraws?
     }
 }
-void tk_damage2(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h)
+void tk_damagebox(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h)
 {
     uint16_t i,l;
     uint16_t x2,y2;
@@ -444,7 +459,7 @@ void tk_damage2(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h)
 }
 void tk_damage(tk_t tk, uint16_t n)
 {
-    tk_damage2(tk,tk->x[n],tk->y[n],tk->w[n],tk->h[n]);
+    tk_damagebox(tk,tk->x[n],tk->y[n],tk->w[n],tk->h[n]);
 }
 
 void tk_sharedraw(tk_t tk, uint16_t n)
@@ -545,13 +560,7 @@ void tk_callback (PuglView* view, const PuglEvent* event)
         //if(event->expose.count)
         //    return;
         //tk_draweverything(tk);
-        fprintf(stderr,  "Expose! %f %f %f %f %i\n",
-                event->expose.x,
-                event->expose.y,
-                event->expose.width,
-                event->expose.height,
-                event->expose.count); 
-        tk_damage2(tk,
+        tk_damagebox(tk,
                 event->expose.x,
                 event->expose.y,
                 event->expose.width,
@@ -613,7 +622,9 @@ void tk_callback (PuglView* view, const PuglEvent* event)
         if(tk->ttip)
             tk_settimer(tk,tk->ttip,0);
         if(n)
+        {
             tk->cb_f[n](tk,event,n);
+            fprintf(stderr,"click %i\n",n);}
         break;
     case PUGL_SCROLL:
         n = tk_eventsearch(tk,event);
@@ -635,7 +646,7 @@ void tk_callback (PuglView* view, const PuglEvent* event)
     }
 }
 
-//SUNDRY HELPER FUNCTIONS
+// Sundry_Helper_Functions
 void tk_addtogrowlist(uint16_t** list, uint16_t *len, uint16_t n)
 {
     uint16_t i=0;
@@ -791,7 +802,7 @@ void tk_rmdupptr(void** a)
             }
 }
 
-//WIDGET STUFF
+// General_Widget_Stuff
 void tk_nocallback(tk_t tk, const PuglEvent* e, uint16_t n)
 {(void)tk;(void)e;(void)n;}
 
@@ -812,6 +823,7 @@ uint16_t tk_addaWidget(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h)
     return n;
 }
 
+// Dial_Stuff
 float tk_dialvalue(tk_t tk, uint16_t n)
 {
     float *v = (float*)tk->value[n];
@@ -880,6 +892,7 @@ uint16_t tk_addaDial(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, fl
 
 }
 
+// Button_Stuff
 void tk_buttoncallback(tk_t tk, const PuglEvent* event, uint16_t n)
 {
     bool *v = (bool*)tk->value[n];
@@ -936,6 +949,7 @@ uint16_t tk_addaButton(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, 
     return n; 
 }
 
+// Timer_Stuff
 
 //timers are an entirely different beast from other widgets
 void tk_settimer(tk_t tk, uint16_t n, float s)
@@ -968,6 +982,7 @@ uint16_t tk_addaTimer(tk_t tk, float s)
     return n;
 }
 
+// General_Text_Stuff
 
 //this function makes the font stuff from a binary blob or file
 //fsize is binary size (if 0 the 2nd variable must be a path)
@@ -989,7 +1004,6 @@ tk_font_stuff* tk_gimmeaFont(tk_t tk, const uint8_t* font, uint32_t fsize, uint3
     hb_buffer_t *buf;
     hb_font_t *hbfont;
     hb_face_t *hbface;
-
 
     //now font setup stuff 
     error = FT_Init_FreeType( &library );
@@ -1222,7 +1236,7 @@ void tk_settext(tk_t tk, uint16_t n, const char* str)
     tk_text_stuff* tkts;
     tw = tk->w[n];
     th = tk->h[n];
-    tkts = tk->value[n];
+    tkts = (tk_text_stuff*)tk->value[n];
     s = tkts->n;
     tk_setstring(&tk->tkt.str[s],str,0);
     tk->tkt.strchange[s] = true;
@@ -1344,6 +1358,8 @@ uint16_t tk_addaText(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, tk
 
     return n; 
 } 
+
+// Text_Entry_Stuff
 
 //gets character index of clicked pos in text
 uint16_t tk_gettextchar(tk_text_table* tkt, uint16_t n, uint16_t x, uint16_t y)
@@ -1501,7 +1517,7 @@ void tk_cursorcallback(tk_t tk, const PuglEvent* event, uint16_t n)
         tk_settimer(tk,n,0);
 }
 
-uint16_t tk_addaTextEntry(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, tk_font_stuff* font, char* str)
+uint16_t tk_addaTextEntry(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, tk_font_stuff* font, const char* str)
 {
     uint16_t n = tk_addaText(tk, x, y, w, h, font, str);
     uint16_t s = ((tk_text_stuff*)tk->value[n])->n;
@@ -1520,6 +1536,7 @@ uint16_t tk_addaTextEntry(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t 
     return n;
 }
 
+// Tooltip_Stuff
 void tk_showtipcallback(tk_t tk, const PuglEvent* e, uint16_t n)
 {
     uint16_t w,h,s;
@@ -1624,6 +1641,7 @@ uint16_t tk_addaTooltip(tk_t tk, tk_font_stuff* font)
     return n;
 }
 
+// Text_Button_Stuff
 void tk_textbuttoncallback(tk_t tk, const PuglEvent* event, uint16_t n)
 {
     uint8_t v = *(uint8_t*)tk->value[n];
@@ -1642,7 +1660,7 @@ uint16_t tk_addaTextButton(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t
     return n-1; //return the button index 
 }
 
-
+// Input_Dialog_Stuff
 void tk_hideinputdialog(tk_t tk, uint16_t n)
 {
     uint16_t nd;
@@ -1651,19 +1669,19 @@ void tk_hideinputdialog(tk_t tk, uint16_t n)
 
 void tk_showinputdialog(tk_t tk, uint16_t n, const char* prompt_str, const char* def_input, void (*cb_f)(char* str, void* data), void* data)
 {
-    //set strings, figure out size, cb, show the parts,
     uint16_t nd;
-    uint8_t lmx = tk->lmax;
-    tk_settext(tk, n+1, prompt_str);
+    uint8_t lmx = tk->lmax+1;
+    tk_settext(tk, n+1, prompt_str); //set strings
     tk_settext(tk, n+2, def_input);
-    //need to layout the dialog based on the string sizes
-    for(nd=n+7;n<nd;n++) tk_changelayer(tk,n,lmx);//show all
-    tk->user[n] = (void*)cb_f;
+    tk_changelayer(tk,n++,lmx++);//put the background at the top layer
+    for(nd=n+6;n<nd;n++) tk_changelayer(tk,n,lmx);//show rest atop bg
+    tk->user[n] = (void*)cb_f; //set callback
     tk->user[n+1] = data;
 }
 
 void tk_inputcancel(tk_t tk, const PuglEvent* e, uint16_t n)
 {
+    fprintf(stderr, "hide?\n");
     if((bool)tk->value[n])
     {
         tk_hideinputdialog(tk,n-3);
@@ -1675,30 +1693,47 @@ void tk_inputok(tk_t tk, const PuglEvent* e, uint16_t n)
     tk_text_stuff* tkts;
     uint16_t s;
     void (*cb_f)(char* str, void* data);
+    fprintf(stderr, "oak?\n");
     if((bool)tk->value[n])
     {
         tkts = (tk_text_stuff*)tk->value[n-2];
         s = tkts->n;
         //cb_f = (void (*cb_f)(char* str, void* data))tk->user[n];
-        cb_f = tk->user[n];
+        cb_f = (void (*)(char*, void*))tk->user[n];
         cb_f(tk->tkt.str[s],tk->user[n+1]);
         tk_hideinputdialog(tk,n-5);
     }
 }
 
+//input dialog requires the window to be big enough
 uint16_t tk_addaInputDialog(tk_t tk, tk_font_stuff* font)
 {
     uint16_t n,nd;
-    n = tk_addaButton(tk, tk->x[0], tk->y[0], tk->w[0], tk->h[0],0); //this button is just the box around the dialog
+    const uint16_t midx = tk->x[0] + tk->w[0]/2.0;
+    const uint16_t midy = tk->y[0] + tk->h[0]/2.0;
+    const uint16_t margin = 5;
+    const uint16_t buttonw = 40;
+    const uint16_t buttonh = 14+margin;
+    const uint16_t dialogw = buttonw+margin+buttonw+margin+buttonw+margin+buttonw;
+    const uint16_t dialogh = margin+2*buttonh+margin+buttonh+margin+buttonh+margin;
+    const uint16_t dialogx = midx-dialogw/2;
+    const uint16_t dialogy = midy-dialogh/2;
+    uint16_t y = dialogy;
+
+    n = tk_addaButton(tk, dialogx, dialogy, dialogw, dialogh, 0); //this button is just the box around the dialog
     tk->cb_f[n] = tk_nocallback;
-    tk_addaText(tk, tk->x[0], tk->y[0], tk->w[0], tk->h[0], 0, "Input a value:");//prompt
-    tk_addaTextEntry(tk, tk->x[0], tk->y[0], tk->w[0], tk->h[0], 0, "Default");//input
-    nd = tk_addaTextButton(tk, tk->x[0], tk->y[0], tk->w[0], tk->h[0], 0, "Cancel");
+    y += margin;
+    tk_addaText(tk, dialogx+margin, y, dialogw-2*margin, buttonh, 0, "Input a value:");//prompt
+    y += 2*buttonh+margin;
+    tk_addaTextEntry(tk, dialogx+margin, y, dialogw-2*margin, buttonh, 0, "Default");//input
+    y += buttonh+margin;
+    nd = tk_addaTextButton(tk, midx-buttonw-margin, y, buttonw, buttonh, 0, "Cancel");
+    tk->callback_f[nd] = tk_inputcancel;
+    fprintf(stderr, "%i cancer ", nd);
+    nd = tk_addaTextButton(tk, midx+margin, y, buttonw, buttonh, 0, "OK");
     tk->callback_f[nd] = tk_inputok;
-    nd = tk_addaTextButton(tk, tk->x[0], tk->y[0], tk->w[0], tk->h[0], 0, "OK");
-    tk->callback_f[nd] = tk_inputok;
+    fprintf(stderr, "%i oak ", nd);
     tk_hideinputdialog(tk,n);
     return n;
-
 }
 
