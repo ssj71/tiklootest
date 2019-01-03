@@ -28,6 +28,7 @@ void tk_idle(tk_t tk);
 void tk_cleanup(tk_t tk);
 
 //various helping functions
+void tk_hide(tk_t tk, uint16_t n, bool damage);
 void tk_changelayer(tk_t tk, uint16_t n, uint16_t layer);
 void tk_optimizedefaultdraw(tk_t tk);
 

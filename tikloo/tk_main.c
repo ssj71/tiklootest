@@ -450,10 +450,10 @@ void tk_damagebox(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h)
                 tk->x[i] < x2 && tk->x[i] + tk->w[i] > x &&
                 tk->y[i] < y2 && tk->y[i] + tk->h[i] > y
               )
-              {
+            {
                 fprintf(stderr,"%i:%i,",l,i);
                 tk_draw(tk,i);
-                }
+            }
 
     cairo_restore(tk->cr);
 }
@@ -603,7 +603,7 @@ void tk_callback (PuglView* view, const PuglEvent* event)
                 {
                     tk_settimer(tk,tk->ttip,0);
                     if(tk->layer[tk->ttip-1])
-                        tk_changelayer(tk,tk->ttip-1,0);
+                        tk_hide(tk,tk->ttip-1,true);
                 }
             }
         }
@@ -757,20 +757,26 @@ void tk_strcut(char* str, uint16_t i, uint16_t l)
     memmove(&str[i], &str[i+l], strlen(str)-l+1);
 }
 
+void tk_hide(tk_t tk, uint16_t n, bool damage)
+{
+    uint16_t i;
+    if(tk->layer[n] == tk->lmax)
+    {//this could be the only one on this layer
+        for(i=0;tk->draw[i];i++);//find end of list
+        tk->lmax = tk->layer[tk->draw[--i]];
+    }
+    tk_removefromlist(tk->draw,n);
+    tk_removefromlist(tk->redraw,n);
+    tk->layer[n] = 0;
+    if (damage) tk_damage(tk,n);
+}
+
 void tk_changelayer(tk_t tk, uint16_t n, uint16_t layer)
 {
     uint16_t i;
     if(!layer)
-    {
-        if(tk->layer[n] == tk->lmax)
-        {//this could be the only one on this layer
-            for(i=0;tk->draw[i];i++);//find end of list
-            tk->lmax = tk->layer[tk->draw[--i]];
-        }
-        tk_removefromlist(tk->draw,n);
-        tk_removefromlist(tk->redraw,n);
-        tk->layer[n] = layer;
-        tk_damage(tk,n); 
+    {//hide it
+        tk_hide(tk,n,true);
     }
     else
     {
@@ -1631,7 +1637,7 @@ uint16_t tk_addaTooltip(tk_t tk, tk_font_stuff* font)
     tk->tkt.str[tk->tkt.nitems-1] = tk->tip[0];//just a placeholder
 
     tk->draw_f[n] = tk_drawtip;
-    tk->props[n] |= TK_NO_DAMAGE;//only does damage when it leaves, which is handled in tk_changelayer
+    tk->props[n] |= TK_NO_DAMAGE;//only does damage when it leaves, which is handled in tk_hide
 
     //need timer
     n = tk_addaTimer(tk, 0);
@@ -1664,7 +1670,8 @@ uint16_t tk_addaTextButton(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t
 void tk_hideinputdialog(tk_t tk, uint16_t n)
 {
     uint16_t nd;
-    for(nd=n+7;n<nd;n++) tk_changelayer(tk,n,0);//hide all
+    for(nd=n+6;nd>n;nd--) tk_hide(tk,nd,false);//hide all
+    tk_hide(tk,n,true);//damage the last box
 }
 
 void tk_showinputdialog(tk_t tk, uint16_t n, const char* prompt_str, const char* def_input, void (*cb_f)(char* str, void* data), void* data)
