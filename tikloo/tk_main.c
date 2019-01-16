@@ -456,11 +456,13 @@ void tk_damagebox(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h)
                 fprintf(stderr,"%i:%i,",l,i);
                 tk_draw(tk,i);
             }
+                fprintf(stderr,"\n");
 
     cairo_restore(tk->cr);
 }
 void tk_damage(tk_t tk, uint16_t n)
 {
+    fprintf(stderr,"%i ",n);
     tk_damagebox(tk,tk->x[n],tk->y[n],tk->w[n],tk->h[n]);
 }
 
