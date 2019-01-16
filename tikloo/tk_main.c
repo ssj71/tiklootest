@@ -701,7 +701,7 @@ void tk_insertinlist(uint16_t* list, uint16_t n, uint16_t i)
     for(j=0;list[j]&&list[j]!=n;j++);//find end of list
     if(list[j]==n)
     {
-        //it's already in the list once
+        //it's already in the list once, move it
         if(j<i)
             for(k=j;k<i;k++)
                 list[k] = list[k+1];
