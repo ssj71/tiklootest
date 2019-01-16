@@ -1680,10 +1680,10 @@ void tk_showinputdialog(tk_t tk, uint16_t n, const char* prompt_str, const char*
     uint8_t lmx = tk->lmax+1;
     tk_settext(tk, n+1, prompt_str); //set strings
     tk_settext(tk, n+2, def_input);
+    tk->user[n+1] = (void*)cb_f; //set callback
+    tk->user[n+2] = data;
     tk_changelayer(tk,n++,lmx++);//put the background at the top layer
     for(nd=n+6;n<nd;n++) tk_changelayer(tk,n,lmx);//show rest atop bg
-    tk->user[n] = (void*)cb_f; //set callback
-    tk->user[n+1] = data;
 }
 
 void tk_inputcancel(tk_t tk, const PuglEvent* e, uint16_t n)
@@ -1703,11 +1703,11 @@ void tk_inputok(tk_t tk, const PuglEvent* e, uint16_t n)
     fprintf(stderr, "oak?\n");
     if((bool)tk->value[n])
     {
-        tkts = (tk_text_stuff*)tk->value[n-2];
+        tkts = (tk_text_stuff*)tk->value[n-3];//text entry of dialog is 3 widgets previous
         s = tkts->n;
         //cb_f = (void (*cb_f)(char* str, void* data))tk->user[n];
-        cb_f = (void (*)(char*, void*))tk->user[n];
-        cb_f(tk->tkt.str[s],tk->user[n+1]);
+        cb_f = (void (*)(char*, void*))tk->user[n-4];
+        if(cb_f) cb_f(tk->tkt.str[s],tk->user[n-3]);
         tk_hideinputdialog(tk,n-5);
     }
 }
