@@ -1686,6 +1686,8 @@ void tk_showinputdialog(tk_t tk, uint16_t n, const char* prompt_str, const char*
     tk_settext(tk, n+2, def_input);
     tk->user[n+1] = (void*)cb_f; //set callback
     tk->user[n+2] = data;
+    *(bool*)tk->value[n+3] = false; //reset buttons
+    *(bool*)tk->value[n+5] = false;
     tk_changelayer(tk,n++,lmx++);//put the background at the top layer
     for(nd=n+6;n<nd;n++) tk_changelayer(tk,n,lmx);//show rest atop bg
 }
@@ -1731,6 +1733,7 @@ uint16_t tk_addaInputDialog(tk_t tk, tk_font_stuff* font)
     const uint16_t dialogy = midy-dialogh/2;
     uint16_t y = dialogy;
 
+    if(dialogx>tk->w[0] || dialogy>tk->h[0]) return 0; //didn't fit
     n = tk_addaButton(tk, dialogx, dialogy, dialogw, dialogh, 0); //this button is just the box around the dialog
     tk->cb_f[n] = tk_nocallback;
     y += margin;
