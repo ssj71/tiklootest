@@ -401,14 +401,16 @@ void tk_redraw(tk_t tk)
     uint16_t i,n;
     if( !tk->redraw[0] )
         return;//empty list
-    //for(i=0; tk->redraw[i]||!i; i++) //TODO: do we need to redraw the background ever? just draweverything then, well if something got removed from the background then yes, we just need to redraw that portion
     for(i=0; tk->redraw[i]; i++)
     {
-        n = tk->redraw[i];
-        if(!tk->props[n]&TK_NO_DAMAGE || tk->layer[n]<tk->lmax)
-            tk_damage(tk,n);
-        //TODO: if not on top, don't draw
-        tk_draw(tk,n);
+        if(tk->layer[tk->redraw[i]])
+        {//only draw if on a visible layer
+            n = tk->redraw[i];
+            if(!tk->props[n]&TK_NO_DAMAGE || tk->layer[n]<tk->lmax)
+                tk_damage(tk,n);
+            //TODO: if not on top, don't draw
+            tk_draw(tk,n);
+        }
         tk->redraw[i] = 0;
         //TODO: cache everything to avoid redraws?
     }
