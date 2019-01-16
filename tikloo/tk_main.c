@@ -1657,7 +1657,7 @@ void tk_textbuttoncallback(tk_t tk, const PuglEvent* event, uint16_t n)
 }
 
 uint16_t tk_addaTextButton(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h, bool val, const char* str)
-{
+{ //text button is a button with a text widget on top
     uint16_t n;
     n = tk_addaButton(tk,x,y,w,h,val);
     tk->cb_f[n] = tk_textbuttoncallback;
@@ -1714,7 +1714,7 @@ void tk_inputok(tk_t tk, const PuglEvent* e, uint16_t n)
 
 //input dialog requires the window to be big enough
 uint16_t tk_addaInputDialog(tk_t tk, tk_font_stuff* font)
-{
+{//0 background, 1 prompt text, 2 input textentry, 3-4 cancel, 5-6 ok
     uint16_t n,nd;
     const uint16_t midx = tk->x[0] + tk->w[0]/2.0;
     const uint16_t midy = tk->y[0] + tk->h[0]/2.0;
