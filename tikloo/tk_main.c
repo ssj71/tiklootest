@@ -408,8 +408,8 @@ void tk_redraw(tk_t tk)
             n = tk->redraw[i];
             if(!tk->props[n]&TK_NO_DAMAGE || tk->layer[n]<tk->lmax)
                 tk_damage(tk,n);
-            //TODO: if not on top, don't draw
-            tk_draw(tk,n);
+            else
+                tk_draw(tk,n);
         }
         tk->redraw[i] = 0;
         //TODO: cache everything to avoid redraws?
@@ -453,7 +453,7 @@ void tk_damagebox(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h)
                 tk->y[i] < y2 && tk->y[i] + tk->h[i] > y
               )
             {
-                fprintf(stderr,"%i:%i,",l,i);
+                fprintf(stderr,"%i:%i, ",l,i);
                 tk_draw(tk,i);
             }
                 fprintf(stderr,"\n");
