@@ -28,9 +28,6 @@ typedef struct tk_font_stuff
     FT_Face face;
     hb_buffer_t *buf;
     hb_font_t *hbfont;
-    hb_face_t *hbface;
-    cairo_font_face_t* fontface;
-    cairo_scaled_font_t* scaledfont;
 }tk_font_stuff;
 
 typedef struct tk_text_table

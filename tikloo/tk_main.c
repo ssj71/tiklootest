@@ -378,6 +378,7 @@ void tk_resizeeverything(tk_t tk,float w, float h)
 
     //scale text
     tk->tkt.scale = sm1;
+        fprintf(stderr, "text scale: %f ",sm1);
     for(i=0;i<tk->tkt.nitems;i++)
     {
         n = tk->tkt.n[i];
@@ -386,6 +387,7 @@ void tk_resizeeverything(tk_t tk,float w, float h)
         //TODO: unless they've changed ratio they don't actually need a re-layout
         //TODO: do anything if it doesn't fit?
         tk_textlayout(tk->cr,&tk->tkt,i,&tw,&th,tk->props[n]);
+        fprintf(stderr, "%i,%i,%i,%i ", i,n,tw,th);
     }
 }
 
@@ -444,7 +446,7 @@ void tk_damagebox(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h)
     cairo_line_to(tk->cr, x, y2);
     cairo_close_path(tk->cr);
     cairo_clip_preserve(tk->cr);
-        fprintf(stderr,"damage,%i,%i,%i,%i: ",x,x2,y,y2);
+     //   fprintf(stderr,"damage,%i,%i,%i,%i: ",x,x2,y,y2);
         
     for(l=1;l<=tk->lmax;l++)
         for(i=0; tk->cb_f[i]; i++)
@@ -453,16 +455,16 @@ void tk_damagebox(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h)
                 tk->y[i] < y2 && tk->y[i] + tk->h[i] > y
               )
             {
-                fprintf(stderr,"%i:%i, ",l,i);
+      //          fprintf(stderr,"%i:%i, ",l,i);
                 tk_draw(tk,i);
             }
-                fprintf(stderr,"\n");
+       //         fprintf(stderr,"\n");
 
     cairo_restore(tk->cr);
 }
 void tk_damage(tk_t tk, uint16_t n)
 {
-    fprintf(stderr,"%i ",n);
+    //fprintf(stderr,"%i ",n);
     tk_damagebox(tk,tk->x[n],tk->y[n],tk->w[n],tk->h[n]);
 }
 
@@ -1007,13 +1009,10 @@ tk_font_stuff* tk_gimmeaFont(tk_t tk, const uint8_t* font, uint32_t fsize, uint3
     FT_Face     face;      /* handle to face object */
     FT_Error    error;
     //cairo stuff
-    cairo_font_face_t* crfontface;
-    cairo_scaled_font_t* scaledfont; 
     cairo_font_extents_t extents;
     //harfbuzz stuff
     hb_buffer_t *buf;
     hb_font_t *hbfont;
-    hb_face_t *hbface;
 
     //now font setup stuff 
     error = FT_Init_FreeType( &library );
@@ -1053,13 +1052,10 @@ tk_font_stuff* tk_gimmeaFont(tk_t tk, const uint8_t* font, uint32_t fsize, uint3
     } 
 
     //CAIRO
-    // get the scaled font object //TODO: do we need this still?
-    crfontface = cairo_font_face_reference(cairo_ft_font_face_create_for_ft_face(face,0));
-    cairo_set_font_face(tk->cr, crfontface);
+    cairo_set_font_face(tk->cr, cairo_ft_font_face_create_for_ft_face(face,0));
     cairo_set_font_size(tk->cr, fontsize);
-    scaledfont = cairo_scaled_font_reference(cairo_get_scaled_font(tk->cr));
 
-    cairo_scaled_font_extents(scaledfont,&extents);
+    cairo_font_extents(tk->cr,&extents);
 
     //harfbuzz
     buf = hb_buffer_create();
@@ -1070,19 +1066,17 @@ tk_font_stuff* tk_gimmeaFont(tk_t tk, const uint8_t* font, uint32_t fsize, uint3
     hb_buffer_set_language(buf, hb_language_from_string("en", 2));
     //convert the ft font face to hb_font
     hbfont = hb_ft_font_create(face,NULL);
-    hbface = hb_ft_face_create(face,NULL);
+    hb_font_set_scale(hbfont, fontsize*64, fontsize*64);
+    hb_ft_font_set_funcs(hbfont);
 
     //the buffer will be loaded with text and shaped when its time to render
 
     tkf->library = library;
     tkf->face = face;
-    tkf->fontsize = extents.height;
+    tkf->fontsize = fontsize;
     tkf->base = extents.ascent;
-    tkf->fontface = crfontface;
-    tkf->scaledfont = scaledfont;
     tkf->buf = buf;
     tkf->hbfont = hbfont;
-    tkf->hbface = hbface;
 
     return tkf; 
 }
@@ -1117,7 +1111,7 @@ bool tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, uin
     {
         //shape
         hb_buffer_reset(tkf->buf);
-        hb_buffer_add_utf8(tkf->buf,tkt->str[n],-1,0,-1);//magic numbers mean use strlen, no offset
+        hb_buffer_add_utf8(tkf->buf,tkt->str[n],-1,0,-1);//magic numbers mean use strlen, no offset, add full string
         hb_buffer_set_direction(tkf->buf,HB_DIRECTION_LTR);
         hb_shape(tkf->hbfont,tkf->buf, NULL, 0);//no features specified
 
@@ -1138,19 +1132,21 @@ bool tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, uin
             glyph_pos = (float*)malloc(sizeof(float)*(glyph_count+1));
         }
 
+        x=0;
         for (i=0; i < glyph_count; ++i) 
         {
             glyphs[i].index = glyph_info[i].codepoint;
             cluster_map[i] = glyph_info[i].cluster;
-            glyph_pos[i] = (x + glyph_position[i].x_offset/64.0)/tkt->scale;
+            glyph_pos[i] = (x + glyph_position[i].x_offset/64.0);
             x += glyph_position[i].x_advance/64.0;
         }
-        glyph_pos[i] = x/tkt->scale; //get end of string
+        glyph_pos[i] = x; //get end of string
         cluster_map[i] = strlen(tkt->str[n]);
     }
     tkt->brk[n][0] = 0; //clear list
 
-    xstart = xmax = y = lastwhite = 0;
+    xstart = xmax = lastwhite = 0;
+    y = tkf->base;
     str_index = 0;
     for (i = 0; i < glyph_count; i++) 
     {
@@ -1214,7 +1210,7 @@ bool tk_textlayout(cairo_t* cr, tk_text_table* tkt, uint16_t n, uint16_t *w, uin
     tkt->glyph_pos[n] = glyph_pos;
     tkt->cluster_map[n] = cluster_map;
 
-    y += size;
+    y += size-tkf->base;
 
     fit = true;
     if(xmax > *w)
@@ -1737,16 +1733,16 @@ uint16_t tk_addaInputDialog(tk_t tk, tk_font_stuff* font)
     n = tk_addaButton(tk, dialogx, dialogy, dialogw, dialogh, 0); //this button is just the box around the dialog
     tk->cb_f[n] = tk_nocallback;
     y += margin;
-    tk_addaText(tk, dialogx+margin, y, dialogw-2*margin, buttonh, 0, "Input a value:");//prompt
+    nd = tk_addaText(tk, dialogx+margin, y, dialogw-2*margin, buttonh, 0, "Input a value:");//prompt
+    tk->props[nd] += TK_TEXT_WRAP;
     y += 2*buttonh+margin;
     tk_addaTextEntry(tk, dialogx+margin, y, dialogw-2*margin, buttonh, 0, "Default");//input
     y += buttonh+margin;
     nd = tk_addaTextButton(tk, midx-buttonw-margin, y, buttonw, buttonh, 0, "Cancel");
     tk->callback_f[nd] = tk_inputcancel;
-    fprintf(stderr, "%i cancer ", nd);
     nd = tk_addaTextButton(tk, midx+margin, y, buttonw, buttonh, 0, "OK");
     tk->callback_f[nd] = tk_inputok;
-    fprintf(stderr, "%i oak ", nd);
+    fprintf(stderr,"end %i\n",nd+1);
     tk_hideinputdialog(tk,n);
     return n;
 }
