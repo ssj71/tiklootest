@@ -35,9 +35,11 @@ void tick(tk_t tk, const PuglEvent* event, uint16_t n)
     tk_addtolist(tk->redraw,3);
 }
 
-void valueentered(char* entry, void* data)
+void valueentered(tk_t tk, char* entry, void* data)
 {
     fprintf(stderr,"printed %s\n",entry);
+    float f = strtof(entry,0);
+    tk_setdial(tk,1,f);
 }
 
 void input(tk_t tk, const PuglEvent* event, uint16_t n)

@@ -39,8 +39,9 @@ void tk_insertinlist(uint16_t* list, uint16_t i, uint16_t n);
 void tk_setstring(char** str, const char* msg, uint16_t *memlen);
 void tk_settimer(tk_t tk, uint16_t n, float s);
 float tk_dialvalue(tk_t tk, uint16_t n);
+void tk_setdial(tk_t tk, uint16_t n, float v);
 void tk_settext(tk_t tk, uint16_t n, const char* str);
 void tk_gettextcursor(void* valp, int *x, int *y, int *w, int *h);
 
-void tk_showinputdialog(tk_t tk, uint16_t n, const char* prompt_str, const char* def_input, void (*cb_f)(char* str, void* data), void* data);
+void tk_showinputdialog(tk_t tk, uint16_t n, const char* prompt_str, const char* def_input, void (*cb_f)(tk_t tk, char* str, void* data), void* data);
 #endif

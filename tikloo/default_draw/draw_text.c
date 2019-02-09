@@ -107,7 +107,7 @@ void tk_drawtextentry(cairo_t *cr, float w, float h, void* cache, void* valp)
         cairo_fill(cr);
         cairo_restore( cr ) ;
     }
-    else if(tkt->cursorstate&TK_CURSOR_STATE)
+    else if(tkt->cursorstate&TK_CURSOR_STATE && x<w)
     {//draw cursor
         //TODO: maybe cache cursor so we don't have to redraw the whole widget
         cairo_save( cr );

@@ -54,5 +54,6 @@ sources = [ 'tk_main.c', 'timer.c',
 tikloo = static_library( 'tikloo', sources, 
                           include_directories : inc,
                           dependencies : tk_deps,
-                          c_args : '-DPUGL_HAVE_CAIRO'
+                          c_args : '-DPUGL_HAVE_CAIRO',
+                          link_args : '-lm'
                           )

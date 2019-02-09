@@ -841,9 +841,22 @@ float tk_dialvalue(tk_t tk, uint16_t n)
     float *v = (float*)tk->value[n];
     tk_dial_stuff* tkd = (tk_dial_stuff*)tk->extras[n];
     if(tk->props[n]&TK_VALUE_PARABOLIC)
-        return *v*(tkd->max-tkd->min)+ tkd->min;
+        return *v**v*(tkd->max-tkd->min)+ tkd->min;
     else
-        return *v**v*(tkd->max-tkd->min)+ tkd->min; 
+        return *v*(tkd->max-tkd->min)+ tkd->min;
+}
+
+void tk_setdial(tk_t tk, uint16_t n, float v)
+{
+    tk_dial_stuff* tkd = (tk_dial_stuff*)tk->extras[n];
+    float *val = (float*)tk->value[n];
+    if(v > tkd->max) v = tkd->max;
+    if(v < tkd->min) v = tkd->min;
+    if(tk->props[n]&TK_VALUE_PARABOLIC)
+        *val = (v - tkd->min)/(tkd->max-tkd->min);
+    else
+        *val = sqrt((v - tkd->min)/(tkd->max-tkd->min));
+    tk_addtolist(tk->redraw,n);
 }
 
 void tk_dialcallback(tk_t tk, const PuglEvent* event, uint16_t n)
@@ -1387,17 +1400,29 @@ uint16_t tk_gettextchar(tk_text_table* tkt, uint16_t n, uint16_t x, uint16_t y)
 
 void tk_textentrycallback(tk_t tk, const PuglEvent* event, uint16_t n)
 {
-    uint16_t tw,th,del;
+    uint16_t tw,th,del,c;
     uint8_t s = ((tk_text_stuff*)tk->value[n])->n;
     switch (event->type) {
     case PUGL_BUTTON_PRESS:
         if(tk->focus == n)
         {
             //2nd click
-            tk->tkt.cursor[s] = tk_gettextchar(&tk->tkt,s,event->button.x-tk->x[n],event->button.y-tk->y[n]);
-            tk->tkt.select[s] = 0;
-            tk_settimer(tk,tk->tkt.cursortimer,.4);
-            tk->tkt.cursorstate |= TK_CURSOR_STATE + TK_CURSOR_MOVED;
+            c = tk_gettextchar(&tk->tkt,s,event->button.x-tk->x[n],event->button.y-tk->y[n]);
+            fprintf(stderr,"word %i %i\n",c,tk->tkt.cursor[s]);
+            if(c == tk->tkt.cursor[s])
+            {
+                //3rd click
+                tk->tkt.cursor[s] = 0; //TODO: it would maybe be nicer to just highlight the current word
+                tk->tkt.select[s] = strlen(tk->tkt.str[s]);
+                tk->tkt.cursorstate |= TK_CURSOR_MOVED;
+            }
+            else
+            {
+                tk->tkt.cursor[s] = c;
+                tk->tkt.select[s] = 0;
+                tk_settimer(tk,tk->tkt.cursortimer,.4);
+                tk->tkt.cursorstate |= TK_CURSOR_STATE + TK_CURSOR_MOVED;
+            }
             tk_addtolist(tk->redraw,n);
         }
         else
@@ -1477,6 +1502,7 @@ void tk_textentrycallback(tk_t tk, const PuglEvent* event, uint16_t n)
         tk->tkt.select[s] = 0;
         tk->tkt.cursorstate |= TK_CURSOR_STATE + TK_CURSOR_MOVED;
         tk_addtolist(tk->redraw,n);
+        tk->callback_f[n](tk,event,n);
     default:
         break;
     }
@@ -1490,6 +1516,11 @@ void tk_gettextcursor(void* valp, int *x, int *y, int *sx, int *sy)
     int i,j,n = tkts->n;
     float deltax=0;
     
+    if(!tkt->glyph_count[n])
+    {
+        *x = *y = *sx = *sy = 0;
+        return;
+    }
     for(i=0;i<tkt->glyph_count[n] && tkt->cluster_map[n][i]<tkt->cursor[n];i++);//get the cursor glyph
     if(i==tkt->glyph_count[n])
     {//cursor is at the end
@@ -1502,13 +1533,13 @@ void tk_gettextcursor(void* valp, int *x, int *y, int *sx, int *sy)
         for(j=i;j<tkt->glyph_count[n] && tkt->cluster_map[n][j]<(tkt->cursor[n]+tkt->select[n]);j++);
         deltax = tkt->glyph_pos[n][j] - tkt->glyph_pos[n][j-1]; //selection always goes to end of character
         j--;
-        *sx = (tkt->glyphs[n][j].x+deltax+0)*tkt->scale;
-        *sy = (tkt->glyphs[n][j].y+2)*tkt->scale;
+        *sx = (tkt->glyphs[n][j].x + deltax + 0)*tkt->scale;
+        *sy = (tkt->glyphs[n][j].y - tkt->tkf[n]->base + 2)*tkt->scale;
         deltax = 0;
     }
     else *sx = *sy = 0; //TODO: i'd rather these go to x,y
-    *x = (tkt->glyphs[n][i].x+deltax-2)*tkt->scale;
-    *y = (tkt->glyphs[n][i].y)*tkt->scale; 
+    *x = (tkt->glyphs[n][i].x + deltax - 2)*tkt->scale;
+    *y = (tkt->glyphs[n][i].y - tkt->tkf[n]->base)*tkt->scale;
 }
 
 void tk_cursorcallback(tk_t tk, const PuglEvent* event, uint16_t n)
@@ -1674,14 +1705,17 @@ void tk_hideinputdialog(tk_t tk, uint16_t n)
     tk_hide(tk,n,true);//damage the last box
 }
 
-void tk_showinputdialog(tk_t tk, uint16_t n, const char* prompt_str, const char* def_input, void (*cb_f)(char* str, void* data), void* data)
+void tk_showinputdialog(tk_t tk, uint16_t n, const char* prompt_str, const char* def_input, void (*cb_f)(tk_t tk, char* str, void* data), void* data)
 {
     uint16_t nd;
     uint8_t lmx = tk->lmax+1;
     tk_settext(tk, n+1, prompt_str); //set strings
     tk_settext(tk, n+2, def_input);
-    tk->user[n+1] = (void*)cb_f; //set callback
-    tk->user[n+2] = data;
+    uint8_t s = ((tk_text_stuff*)tk->value[n+2])->n;
+    tk->tkt.select[s] = strlen(def_input);
+    tk->focus = n+2;
+    tk->extras[n+1] = (void*)cb_f; //set callback
+    tk->extras[n+2] = data;
     *(bool*)tk->value[n+3] = false; //reset buttons
     *(bool*)tk->value[n+5] = false;
     tk_changelayer(tk,n++,lmx++);//put the background at the top layer
@@ -1701,18 +1735,32 @@ void tk_inputok(tk_t tk, const PuglEvent* e, uint16_t n)
 {
     tk_text_stuff* tkts;
     uint16_t s;
-    void (*cb_f)(char* str, void* data);
+    void (*cb_f)(tk_t tk, char* str, void* data);
     fprintf(stderr, "oak?\n");
     if((bool)tk->value[n])
     {
         tkts = (tk_text_stuff*)tk->value[n-3];//text entry of dialog is 3 widgets previous
         s = tkts->n;
-        //cb_f = (void (*cb_f)(char* str, void* data))tk->user[n];
-        cb_f = (void (*)(char*, void*))tk->user[n-4];
-        if(cb_f) cb_f(tk->tkt.str[s],tk->user[n-3]);
+        //cb_f = (void (*cb_f)(char* str, void* data))tk->extras[n];
+        cb_f = (void (*)(tk_t, char*, void*))tk->extras[n-4];
+        if(cb_f) cb_f(tk, tk->tkt.str[s], tk->extras[n-3]);
         tk_hideinputdialog(tk,n-5);
     }
 }
+
+void tk_inputenter(tk_t tk, const PuglEvent* event, uint16_t n)
+{
+    if(event->type == PUGL_KEY_PRESS)
+    {
+        if(event->key.keycode == 36)
+        {
+            //"press" the ok button
+            tk->value[n+3] = (void*)true;
+            tk_inputok(tk,0,n+3);
+        }
+    }
+}
+
 
 //input dialog requires the window to be big enough
 uint16_t tk_addaInputDialog(tk_t tk, tk_font_stuff* font)
@@ -1736,7 +1784,8 @@ uint16_t tk_addaInputDialog(tk_t tk, tk_font_stuff* font)
     nd = tk_addaText(tk, dialogx+margin, y, dialogw-2*margin, buttonh, 0, "Input a value:");//prompt
     tk->props[nd] += TK_TEXT_WRAP;
     y += 2*buttonh+margin;
-    tk_addaTextEntry(tk, dialogx+margin, y, dialogw-2*margin, buttonh, 0, "Default");//input
+    nd = tk_addaTextEntry(tk, dialogx+margin, y, dialogw-2*margin, buttonh, 0, "Default");//input
+    tk->callback_f[nd] = tk_inputenter;
     y += buttonh+margin;
     nd = tk_addaTextButton(tk, midx-buttonw-margin, y, buttonw, buttonh, 0, "Cancel");
     tk->callback_f[nd] = tk_inputcancel;
