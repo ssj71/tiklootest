@@ -378,7 +378,6 @@ void tk_resizeeverything(tk_t tk,float w, float h)
 
     //scale text
     tk->tkt.scale = sm1;
-        fprintf(stderr, "text scale: %f ",sm1);
     for(i=0;i<tk->tkt.nitems;i++)
     {
         n = tk->tkt.n[i];
@@ -387,7 +386,6 @@ void tk_resizeeverything(tk_t tk,float w, float h)
         //TODO: unless they've changed ratio they don't actually need a re-layout
         //TODO: do anything if it doesn't fit?
         tk_textlayout(tk->cr,&tk->tkt,i,&tw,&th,tk->props[n]);
-        fprintf(stderr, "%i,%i,%i,%i ", i,n,tw,th);
     }
 }
 
@@ -446,7 +444,6 @@ void tk_damagebox(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h)
     cairo_line_to(tk->cr, x, y2);
     cairo_close_path(tk->cr);
     cairo_clip_preserve(tk->cr);
-     //   fprintf(stderr,"damage,%i,%i,%i,%i: ",x,x2,y,y2);
         
     for(l=1;l<=tk->lmax;l++)
         for(i=0; tk->cb_f[i]; i++)
@@ -454,17 +451,12 @@ void tk_damagebox(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t h)
                 tk->x[i] < x2 && tk->x[i] + tk->w[i] > x &&
                 tk->y[i] < y2 && tk->y[i] + tk->h[i] > y
               )
-            {
-      //          fprintf(stderr,"%i:%i, ",l,i);
                 tk_draw(tk,i);
-            }
-       //         fprintf(stderr,"\n");
 
     cairo_restore(tk->cr);
 }
 void tk_damage(tk_t tk, uint16_t n)
 {
-    //fprintf(stderr,"%i ",n);
     tk_damagebox(tk,tk->x[n],tk->y[n],tk->w[n],tk->h[n]);
 }
 
@@ -563,17 +555,11 @@ void tk_callback (PuglView* view, const PuglEvent* event)
         tk_resizeeverything(tk,event->configure.width,event->configure.height);
         break;
     case PUGL_EXPOSE:
-        //if(event->expose.count)
-        //    return;
-        //tk_draweverything(tk);
         tk_damagebox(tk,
                 event->expose.x,
                 event->expose.y,
                 event->expose.width,
                 event->expose.height); 
-
-        fprintf(stderr,  "\n");
-        //tk_draweverything(tk);
         break;
     case PUGL_CLOSE:
         tk->quit = 1;
@@ -628,9 +614,7 @@ void tk_callback (PuglView* view, const PuglEvent* event)
         if(tk->ttip)
             tk_settimer(tk,tk->ttip,0); //disable tt
         if(n)
-        {
             tk->cb_f[n](tk,event,n);
-            fprintf(stderr,"click %i\n",n);}
         break;
     case PUGL_SCROLL:
         n = tk_eventsearch(tk,event);
@@ -1408,7 +1392,6 @@ void tk_textentrycallback(tk_t tk, const PuglEvent* event, uint16_t n)
         {
             //2nd click
             c = tk_gettextchar(&tk->tkt,s,event->button.x-tk->x[n],event->button.y-tk->y[n]);
-            fprintf(stderr,"word %i %i\n",c,tk->tkt.cursor[s]);
             if(c == tk->tkt.cursor[s])
             {
                 //3rd click
@@ -1469,7 +1452,6 @@ void tk_textentrycallback(tk_t tk, const PuglEvent* event, uint16_t n)
         //TODO: up down
         else if(strlen((char*)event->key.utf8))
         {//it changes the string
-            fprintf(stderr, "str0 %s -- ",tk->tkt.str[s]);
             del = tk->tkt.select[s];
             if(!del)del++;
             if(event->key.keycode == 119)
@@ -1497,7 +1479,6 @@ void tk_textentrycallback(tk_t tk, const PuglEvent* event, uint16_t n)
             tw = tk->w[n];
             th = tk->h[n];
             tk_textlayout(tk->cr,&tk->tkt,s,&tw,&th,tk->props[n]);
-            fprintf(stderr, "str %s\n ",tk->tkt.str[s]);
         }
         tk->tkt.select[s] = 0;
         tk->tkt.cursorstate |= TK_CURSOR_STATE + TK_CURSOR_MOVED;
@@ -1724,7 +1705,6 @@ void tk_showinputdialog(tk_t tk, uint16_t n, const char* prompt_str, const char*
 
 void tk_inputcancel(tk_t tk, const PuglEvent* e, uint16_t n)
 {
-    fprintf(stderr, "hide?\n");
     if((bool)tk->value[n])
     {
         tk_hideinputdialog(tk,n-3);
@@ -1736,7 +1716,6 @@ void tk_inputok(tk_t tk, const PuglEvent* e, uint16_t n)
     tk_text_stuff* tkts;
     uint16_t s;
     void (*cb_f)(tk_t tk, char* str, void* data);
-    fprintf(stderr, "oak?\n");
     if((bool)tk->value[n])
     {
         tkts = (tk_text_stuff*)tk->value[n-3];//text entry of dialog is 3 widgets previous
@@ -1791,8 +1770,6 @@ uint16_t tk_addaInputDialog(tk_t tk, tk_font_stuff* font)
     tk->callback_f[nd] = tk_inputcancel;
     nd = tk_addaTextButton(tk, midx+margin, y, buttonw, buttonh, 0, "OK");
     tk->callback_f[nd] = tk_inputok;
-    fprintf(stderr,"end %i\n",nd+1);
     tk_hideinputdialog(tk,n);
     return n;
 }
-
