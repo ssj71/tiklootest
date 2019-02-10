@@ -626,7 +626,7 @@ void tk_callback (PuglView* view, const PuglEvent* event)
         if(tk->focus != n)
             tk->focus = 0;
         if(tk->ttip)
-            tk_settimer(tk,tk->ttip,0);
+            tk_settimer(tk,tk->ttip,0); //disable tt
         if(n)
         {
             tk->cb_f[n](tk,event,n);
@@ -853,9 +853,9 @@ void tk_setdial(tk_t tk, uint16_t n, float v)
     if(v > tkd->max) v = tkd->max;
     if(v < tkd->min) v = tkd->min;
     if(tk->props[n]&TK_VALUE_PARABOLIC)
-        *val = (v - tkd->min)/(tkd->max-tkd->min);
-    else
         *val = sqrt((v - tkd->min)/(tkd->max-tkd->min));
+    else
+        *val = (v - tkd->min)/(tkd->max-tkd->min);
     tk_addtolist(tk->redraw,n);
 }
 
@@ -1516,9 +1516,10 @@ void tk_gettextcursor(void* valp, int *x, int *y, int *sx, int *sy)
     int i,j,n = tkts->n;
     float deltax=0;
     
+    *sx = *sy = 0;
     if(!tkt->glyph_count[n])
     {
-        *x = *y = *sx = *sy = 0;
+        *x = *y = 0;
         return;
     }
     for(i=0;i<tkt->glyph_count[n] && tkt->cluster_map[n][i]<tkt->cursor[n];i++);//get the cursor glyph
@@ -1537,7 +1538,6 @@ void tk_gettextcursor(void* valp, int *x, int *y, int *sx, int *sy)
         *sy = (tkt->glyphs[n][j].y - tkt->tkf[n]->base + 2)*tkt->scale;
         deltax = 0;
     }
-    else *sx = *sy = 0; //TODO: i'd rather these go to x,y
     *x = (tkt->glyphs[n][i].x + deltax - 2)*tkt->scale;
     *y = (tkt->glyphs[n][i].y - tkt->tkf[n]->base)*tkt->scale;
 }
@@ -1681,9 +1681,9 @@ uint16_t tk_addaTooltip(tk_t tk, tk_font_stuff* font)
 // Text_Button_Stuff
 void tk_textbuttoncallback(tk_t tk, const PuglEvent* event, uint16_t n)
 {
-    uint8_t v = *(uint8_t*)tk->value[n];
+    bool v = *(bool*)tk->value[n];
     tk_buttoncallback(tk, event, n);
-    if(v != *(uint8_t*)tk->value[n])
+    if(v != *(bool*)tk->value[n])
         tk_addtolist(tk->redraw,n+1);
 }
 
@@ -1713,7 +1713,7 @@ void tk_showinputdialog(tk_t tk, uint16_t n, const char* prompt_str, const char*
     tk_settext(tk, n+2, def_input);
     uint8_t s = ((tk_text_stuff*)tk->value[n+2])->n;
     tk->tkt.select[s] = strlen(def_input);
-    tk->focus = n+2;
+    tk->focus = n+2; //this doesn't work because the click release will change the focus away, it would be nice if you could just type
     tk->extras[n+1] = (void*)cb_f; //set callback
     tk->extras[n+2] = data;
     *(bool*)tk->value[n+3] = false; //reset buttons
@@ -1755,7 +1755,7 @@ void tk_inputenter(tk_t tk, const PuglEvent* event, uint16_t n)
         if(event->key.keycode == 36)
         {
             //"press" the ok button
-            tk->value[n+3] = (void*)true;
+            *(bool*)tk->value[n+3] = true;
             tk_inputok(tk,0,n+3);
         }
     }
