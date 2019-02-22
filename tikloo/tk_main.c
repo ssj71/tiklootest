@@ -1450,6 +1450,7 @@ void tk_textentrycallback(tk_t tk, const PuglEvent* event, uint16_t n)
         else if(event->key.keycode == 115)
             tk->tkt.cursor[s] = tw; //end
         //TODO: up down
+        //TODO: ignore shift, ctl etc
         else if(strlen((char*)event->key.utf8))
         {//it changes the string
             del = tk->tkt.select[s];
@@ -1550,7 +1551,6 @@ uint16_t tk_addaTextEntry(tk_t tk, uint16_t x, uint16_t y, uint16_t w, uint16_t 
         tk->tkt.cursortimer = tk_addaTimer(tk, 0);
         tk->callback_f[tk->tkt.cursortimer] = tk_cursorcallback;
     }
-    //TODO: stuff
     return n;
 }
 
