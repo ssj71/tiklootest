@@ -80,38 +80,44 @@ void tk_drawtextentry(cairo_t *cr, float w, float h, void* cache, void* valp)
         tk_drawtip(cr,w,h,cache,valp);
         cairo_restore( cr ) ;
     }
-    else if(!(tkt->cursorstate&TK_CURSOR_STATE))
+    if(tkt->select[n])
+    {
+        if(tkt->cursorstate&TK_CURSOR_MOVED)
+        {//draw selection box if it changed
+            cairo_save( cr );
+            cairo_set_source_rgba(cr, .0,.0,.0,.5);
+            cairo_set_line_width(cr, 1);
+            cairo_new_path(cr);
+            cairo_move_to(cr, x, y);
+            cairo_line_to(cr, sx, y);//sy+tkt->tkf[n]->fontsize*tkt->scale);
+            cairo_line_to(cr, sx, sy+tkt->tkf[n]->fontsize*tkt->scale);
+            cairo_line_to(cr, x, sy+tkt->tkf[n]->fontsize*tkt->scale); //TODO: handle multiple lines (y,h)
+            cairo_close_path(cr);
+            cairo_set_tolerance(cr, 0.1);
+            cairo_fill(cr);
+            cairo_restore( cr ) ;
+        }
+    }
+    else if(tkt->cursorstate&TK_CURSOR_STATE)
+    {
+        if(x<w)
+        {//draw cursor
+            //TODO: maybe cache cursor so we don't have to redraw the whole widget
+            cairo_save( cr );
+            cairo_set_source_rgba(cr, .0,.0,.0,1);
+            cairo_set_line_width(cr, 2);
+            cairo_new_path(cr);
+            cairo_move_to(cr, x, y);
+            cairo_line_to(cr, x, y+tkt->tkf[n]->fontsize*tkt->scale);
+            cairo_set_tolerance(cr, 0.1);
+            cairo_stroke(cr);
+            cairo_restore( cr ) ;
+        }
+    }
+    else
     {//draw a not-cursor
         cairo_save( cr );
         cairo_set_source_rgba(cr, TK_COLOR_DARK, 1);//same color as the box
-        cairo_set_line_width(cr, 2);
-        cairo_new_path(cr);
-        cairo_move_to(cr, x, y);
-        cairo_line_to(cr, x, y+tkt->tkf[n]->fontsize*tkt->scale);
-        cairo_set_tolerance(cr, 0.1);
-        cairo_stroke(cr);
-        cairo_restore( cr ) ;
-    }
-    if(tkt->select[n] && tkt->cursorstate&TK_CURSOR_MOVED)
-    {//draw selection box if it changed
-        cairo_save( cr );
-        cairo_set_source_rgba(cr, .0,.0,.0,.5);
-        cairo_set_line_width(cr, 1);
-        cairo_new_path(cr);
-        cairo_move_to(cr, x, y);
-        cairo_line_to(cr, sx, y);//sy+tkt->tkf[n]->fontsize*tkt->scale);
-        cairo_line_to(cr, sx, sy+tkt->tkf[n]->fontsize*tkt->scale);
-        cairo_line_to(cr, x, sy+tkt->tkf[n]->fontsize*tkt->scale); //TODO: handle multiple lines (y,h)
-        cairo_close_path(cr);
-        cairo_set_tolerance(cr, 0.1);
-        cairo_fill(cr);
-        cairo_restore( cr ) ;
-    }
-    else if(tkt->cursorstate&TK_CURSOR_STATE && x<w)
-    {//draw cursor
-        //TODO: maybe cache cursor so we don't have to redraw the whole widget
-        cairo_save( cr );
-        cairo_set_source_rgba(cr, .0,.0,.0,1);
         cairo_set_line_width(cr, 2);
         cairo_new_path(cr);
         cairo_move_to(cr, x, y);
