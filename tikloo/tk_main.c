@@ -1393,30 +1393,27 @@ void tk_textentrycallback(tk_t tk, const PuglEvent* event, uint16_t n)
     case PUGL_BUTTON_PRESS:
         if(tk->focus == n)
         {
-            //2nd click
             c = tk_gettextchar(&tk->tkt,s,event->button.x-tk->x[n],event->button.y-tk->y[n]);
             if(c == tk->tkt.cursor[s])
-            {
-                //3rd click
+            {//3rd click
                 tk->tkt.cursor[s] = 0; //TODO: it would maybe be nicer to just highlight the current word
                 tk->tkt.select[s] = strlen(tk->tkt.str[s]);
                 tk->tkt.cursorstate |= TK_CURSOR_MOVED;
             }
             else
-            {
+            {//2nd click
                 tk->tkt.cursor[s] = c;
                 tk->tkt.select[s] = 0;
-                tk_settimer(tk,tk->tkt.cursortimer,.4);
                 tk->tkt.cursorstate |= TK_CURSOR_STATE + TK_CURSOR_MOVED;
             }
-            tk_addtolist(tk->redraw,n);
         }
         else
-        {
+        {//1st click
             tk->focus = n;
+            tk_settimer(tk,tk->tkt.cursortimer,.4);
             tk->tkt.cursorstate |= TK_CURSOR_MOVED;
-            tk_addtolist(tk->redraw,n);
         }
+        tk_addtolist(tk->redraw,n);
         tk->drag = n;
         break;
     case PUGL_MOTION_NOTIFY:
