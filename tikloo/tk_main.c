@@ -753,7 +753,10 @@ void tk_hide(tk_t tk, uint16_t n, bool damage)
     if(tk->layer[n] == tk->lmax)
     {//this could be the only one on this layer
         for(i=0;tk->draw[i];i++);//find end of list
-        tk->lmax = tk->layer[tk->draw[--i]];
+        if(i>1)
+            tk->lmax = tk->layer[tk->draw[i-2]];
+        else
+            tk->lmax = 1;//you have hidden everything
     }
     tk_removefromlist(tk->draw,n);
     tk_removefromlist(tk->redraw,n);
