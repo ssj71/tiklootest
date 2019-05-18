@@ -17,7 +17,8 @@ int main()
 
     tk = tk_gimmeaTiKloo(200, //w
                          200, //h
-                         "this is only another test");//title
+                         "this is only another test", //title
+                         0); //parent window
     tk_addaText(tk,
                 5, //x
                 5, //y

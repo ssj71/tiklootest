@@ -61,7 +61,8 @@ int main()
 
     tk = tk_gimmeaTiKloo(200, //w
                          200, //h
-                         "this is only a test");//title
+                         (char*)"this is only a test", //title
+                         0); //parent window
     n = tk_addaDial(tk,
                     20, //x
                     20, //y
