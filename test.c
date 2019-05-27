@@ -116,6 +116,14 @@ int main()
                     0, //font (0 uses default)
                     "Don't Panic!"); //msg
 
+    n = tk_addaVerticalText(tk,
+                            110, //x
+                            5, //y
+                            10, //w
+                            90, //h
+                            0, //font (0 uses default)
+                            "sideways text, bruh!"); //msg
+
     n = tk_addaTimer(tk, 5.0);//seconds
     tk->callback_f[n] = tick;
 
