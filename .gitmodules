@@ -1,0 +1,3 @@
+[submodule "tikloo"]
+	path = tikloo
+	url = git@github.com:ssj71/tikloo.git

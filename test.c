@@ -60,7 +60,7 @@ int main()
     uint16_t n;
 
     tk = tk_gimmeaTiKloo(200, //w
-                         200, //h
+                         250, //h
                          (char*)"this is only a test", //title
                          0); //parent window
     n = tk_addaDial(tk,
@@ -107,6 +107,9 @@ int main()
     //                    0,   //font binary size (0 for path)
     //                    0,   //font index
     //                    10); //font height 
+
+    //TODO: test 2 different fonts, different font sizes
+
     n = tk_addaText(tk,
                     5, //x
                     5, //y
@@ -115,6 +118,15 @@ int main()
                     //tkf,//font
                     0, //font (0 uses default)
                     "Don't Panic!"); //msg
+
+    n = tk_addaText(tk,
+                    5, //x
+                    160, //y
+                    180, //w
+                    30, //h
+                    //tkf,//font
+                    0, //font (0 uses default)
+                    "Big words!"); //msg
 
     n = tk_addaVerticalText(tk,
                             110, //x
